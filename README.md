@@ -3,6 +3,7 @@ The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, and theming.
 
 ✨ What’s New in v1.0.5
+
 ✅ Admin Acknowledgement Banner
 * Added a demo disclaimer banner visible only to admins.
 * Includes a “Acknowledge” button that flips sidebar_acknowledged = Yes in the default row.
