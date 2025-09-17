@@ -5,8 +5,7 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 ✨ What’s New in v1.0.5
 ✅ Admin Acknowledgement Banner
 * Added a demo disclaimer banner visible only to admins.
-
-Includes a “Acknowledge” button that flips sidebar_acknowledged = Yes in the default row.
+* Includes a “Acknowledge” button that flips sidebar_acknowledged = Yes in the default row.
 * Ensures clear consent before use in production.
 
 ✅ PowerApps Canvas App support
@@ -22,15 +21,13 @@ Includes a “Acknowledge” button that flips sidebar_acknowledged = Yes in the
 🛠 Features
 * Table-driven config (sidebar_genericsidebar) — no redeployments required.
 * Rich instructions band with bullet/heading normalization.
+* Embed options:
+  * Copilot Studio Bot
+  * External Websites
+  * Raw HTML Snippets
+  * PowerApps Canvas Apps
 
-Embed options:
-
-* Copilot Studio Bot
-* External Websites
-* Raw HTML Snippets
-* PowerApps Canvas Apps
-
-
+🪖 Optional
 * Optional icon field (sidebar_sidebaricon) in header.
 * Full iframe customization (allow, style, width, height).
 * Safe defaults (auto-applied allow attributes, strict referrer policy).
@@ -39,20 +36,17 @@ Embed options:
 ⚡ Usage Instructions
 1. Import the Solution
 2. Import the managed/unmanaged solution into your Dynamics 365 environment.
-
 3. Create a Config Row
    Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
-
 4. Set Key Fields
    Fill in:
+   * sidebar_title — header title (shown in the pane chrome).
+   * sidebar_instructions — rich text instructions (bullets/headings supported).
+   * sidebar_embedcode — choose:
 
-* sidebar_title — header title (shown in the pane chrome).
-* sidebar_instructions — rich text instructions (bullets/headings supported).
-* sidebar_embedcode — choose:
-
-  https://... (External URL)
-  <iframe ...></iframe> (Copilot or Canvas App)
-  Raw HTML
+   https://... (External URL)
+   <iframe ...></iframe> (Copilot or Canvas App)
+   Raw HTML
 
 Example of HTML Configuratuion
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
