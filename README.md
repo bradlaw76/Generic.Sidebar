@@ -76,5 +76,3 @@ Before production use, admins must acknowledge the disclaimer via the welcome ba
 
 
 📌 Pro tip: Use annotated screenshots with arrows/callouts so people immediately see which fields to configure.
-
-👉 Do you also want me to create a CHANGELOG.md with a structured history (v1.0.0 → v1.0.5) so you can track all changes separately from the README?
