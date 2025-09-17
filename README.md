@@ -58,6 +58,18 @@ webresource:YourResource.html
 <iframe ...></iframe> (Copilot or Canvas App)
 Raw HTML
 
+Example of HTML Configuratuion
+![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
+Example Displayed to End User
+![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.Embed.png)
+
+
+Example of Coplot Studio Configuratuion
+![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.CSStudio.Embed.png)
+Example Displayed to End User
+![Import Solution Screenshot](./screenshots/Generic.Sidebar.CopilotStudio.Embed.png)
+
+
 Add JS to Form
 Add the generic_sidebar.js web resource to your form and set OnLoad handler → Generic_OpenSidebar.
 
