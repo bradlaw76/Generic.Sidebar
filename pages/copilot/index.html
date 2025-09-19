@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Copilot Agent Redirect</title>
+  <!-- Try hard to avoid stale caches when you rotate agents -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <script>
+    // Single source of truth for your live agent
+    const LIVE_AGENT_URL =
+      "https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent_WAojfm/webchat?__version__=2";
+
+    // Optional: pass through any query string from callers
+    const passthrough = window.location.search || "";
+    window.location.replace(LIVE_AGENT_URL + passthrough);
+  </script>
+</head>
+<body>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent_WAojfm/webchat?__version__=2">
+  </noscript>
+</body>
+</html>
