@@ -1,1 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generic.Sidebar – Release Downloads</title>
 
+  <meta name="description" content="Downloads per release and per-asset for bradlaw76/Generic.Sidebar with CSV export." />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Keep chart area responsive without causing layout shift */
+    #chartWrap { height: 480px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Generic.Sidebar – Release Tracker</h1>
+        <p class="text-sm text-gray-600">Repository: <a class="text-blue-600 hover:underline" id="repoLink" href="#" target="_blank" rel="noopener">bradlaw76/Generic.Sidebar</a></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="githubStar" href="#" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-100">
+          ⭐️ Star on GitHub
+        </a>
+      </div>
+    </header>
+
+    <!-- Controls -->
+    <section class="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="flex items-center gap-2">
+        <label for="releaseCount" class="text-sm font-medium text-gray-700">Show last</label>
+        <select id="releaseCount" class="rounded-md border-gray-300 text-sm">
+          <option value="6">6</option>
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+        <span class="text-sm text-gray-500">releases</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="assetFilter" class="text-sm font-medium text-gray-700">Filter asset name</label>
+        <input id="assetFilter" type="text" placeholder="e.g. win64, zip" class="rounded-md border-gray-300 text-sm px-2 py-1 w-full" />
+      </div>
+      <div class="flex items-center gap-2 justify-start sm:justify-end">
+        <button id="toggleLegendButton" class="text-sm px-3 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">Toggle Legend</button>
+        <button id="exportCsvBtn" class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
+      </div>
+    </section>
+
+    <!-- Status / Alerts -->
+    <section id="statusBox" class="hidden mb-4 p-3 rounded-md border text-sm"></section>
+
+    <!-- Chart -->
+    <section class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold text-gray-900">Asset Downloads for Latest Releases</h2>
+        <div id="loading" class="hidden text-sm text-gray-600">Loading…</div>
+      </div>
+      <div id="chartWrap" class="relative">
+        <canvas id="releaseChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="bg-white border border-gray-200 rounded-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-gray-900">Release Data</h2>
+        <span id="rowCount" class="text-sm text-gray-500"></span>
+      </div>
+      <div class="overflow-x-auto overflow-y-auto max-h-[28rem] rounded-md border border-gray-200">
+        <table class="min-w-full text-sm" id="releaseTable">
+          <thead class="bg-gray-50 text-gray-600">
+            <tr>
+              <th class="px-4 py-2 text-left">Release Date</th>
+              <th class="px-4 py-2 text-left">Tag</th>
+              <th class="px-4 py-2 text-left">Release</th>
+              <th class="px-4 py-2 text-left">Asset</th>
+              <th class="px-4 py-2 text-left">Downloads</th>
+              <th class="px-4 py-2 text-left">Total Downloads</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // === Configuration (hardcoded to your repository) ===
+    const REPO = "bradlaw76/Generic.Sidebar";
+    const API_BASE = `https://api.github.com/repos/${REPO}`;
+
+    // UI elements
+    const repoLink = document.getElementById('repoLink');
+    const githubStar = document.getElementById('githubStar');
+    const releaseCountSel = document.getElementById('releaseCount');
+    const assetFilterInp = document.getElementById('assetFilter');
+    const toggleLegendButton = document.getElementById('toggleLegendButton');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const statusBox = document.getElementById('statusBox');
+    const loadingEl = document.getElementById('loading');
+    const rowCountEl = document.getElementById('rowCount');
+
+    let chart;        // Chart.js instance
+    let fullData = []; // processed releases (all pages)
+    let viewData = []; // filtered by controls (count, asset filter)
+
+    // Init static links
+    repoLink.href = `https://github.com/${REPO}`;
+    githubStar.href = `https://github.com/${REPO}`;
+
+    // --- Helpers ---
+    function showStatus(type, msg) {
+      statusBox.classList.remove('hidden');
+      statusBox.textContent = msg;
+      statusBox.className = '';
+      statusBox.classList.add('mb-4','p-3','rounded-md','border','text-sm');
+      if (type === 'error') {
+        statusBox.classList.add('border-red-300','bg-red-50','text-red-800');
+      } else if (type === 'warn') {
+        statusBox.classList.add('border-yellow-300','bg-yellow-50','text-yellow-800');
+      } else {
+        statusBox.classList.add('border-blue-300','bg-blue-50','text-blue-800');
+      }
+    }
+    function clearStatus(){ statusBox.classList.add('hidden'); }
+
+    function fmtDateISO(dateStr){
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString().split('T')[0];
+    }
+
+    async function fetchAllReleases() {
+      // Paginate through /releases (30 per page by default). We'll request 100/page to minimize calls.
+      const perPage = 100;
+      let page = 1;
+      let all = [];
+      while (true) {
+        const url = `${API_BASE}/releases?per_page=${perPage}&page=${page}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          let detail = `HTTP ${res.status}`;
+          try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
+          throw new Error(detail);
+        }
+        const batch = await res.json();
+        all = all.concat(batch);
+        if (batch.length < perPage) break; // no more pages
+        page++;
+        if (page > 10) break; // safety cap (1000 releases)
+      }
+      return all;
+    }
+
+    function processReleaseData(releases) {
+      return releases.map(release => {
+        const totalDownloads = (release.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
+        return {
+          id: release.id,
+          date: fmtDateISO(release.published_at || release.created_at),
+          tagName: release.tag_name,
+          releaseName: release.name || release.tag_name || 'Untitled',
+          htmlUrl: release.html_url,
+          assets: (release.assets || []).map(a => ({
+            name: a.name,
+            downloadCount: a.download_count || 0,
+            url: a.browser_download_url
+          })),
+          totalDownloads
+        };
+      });
+    }
+
+    function applyViewFilters() {
+      const n = parseInt(releaseCountSel.value, 10) || 10;
+      const filter = (assetFilterInp.value || '').toLowerCase().trim();
+
+      // Slice latest N by published date order (GitHub returns newest first)
+      const latest = fullData.slice(0, n);
+
+      if (!filter) return latest;
+      // If filtering by asset name, keep releases but filter assets
+      return latest.map(r => ({
+        ...r,
+        assets: r.assets.filter(a => a.name.toLowerCase().includes(filter))
+      }));
+    }
+
+    function buildDatasets(data) {
+      // All unique asset names in the view
+      const assetNames = [...new Set(data.flatMap(r => r.assets.map(a => a.name)))];
+      // Create series for each asset name across releases
+      const datasets = assetNames.map((name, idx) => ({
+        label: name,
+        data: data.map(r => {
+          const found = r.assets.find(a => a.name === name);
+          return found ? found.downloadCount : 0;
+        }).reverse(),
+        borderColor: `hsl(${(idx * 137.508) % 360}deg, 70%, 45%)`,
+        fill: false,
+        tension: 0.25
+      }));
+      // Total Downloads line
+      datasets.unshift({
+        label: 'Total Downloads',
+        data: data.map(r => r.totalDownloads).reverse(),
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.2
+      });
+      return datasets;
+    }
+
+    function updateChart(data) {
+      const labels = data.map(r => r.tagName || '(no tag)').reverse();
+      const datasets = buildDatasets(data);
+
+      if (chart) chart.destroy();
+      const ctx = document.getElementById('releaseChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Number of Downloads' } },
+            x: { title: { display: true, text: 'Release Tags' } }
+          },
+          plugins: {
+            legend: { display: false, position: 'top' },
+            title: { display: true, text: 'Asset Downloads per Release' },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          interaction: { mode: 'nearest', intersect: false }
+        }
+      });
+    }
+
+    function updateTable(data) {
+      const tbody = document.querySelector('#releaseTable tbody');
+      tbody.innerHTML = '';
+      let rows = 0;
+      for (const r of data) {
+        for (const a of r.assets) {
+          const tr = document.createElement('tr');
+          tr.className = 'odd:bg-white even:bg-gray-50';
+
+          const tdDate = document.createElement('td');
+          tdDate.className = 'px-4 py-2 whitespace-nowrap text-gray-700';
+          tdDate.textContent = r.date || '';
+
+          const tdTag = document.createElement('td');
+          tdTag.className = 'px-4 py-2 whitespace-nowrap font-medium text-gray-900';
+          tdTag.textContent = r.tagName || '';
+
+          const tdRel = document.createElement('td');
+          tdRel.className = 'px-4 py-2 whitespace-nowrap';
+          const linkRel = document.createElement('a');
+          linkRel.href = r.htmlUrl;
+          linkRel.target = '_blank';
+          linkRel.rel = 'noopener';
+          linkRel.className = 'text-blue-600 hover:underline';
+          linkRel.textContent = r.releaseName || r.tagName || 'Release';
+          tdRel.appendChild(linkRel);
+
+          const tdAsset = document.createElement('td');
+          tdAsset.className = 'px-4 py-2 whitespace-nowrap';
+          const linkAsset = document.createElement('a');
+          linkAsset.href = a.url || '#';
+          linkAsset.target = '_blank';
+          linkAsset.rel = 'noopener';
+          linkAsset.className = 'text-blue-600 hover:underline';
+          linkAsset.textContent = a.name || '';
+          tdAsset.appendChild(linkAsset);
+
+          const tdCount = document.createElement('td');
+          tdCount.className = 'px-4 py-2 whitespace-nowrap text-gray-700';
+          tdCount.textContent = a.downloadCount.toLocaleString();
+
+          const tdTotal = document.createElement('td');
+          tdTotal.className = 'px-4 py-2 whitespace-nowrap text-gray-700';
+          tdTotal.textContent = r.totalDownloads.toLocaleString();
+
+          tr.append(tdDate, tdTag, tdRel, tdAsset, tdCount, tdTotal);
+          tbody.appendChild(tr);
+          rows++;
+        }
+      }
+      rowCountEl.textContent = rows ? `${rows.toLocaleString()} rows` : 'No rows';
+      exportCsvBtn.disabled = !rows;
+    }
+
+    function exportToCSV(data) {
+      const header = ['Release Date','Tag','Release Name','Release URL','Asset','Asset URL','Downloads','Total Downloads'];
+      const rows = [];
+      for (const r of data) {
+        for (const a of r.assets) {
+          rows.push([
+            r.date,
+            r.tagName || '',
+            r.releaseName || '',
+            r.htmlUrl || '',
+            a.name || '',
+            a.url || '',
+            String(a.downloadCount ?? 0),
+            String(r.totalDownloads ?? 0)
+          ]);
+        }
+      }
+      const csv = [header, ...rows].map(row => row.map(cell => {
+        // CSV-escape cell
+        const needsQuote = /[",\n]/.test(cell);
+        let v = cell.replace(/"/g, '""');
+        return needsQuote ? `"${v}"` : v;
+      }).join(',')).join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'Generic.Sidebar_release_data.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function computeRateInfo(headers){
+      const rem = headers.get('X-RateLimit-Remaining');
+      const reset = headers.get('X-RateLimit-Reset');
+      if (rem !== null && reset) {
+        const secs = Math.max(0, Number(reset) * 1000 - Date.now());
+        const mins = Math.ceil(secs / 60000);
+        return { remaining: Number(rem), resetEpoch: Number(reset), resetMins: mins };
+      }
+      return null;
+    }
+
+    async function load() {
+      clearStatus();
+      loadingEl.classList.remove('hidden');
+      try {
+        const res = await fetch(`${API_BASE}/releases?per_page=1`);
+        if (!res.ok) {
+          let msg = `Failed to reach GitHub (HTTP ${res.status}).`;
+          try { const j = await res.json(); if (j.message) msg += ` ${j.message}`; } catch {}
+          throw new Error(msg);
+        }
+        const info = computeRateInfo(res.headers);
+        if (info && info.remaining <= 5) {
+          showStatus('warn', `GitHub API rate limit is low (${info.remaining} remaining). It resets in ~${info.resetMins} minute(s).`);
+        }
+        // Now get all pages
+        const releases = await fetchAllReleases();
+        if (!releases || releases.length === 0) {
+          showStatus('warn', 'No releases found for this repository.');
+        }
+        fullData = processReleaseData(releases);
+        viewData = applyViewFilters();
+        updateChart(viewData);
+        updateTable(viewData);
+      } catch (e) {
+        console.error(e);
+        showStatus('error', e.message || 'Unexpected error while loading releases.');
+      } finally {
+        loadingEl.classList.add('hidden');
+      }
+    }
+
+    // --- Events ---
+    toggleLegendButton.addEventListener('click', () => {
+      if (!chart) return;
+      const cur = chart.options.plugins.legend.display;
+      chart.options.plugins.legend.display = !cur;
+      chart.update();
+    });
+
+    releaseCountSel.addEventListener('change', () => {
+      viewData = applyViewFilters();
+      updateChart(viewData);
+      updateTable(viewData);
+    });
+
+    let filterDebounce;
+    assetFilterInp.addEventListener('input', () => {
+      clearTimeout(filterDebounce);
+      filterDebounce = setTimeout(() => {
+        viewData = applyViewFilters();
+        updateChart(viewData);
+        updateTable(viewData);
+      }, 250);
+    });
+
+    exportCsvBtn.addEventListener('click', () => exportToCSV(viewData));
+
+    // Kick off
+    load();
+  </script>
+</body>
+</html>
