@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generic.Sidebar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <main class="max-w-4xl mx-auto px-6 py-12">
+    <header class="mb-12 text-center">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">Generic.Sidebar</h1>
+      <p class="text-lg text-gray-600">A project by <span class="font-medium">bradlaw76</span></p>
+    </header>
+
+    <section class="mb-12">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">About</h2>
+      <p class="text-gray-700 leading-relaxed">
+        Generic.Sidebar is an open-source project designed to simplify and enhance sidebar functionality for modern web applications. It integrates seamlessly, offers flexibility, and provides a foundation for extending custom features.
+      </p>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Get Started</h2>
+      <p class="text-gray-700 leading-relaxed mb-4">
+        Explore the repository, check out tagged releases, and get started by downloading the latest version.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="https://github.com/bradlaw76/Generic.Sidebar" target="_blank" rel="noopener"
+           class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+          View Repository
+        </a>
+        <a href="https://github.com/bradlaw76/Generic.Sidebar/tags" target="_blank" rel="noopener"
+           class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-gray-800 text-white font-medium hover:bg-gray-900">
+          View Releases & Tags
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Contributing</h2>
+      <p class="text-gray-700 leading-relaxed">
+        Contributions are welcome! Feel free to fork the repository, open issues, and submit pull requests. Your feedback and enhancements help make Generic.Sidebar better for everyone.
+      </p>
+    </section>
+  </main>
+
+  <footer class="mt-16 py-6 border-t text-center text-gray-500 text-sm">
+    © <span id="year"></span> Generic.Sidebar by bradlaw76
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
