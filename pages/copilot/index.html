@@ -1,100 +1,18 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Copilot Host</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Copilot Agent Chat</title>
   <style>
-    html,body { margin:0; height:100%; overflow:hidden; background:#fff; }
-    #webchat { width:100%; height:100%; }
-    #error { font-family:system-ui,Segoe UI,Arial,sans-serif; padding:16px; color:#b00020; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: 0; display: block; }
   </style>
-  <!-- Bot Framework Web Chat -->
-  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="webchat"></div>
-  <div id="error" hidden></div>
-
-  <script>
-    // Copilot Studio "Custom website" Direct Line token endpoint (GCC-G/High domain)
-    const TOKEN_ENDPOINT_URL =
-      'https://79865a4a1c0de50e87a299bb3915064.2.environment.api.gov.powerplatform.microsoft.us/powervirtualagents/bots/cr1ee_genericSidebarAgent_WAojfm/directline/token?api-version=2022-03-01';
-
-    const locale = document.documentElement.lang || 'en-US';
-
-    function showError(msg) {
-      const el = document.getElementById('error');
-      el.textContent = msg;
-      el.hidden = false;
-    }
-
-    (async function init() {
-      try {
-        if (!window.WebChat) {
-          showError('Web Chat script failed to load.');
-          return;
-        }
-
-        // Discover regional Direct Line base
-        const tokenUrl = new URL(TOKEN_ENDPOINT_URL);
-        const apiVersion = tokenUrl.searchParams.get('api-version') || '2022-03-01';
-        const regionalSettingsUrl = new URL(`/powervirtualagents/regionalchannelsettings?api-version=${apiVersion}`, tokenUrl);
-
-        const regionalRes = await fetch(regionalSettingsUrl);
-        if (!regionalRes.ok) throw new Error('Failed to retrieve regional channel settings.');
-        const { channelUrlsById } = await regionalRes.json();
-        const directLineBase = channelUrlsById && channelUrlsById.directline;
-        if (!directLineBase) throw new Error('Direct Line base URL not found in regional settings.');
-
-        // Get Direct Line token
-        const tokenRes = await fetch(tokenUrl.toString());
-        if (!tokenRes.ok) throw new Error('Failed to retrieve Direct Line token.');
-        const tokenJson = await tokenRes.json();
-        const token = tokenJson && (tokenJson.token || tokenJson.directLineToken || tokenJson.dlToken);
-        if (!token) throw new Error('Token not present in response.');
-
-        // Create Direct Line connection
-        const directLine = window.WebChat.createDirectLine({
-          domain: new URL('v3/directline', directLineBase).toString(),
-          token
-        });
-
-        // Send startConversation once connected
-        const userId = 'gs_' + Math.random().toString(36).slice(2);
-        const sub = directLine.connectionStatus$.subscribe({
-          next(value) {
-            if (value === 2) {
-              directLine.postActivity({
-                type: 'event',
-                name: 'startConversation',
-                from: { id: userId },
-                locale,
-                localTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              }).subscribe({ complete: () => sub.unsubscribe() });
-            }
-          }
-        });
-
-        // Render Web Chat
-        const styleOptions = {
-          hideUploadButton: true,
-          botAvatarInitials: 'VA',
-          userAvatarInitials: 'You'
-        };
-
-        window.WebChat.renderWebChat(
-          { directLine, locale, styleOptions },
-          document.getElementById('webchat')
-        );
-      } catch (err) {
-        console.error(err);
-        showError(err.message || String(err));
-      }
-    })();
-  </script>
+  <iframe
+    title="Copilot Virtual Agent"
+    src="https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent/webchat?__version__=2">
+  </iframe>
 </body>
 </html>
