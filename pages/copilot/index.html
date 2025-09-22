@@ -20,21 +20,12 @@
   <div id="error" hidden></div>
 
   <script>
-    // --------------------------------------------------------------------
-    // 1) PASTE YOUR COPILOT STUDIO "CUSTOM WEBSITE" TOKEN ENDPOINT BELOW
-    //    It typically looks like:
-    //    https://<env>.<region>.environment.api.powerplatform.com/powervirtualagents/bots/<botId>/directline/token?api-version=...
-    //
-    // NOTE: Do NOT paste the Microsoft 365 Agents SDK "authenticated conversations"
-    // endpoint here. That requires tenant auth and usually won't work from GitHub Pages.
-    // --------------------------------------------------------------------
+    // Copilot Studio "Custom website" Direct Line token endpoint (GCC-G/High domain)
     const TOKEN_ENDPOINT_URL =
-      '<<PASTE_YOUR_DIRECTLINE_TOKEN_ENDPOINT_URL_HERE>>';
+      'https://79865a4a1c0de50e87a299bb3915064.2.environment.api.gov.powerplatform.microsoft.us/powervirtualagents/bots/cr1ee_genericSidebarAgent_WAojfm/directline/token?api-version=2022-03-01';
 
-    // Optional: force a locale if you want (else it uses <html lang> or browser)
     const locale = document.documentElement.lang || 'en-US';
 
-    // Helper: show errors nicely
     function showError(msg) {
       const el = document.getElementById('error');
       el.textContent = msg;
@@ -48,41 +39,34 @@
           return;
         }
 
-        if (!TOKEN_ENDPOINT_URL || TOKEN_ENDPOINT_URL.includes('PASTE_YOUR_DIRECTLINE_TOKEN_ENDPOINT_URL_HERE')) {
-          showError('Please set TOKEN_ENDPOINT_URL to your Copilot Studio Direct Line token endpoint.');
-          return;
-        }
-
-        // Derive API version from the token endpoint query, if present
+        // Discover regional Direct Line base
         const tokenUrl = new URL(TOKEN_ENDPOINT_URL);
         const apiVersion = tokenUrl.searchParams.get('api-version') || '2022-03-01';
-
-        // 2) Discover regional Direct Line URL from Copilot Studio
         const regionalSettingsUrl = new URL(`/powervirtualagents/regionalchannelsettings?api-version=${apiVersion}`, tokenUrl);
+
         const regionalRes = await fetch(regionalSettingsUrl);
         if (!regionalRes.ok) throw new Error('Failed to retrieve regional channel settings.');
         const { channelUrlsById } = await regionalRes.json();
         const directLineBase = channelUrlsById && channelUrlsById.directline;
         if (!directLineBase) throw new Error('Direct Line base URL not found in regional settings.');
 
-        // 3) Get a Direct Line token (client-safe)
+        // Get Direct Line token
         const tokenRes = await fetch(tokenUrl.toString());
         if (!tokenRes.ok) throw new Error('Failed to retrieve Direct Line token.');
         const tokenJson = await tokenRes.json();
         const token = tokenJson && (tokenJson.token || tokenJson.directLineToken || tokenJson.dlToken);
         if (!token) throw new Error('Token not present in response.');
 
-        // 4) Create Direct Line connection
+        // Create Direct Line connection
         const directLine = window.WebChat.createDirectLine({
           domain: new URL('v3/directline', directLineBase).toString(),
           token
         });
 
-        // 5) Send startConversation event ONCE when DL is connected
+        // Send startConversation once connected
         const userId = 'gs_' + Math.random().toString(36).slice(2);
         const sub = directLine.connectionStatus$.subscribe({
           next(value) {
-            // 2 === 'Online'
             if (value === 2) {
               directLine.postActivity({
                 type: 'event',
@@ -90,18 +74,15 @@
                 from: { id: userId },
                 locale,
                 localTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                // value: { entryPoint: 'home' } // optional payload
-              }).subscribe({
-                complete: () => sub.unsubscribe()
-              });
+              }).subscribe({ complete: () => sub.unsubscribe() });
             }
           }
         });
 
-        // 6) Render Web Chat
+        // Render Web Chat
         const styleOptions = {
           hideUploadButton: true,
-          botAvatarInitials: 'VA',   // customize as you like
+          botAvatarInitials: 'VA',
           userAvatarInitials: 'You'
         };
 
@@ -115,12 +96,5 @@
       }
     })();
   </script>
-
-  <!--
-    If you ever want the simplest "no-code" fallback, you can instead use an iframe:
-    <iframe src="https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent_WAojfm/webchat?__version__=2"
-            style="width:100%;height:100%;border:0"></iframe>
-    But note: you cannot fire 'startConversation' from a plain iframe.
-  -->
 </body>
 </html>
