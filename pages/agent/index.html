@@ -2,180 +2,158 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Generic.Sidebar Agent — What it can do</title>
+  <title>Generic.Sidebar Agent — How to use</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Overview and instructions for the Generic.Sidebar Copilot agent: answer questions and submit GitHub issues via MCP." />
+  <meta name="description" content="How to use the Generic.Sidebar Copilot agent to ask questions and submit GitHub issues." />
   <style>
     :root {
       --bg: #ffffff;
-      --card: #ffffff;
-      --muted: #6b7280;     /* gray-500 */
       --text: #111827;      /* gray-900 */
-      --accent: #2563eb;    /* blue-600 */
-      --accent-2: #16a34a;  /* green-600 */
+      --muted: #6b7280;     /* gray-500 */
       --border: #e5e7eb;    /* gray-200 */
+      --accent: #2563eb;    /* blue-600 */
       --code-bg: #f8fafc;   /* slate-50 */
-      --kbd-bg: #f3f4f6;    /* gray-100 */
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
     }
-    header {
-      padding: 28px 20px;
-      border-bottom: 1px solid var(--border);
-      position: sticky; top: 0;
-      background: rgba(255,255,255,0.96);
-      backdrop-filter: blur(6px);
-      z-index: 5;
-    }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px; }
-    h1 { font-size: clamp(26px, 3vw, 36px); margin: 0 0 8px; }
-    h2 { font-size: 22px; margin: 28px 0 12px; }
-    p { line-height: 1.55; }
-    .muted { color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-    }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0 0; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 56px; }
+    header { padding: 28px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    h1 { font-size: clamp(26px, 3vw, 36px); margin: 0 0 6px; }
+    p.muted { color: var(--muted); margin: 0; }
+    .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
     .btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border);
-      text-decoration: none; font-weight: 600;
-      color: var(--text);
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+      text-decoration: none; font-weight: 600; color: #fff; background: var(--accent);
     }
-    .btn-primary { background: var(--accent); border-color: transparent; color: #ffffff; }
-    .btn-secondary { background: transparent; }
-    .btn-success { background: var(--accent-2); border-color: transparent; color: #ffffff; }
-    code, pre, kbd {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    .btn.secondary { background: transparent; color: var(--text); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 10px; border-radius: 999px; border: 1px solid var(--border);
+      background: #fff; color: var(--text); font-weight: 600; font-size: 14px;
+    }
+    .badge small { color: var(--muted); font-weight: 500; }
+    section.card {
+      border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 16px; background: #fff;
+    }
+    h2 { font-size: 22px; margin: 0 0 10px; }
+    ul, ol { margin: 8px 0 0 20px; }
+    li + li { margin-top: 6px; }
+    kbd {
+      background: #f3f4f6; border: 1px solid var(--border); border-bottom-width: 3px;
+      border-radius: 6px; padding: 2px 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 13px;
     }
     pre {
-      background: var(--code-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px; overflow: auto; margin: 12px 0 0;
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; overflow: auto; margin: 8px 0 0;
     }
-    kbd {
-      background: var(--kbd-bg);
-      border: 1px solid var(--border);
-      border-bottom-width: 3px;
-      border-radius: 6px;
-      padding: 2px 6px;
-      color: var(--text);
-    }
-    ul { margin-top: 8px; padding-left: 18px; }
-    li + li { margin-top: 6px; }
-    .two-col { grid-column: span 12; }
-    @media (min-width: 820px) {
-      .two-col { grid-column: span 6; }
-    }
-    footer { border-top: 1px solid var(--border); }
-    .tag {
-      display: inline-block; font-size: 12px; color: #0b1020;
-      background: #93c5fd; padding: 3px 8px; border-radius: 999px; margin-left: 8px; font-weight: 700;
-    }
+    footer { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 12px; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <h1>Generic.Sidebar Agent <span class="tag">Docs</span></h1>
-      <p class="muted">Your Copilot for answering questions and creating GitHub issues via MCP.</p>
+  <div class="wrap">
+    <header>
+      <h1>Generic.Sidebar Agent — How to use</h1>
+      <p class="muted">The bot is embedded but does not auto-start. Send a first message (e.g., <kbd>help</kbd>) to begin.</p>
       <div class="cta-row">
-        <!-- Updated to your explicit GitHub Pages URL -->
-        <a class="btn btn-primary" href="https://bradlaw76.github.io/Generic.Sidebar/pages/copilot/index.html" target="_blank" rel="noopener">Try the Bot</a>
-        <a class="btn btn-secondary" href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener">Open Repo Issues</a>
+        <a class="btn" href="https://bradlaw76.github.io/Generic.Sidebar/pages/copilot/index.html" target="_blank" rel="noopener">Open the Bot</a>
+        <a class="btn secondary" href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener">View Repo Issues</a>
+        <span id="downloadBadge" class="badge" aria-live="polite" title="Total downloads across all releases">
+          <small>Downloads</small> —
+        </span>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main class="wrap">
-    <section class="grid">
-      <div class="card two-col">
-        <h2>What the Agent Can Do</h2>
-        <ul>
-          <li><strong>Answer questions</strong> about your Generic.Sidebar project, usage patterns, and how-tos.</li>
-          <li><strong>Submit GitHub issues via MCP</strong> — the agent can create (and optionally update) issues in your repository.</li>
-        </ul>
-        <p class="muted">MCP (Model Context Protocol) enables the agent to call tools securely. For GitHub, it uses a server/tool that talks to the GitHub API with a token you control.</p>
-      </div>
-
-      <div class="card two-col">
-        <h2>Quick Start</h2>
-        <ol>
-          <li>Click <em>Try the Bot</em> and start a conversation.</li>
-          <li>Ask a question: <kbd>How do I embed the sidebar in Dynamics?</kbd></li>
-          <li>Create an issue: <kbd>Report a new issue: “Sidebar breaks when record has no start date.”</kbd></li>
-        </ol>
-        <p class="muted">Tip: add context in your request (screenshots, steps-to-repro). The agent will include these details in the GitHub issue.</p>
-      </div>
-
-      <div class="card two-col">
-        <h2>Submitting Issues via MCP</h2>
-        <p>The agent supports a “create or update issue” workflow.</p>
-        <ul>
-          <li><strong>Create:</strong> <kbd>Create a GitHub issue titled “Default flag flow loops” with description “Flow updates record repeatedly. Expected behavior: update once when Default=true and StartDate is null.”</kbd></li>
-          <li><strong>Update:</strong> <kbd>Update GitHub issue #123: add label bug and assign to @bradlaw76</kbd></li>
-        </ul>
-        <p class="muted">Behind the scenes, the MCP GitHub tool uses your configured repository (e.g., <code>bradlaw76/Generic.Sidebar</code>) and token scope (repo access).</p>
-      </div>
-
-      <div class="card two-col">
-        <h2>Where to Use the Agent</h2>
-        <ul>
-          <li><strong>Browser:</strong> use the hosted page via the <em>Try the Bot</em> button above.</li>
-          <li><strong>Dynamics 365 Web Resource:</strong> point an iframe to the hosted bot page:
-            <pre><code>&lt;iframe src="https://bradlaw76.github.io/Generic.Sidebar/pages/copilot/index.html" style="width:100%;height:100%;border:0"&gt;&lt;/iframe&gt;</code></pre>
-          </li>
-        </ul>
-      </div>
-
-      <div class="card two-col">
-        <h2>Authentication & Permissions</h2>
-        <ul>
-          <li>Answering questions typically uses public project docs and agent context.</li>
-          <li>Creating issues requires a GitHub token with <code>repo</code> access configured in the MCP tool/server.</li>
-          <li>Your token and repo config are <em>not</em> stored on this static page.</li>
-        </ul>
-      </div>
-
-      <div class="card two-col">
-        <h2>Admin Notes (Optional)</h2>
-        <ul>
-          <li><strong>Rotate bot:</strong> update the embed URL in <code>/pages/copilot/index.html</code>.</li>
-          <li><strong>MCP settings:</strong> set default repo (e.g., <code>owner/repo</code>), labels, assignees; keep tokens in secure storage.</li>
-          <li><strong>Telemetry:</strong> add GitHub Pages analytics or App Insights via a small script if desired.</li>
-        </ul>
-      </div>
-
-      <div class="card two-col">
-        <h2>FAQ</h2>
-        <ul>
-          <li><strong>Can the agent update existing issues?</strong> Yes—ask it to update by number or with search terms.</li>
-          <li><strong>Can it add labels or assignees?</strong> Yes, if the MCP GitHub tool is permitted to do so.</li>
-          <li><strong>Does it support attachments?</strong> The agent can capture links and text; file uploads depend on your MCP implementation.</li>
-        </ul>
-      </div>
+    <!-- Section 1 -->
+    <section class="card">
+      <h2>Submit Generic.Sidebar issues to GitHub</h2>
+      <ol>
+        <li>Click <strong>Open the Bot</strong> (above).</li>
+        <li>If nothing appears in the chat, type <kbd>help</kbd> or any greeting (e.g., <kbd>hi</kbd>) to start.</li>
+        <li>Ask the agent to create or update an issue. Examples:
+          <ul>
+            <li>Create: <kbd>Create a GitHub issue titled "Default flag flow loops" with description "Flow updates record repeatedly when Default=true and StartDate is null."</kbd></li>
+            <li>Update: <kbd>Update GitHub issue #123: add label bug and assign to @bradlaw76</kbd></li>
+          </ul>
+        </li>
+      </ol>
+      <p class="muted">Notes: The agent uses MCP to call a GitHub tool with a token you control. It will post issues to <code>bradlaw76/Generic.Sidebar</code> (unless configured otherwise).</p>
     </section>
-  </main>
 
-  <footer class="wrap">
-    <p class="muted">© <span id="y"></span> Generic.Sidebar. Need help? Open an <a href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener">issue</a>.</p>
-  </footer>
+    <!-- Section 2 -->
+    <section class="card">
+      <h2>FAQ</h2>
+      <ul>
+        <li><strong>The bot doesn’t greet me. Is it broken?</strong><br/>
+            No—auto-start is disabled. Just type <kbd>help</kbd> (or any message) to begin.</li>
+        <li><strong>Where do my issues go?</strong><br/>
+            To the GitHub repository configured for the agent (default: <code>bradlaw76/Generic.Sidebar</code>).</li>
+        <li><strong>Can it update existing issues?</strong><br/>
+            Yes. Refer to an issue by number (e.g., <kbd>#123</kbd>) or ask the agent to search by title.</li>
+        <li><strong>Can it add labels or assignees?</strong><br/>
+            Yes—include instructions in your request (e.g., <kbd>add label bug</kbd>, <kbd>assign to @username</kbd>).</li>
+        <li><strong>Can I attach files?</strong><br/>
+            The agent can include links and text. File uploads depend on your MCP implementation.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p class="muted">© <span id="y"></span> Generic.Sidebar · Need help? Open an <a href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener">issue</a>.</p>
+    </footer>
+  </div>
 
   <script>
+    // Year
     document.getElementById('y').textContent = new Date().getFullYear();
+
+    // --- Total download count badge ---
+    (async function () {
+      const owner = 'bradlaw76';
+      const repo = 'Generic.Sidebar';
+      const badge = document.getElementById('downloadBadge');
+
+      function parseNext(linkHeader) {
+        if (!linkHeader) return null;
+        const nextPart = linkHeader.split(',').map(s => s.trim()).find(s => s.endsWith('rel="next"'));
+        if (!nextPart) return null;
+        const m = nextPart.match(/<([^>]+)>/);
+        return m ? m[1] : null;
+      }
+
+      async function fetchTotalDownloads() {
+        let url = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`;
+        let total = 0;
+
+        while (url) {
+          const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json' } });
+          if (!res.ok) throw new Error('GitHub API error ' + res.status);
+          const releases = await res.json();
+          for (const r of releases) {
+            if (r.draft) continue; // ignore drafts
+            if (Array.isArray(r.assets)) {
+              for (const a of r.assets) total += (a.download_count || 0);
+            }
+          }
+          url = parseNext(res.headers.get('Link'));
+        }
+        return total;
+      }
+
+      try {
+        badge.innerHTML = '<small>Downloads</small> …';
+        const total = await fetchTotalDownloads();
+        badge.innerHTML = `<small>Downloads</small> ${total.toLocaleString()}`;
+      } catch (e) {
+        console.error(e);
+        badge.innerHTML = '<small>Downloads</small> n/a';
+        badge.title = 'Could not fetch downloads';
+      }
+    })();
   </script>
 </body>
 </html>
