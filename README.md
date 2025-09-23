@@ -62,10 +62,8 @@ Example of Coplot Studio Configuratuion
 Example Displayed to End User
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.CopilotStudio.Embed.png)
 
-Help, Issue Reporting and Surey
-
-
-
+Help, Issue Reporting and Surey\
+![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
 How to Add JS to a new Form
 1. Add the generic_sidebar.js web resource to your form and set OnLoad handler → Generic_OpenSidebar.
