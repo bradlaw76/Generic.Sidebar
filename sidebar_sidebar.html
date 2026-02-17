@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sidebar v2.5.2 – Title1 Integration + Stable Scrolling</title>
+
+  <style>
+    :root { --band-bg:#0f5c73; --band-fg:#ffffff; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Segoe UI, Arial, sans-serif;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    body { display: flex; flex-direction: column; }
+    * { box-sizing: border-box; }
+
+    /* Instructions band */
+    .inst-band {
+      background: var(--band-bg);
+      color: var(--band-fg);
+      padding: 10px 12px;
+      display: none;
+      flex-shrink: 0;
+    }
+    .inst-label { font-size: 12px; font-weight: 600; }
+    .inst-body { font-size: 12px; line-height: 1.35; }
+
+    /* Layout Host */
+    #host {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      padding: 16px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .error {
+      background: #fde7e9;
+      border: 1px solid #d13438;
+      padding: 12px;
+      border-radius: 4px;
+      margin: 8px;
+      font-size: 12px;
+      color: #a4262c;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      align-items: flex-end;
+      padding: 4px 8px 0 8px;
+      background: #f3f2f1;
+      border-bottom: 1px solid #edebe9;
+      gap: 4px;
+      flex-shrink: 0;
+      min-height: 32px;
+    }
+
+    .tab {
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #605e5c;
+      max-width: 240px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      background: transparent;
+    }
+
+    .tab.active {
+      background: #ffffff;
+      color: #201f1e;
+      font-weight: 600;
+      border-color: #edebe9;
+      border-bottom-color: #ffffff;
+    }
+
+    /* Zoom Button */
+    .zoom-btn {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      z-index: 25;
+      background: transparent;
+      border: 1px solid #edebe9;
+      border-radius: 4px;
+      color: #605e5c;
+      font-size: 11px;
+      padding: 2px 8px;
+      cursor: pointer;
+      display: none;
+    }
+    .zoom-btn:hover { background: #edebe9; }
+    .zoom-btn.active {
+      background: #c7e0f4;
+      border-color: #0078d4;
+      color: #0078d4;
+      font-weight: 600;
+    }
+
+    /* Panel Container */
+    .panel-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      background: white;
+    }
+
+    .panel-container iframe {
+      flex: 1;
+      width: 100% !important;
+      height: 100% !important;
+      border: 0;
+      display: block;
+      overflow-y: auto !important;
+      transition: transform 0.2s ease;
+    }
+
+    /* Zooming for Genesys / phone simulators */
+    .force-zoom {
+      width: 320px !important;
+      min-width: 320px !important;
+      max-width: 320px !important;
+      height: 64% !important;
+      transform-origin: 0 0;
+      transform: scale(1.56);
+    }
+  </style>
+
+<script>
+  const TABLE = "sidebar_genericsidebar";
+  const COPILOT_FILE_TYPE_VALUE = 172520002;
+
+  function getParams() {
+    const url = new URL(window.location.href);
+    const data = url.searchParams.get("data");
+    const qs = data ? new URLSearchParams(data) : url.searchParams;
+    return Object.fromEntries(qs.entries());
+  }
+
+  function ensureFullHeightHtml(html) {
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const style = doc.createElement("style");
+      style.textContent = `
+        html, body {
+          height: 100%; width: 100%;
+          margin: 0; padding: 0;
+          overflow-y: auto !important;
+          overflow-x: hidden;
+          display: flex; flex-direction: column;
+        }
+        body > * {
+          flex: 1 1 auto;
+          width: 100% !important;
+        }
+      `;
+      doc.head.appendChild(style);
+      return doc.documentElement.outerHTML;
+    } catch {
+      return html;
+    }
+  }
+
+  function resolveEmbed(raw) {
+    const t = (raw || "").trim();
+    if (!t) return null;
+    if (t.startsWith("<")) return { mode: "html", html: t };
+
+    const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
+    if (/^webresource:/i.test(t)) return { mode: "url", url: `${base}/WebResources/${t.replace(/^webresource:/i,"")}` };
+
+    return { mode: "url", url: t };
+  }
+
+  function toggleZoom() {
+    const iframe = document.querySelector(".panel-container iframe");
+    const btn = document.getElementById("zoomToggle");
+    if (!iframe) return;
+
+    iframe.classList.toggle("force-zoom");
+    btn.classList.toggle("active");
+    btn.textContent = iframe.classList.contains("force-zoom") ? "⤢ Reset" : "⤢ Fit";
+  }
+
+  async function loadConfigAndRender() {
+    const { configId, mode } = getParams();
+    const host = document.getElementById("host");
+    const instBand = document.getElementById("instBand");
+    const zoomBtn = document.getElementById("zoomToggle");
+
+    if (!configId) {
+      host.innerHTML = '<div class="placeholder">No configuration selected.</div>';
+      return;
+    }
+
+    try {
+      const select =
+        "?$select=" +
+        "sidebar_title1,sidebar_instructions,sidebar_embedcode," +
+        "sidebar_title2,sidebar_instructions2,sidebar_embedcode2," +
+        "sidebar_title3,sidebar_instructions3,sidebar_embedcode3," +
+        "sidebar_title4,sidebar_instructions4,sidebar_embedcode4," +
+        "sidebar_iframewidth,sidebar_iframeheight,sidebar_iframestyle,sidebar_iframeallow," +
+        "sidebar_primarycolor,sidebar_textcolor,sidebar_linkcolor,sidebar_filetype";
+
+      const rec = await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, select);
+
+      const panels = [];
+      function addPanel(idx, titleField, instrField, embedField) {
+        const embed = (rec[embedField] || "").trim();
+        if (!embed) return;
+        panels.push({
+          index: idx,
+          title: (rec[titleField] || "").trim() || `Panel ${idx}`,
+          instr: (rec[instrField] || "").trim(),
+          embedField
+        });
+      }
+
+      addPanel(1, "sidebar_title1", "sidebar_instructions",  "sidebar_embedcode");
+      addPanel(2, "sidebar_title2", "sidebar_instructions2", "sidebar_embedcode2");
+      addPanel(3, "sidebar_title3", "sidebar_instructions3", "sidebar_embedcode3");
+      addPanel(4, "sidebar_title4", "sidebar_instructions4", "sidebar_embedcode4");
+
+      if (!panels.length) {
+        host.innerHTML = '<div class="placeholder">No panels configured.</div>';
+        return;
+      }
+
+      const tabRow = document.getElementById("tabRow");
+      const panelContainer = document.getElementById("panelContainer");
+
+      if (panels.length > 1) {
+        tabRow.style.display = "flex";
+        tabRow.innerHTML = "";
+        panels.forEach((p, idx) => {
+          const btn = document.createElement("button");
+          btn.className = "tab";
+          btn.textContent = p.title;
+          btn.onclick = () => setActivePanel(idx);
+          tabRow.appendChild(btn);
+        });
+      } else {
+        tabRow.style.display = "none";
+      }
+
+      function setActivePanel(idx) {
+        const panel = panels[idx];
+        if (!panel) return;
+
+        if (panels.length > 1) {
+          Array.from(tabRow.children).forEach((t, i) =>
+            t.classList.toggle("active", i === idx)
+          );
+        }
+
+        if (panel.instr) {
+          instBand.style.display = "block";
+          document.getElementById("instBody").innerHTML =
+            ensureFullHeightHtml(panel.instr);
+        } else {
+          instBand.style.display = "none";
+        }
+
+        panelContainer.innerHTML = "";
+        const target = resolveEmbed(rec[panel.embedField]);
+        if (!target) return;
+
+        const iframe = document.createElement("iframe");
+        iframe.referrerPolicy = "strict-origin-when-cross-origin";
+
+        if (target.mode === "html") {
+          iframe.srcdoc = ensureFullHeightHtml(target.html);
+          zoomBtn.style.display = "none";
+        } else {
+          iframe.src = target.url;
+          zoomBtn.style.display = "block";
+          zoomBtn.textContent = "⤢ Fit";
+          zoomBtn.classList.remove("active");
+
+          const lower = panel.title.toLowerCase();
+          if (lower.includes("phone") || lower.includes("genesys")) {
+            iframe.classList.add("force-zoom");
+            zoomBtn.classList.add("active");
+            zoomBtn.textContent = "⤢ Reset";
+          }
+        }
+
+        iframe.setAttribute(
+          "allow",
+          "clipboard-write; microphone; camera; autoplay; encrypted-media"
+        );
+
+        panelContainer.appendChild(iframe);
+      }
+
+      setActivePanel(0);
+
+    } catch (e) {
+      host.innerHTML = `<div class="error">${e.message}</div>`;
+    }
+  }
+
+  window.addEventListener("load", loadConfigAndRender);
+</script>
+</head>
+
+<body>
+  <div id="instBand" class="inst-band">
+    <div class="inst-label">Instructions</div>
+    <div id="instBody" class="inst-body"></div>
+  </div>
+
+  <div id="host">
+    <div id="tabRow" class="tabs"></div>
+    <button id="zoomToggle" class="zoom-btn" onclick="toggleZoom()">⤢ Fit</button>
+    <div id="panelContainer" class="panel-container"></div>
+  </div>
+</body>
+</html>
