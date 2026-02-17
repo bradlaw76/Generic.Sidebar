@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Agent Chat</title>
+    <style>
+        /* Basic reset to remove default browser margins and padding */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* Prevents scrollbars on the main page */
+        }
+
+        /* Styling for the iframe to make it fill the entire viewport */
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none; /* Removes the border from the iframe */
+        }
+    </style>
+</head>
+<body>
+
+    <!--
+      This iframe points directly to your bot's web chat channel.
+      This is the most portable method and avoids the Content Security Policy (CSP)
+      issues that arise from fetching the Direct Line token with JavaScript.
+
+      The trade-off is that the bot cannot automatically start the conversation;
+      the user must initiate the chat.
+    -->
+    <iframe 
+        title="Copilot Virtual Agent"
+        src="https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent_WAojfm/webchat?__version__=2">
+    </iframe>
+
+</body>
+</html>
+

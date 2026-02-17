@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Generic.Sidebar Admin Survey</title>
+
+  <!-- Customer Voice embed script + stylesheet -->
+  <script src="https://mfpcdnsavir.blob.core.usgovcloudapi.net/mfpembedcontgcc/Embed.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="https://mfpcdnsavir.blob.core.usgovcloudapi.net/mfpembedcontgcc/Embed.css" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: Segoe UI, sans-serif;
+      background: #f5f5f5;
+    }
+    #surveyContainer {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container where the survey renders -->
+  <div id="surveyContainer"></div>
+
+  <script type="text/javascript">
+    function renderSurvey(parentElementId, FirstName, LastName, locale) {
+      var se = new SurveyEmbed(
+        "EUgLd5CvGUuyDE-hGW1uDxut6Fibr5BHtpcS1UbcZPJUNUdQV08wNVpGUzlBVFBMWlBOVkZNUVJIUC4u", // Survey ID
+        "https://customervoice.microsoft.us/",                                           // Base URL
+        "https://mfpcdnsavir.blob.core.usgovcloudapi.net/mfpembedcontgcc/",              // Resource URL
+        "true"                                                                          // GCC toggle
+      );
+
+      var context = {
+        "First Name": FirstName || "",
+        "Last Name": LastName || "",
+        "locale": locale || "en-US"
+      };
+
+      se.renderInline(parentElementId, context);
+    }
+
+    // Auto-render with blank context unless passed dynamically
+    renderSurvey("surveyContainer", "", "", "en-US");
+  </script>
+</body>
+</html>
