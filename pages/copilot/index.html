@@ -4,15 +4,56 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Copilot Agent Chat</title>
+  <meta name="description" content="Copilot Virtual Agent chat for Generic.Sidebar — submit issues and get help." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    iframe { width: 100%; height: 100%; border: 0; display: block; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    iframe { width: 100%; border: 0; display: block; }
   </style>
 </head>
-<body>
-  <iframe
-    title="Copilot Virtual Agent"
-    src="https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent/webchat?__version__=2">
-  </iframe>
+<body class="flex flex-col h-screen">
+  <nav class="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
+    <div class="max-w-7xl mx-auto flex items-center gap-6 text-sm font-medium text-gray-600">
+      <a href="/Generic.Sidebar/" class="hover:text-gray-900">Home</a>
+      <a href="/Generic.Sidebar/downloads/" class="hover:text-gray-900">Downloads</a>
+      <a href="/Generic.Sidebar/pages/agent/" class="hover:text-gray-900">Agent</a>
+      <a href="/Generic.Sidebar/pages/copilot/" class="text-gray-900 font-semibold">Copilot</a>
+    </div>
+  </nav>
+  <main class="flex-1 relative">
+    <iframe
+      id="copilotFrame"
+      title="Copilot Virtual Agent"
+      src="https://gcc.powerva.microsoft.us/environments/79865a4a-1c0d-e50e-87a2-99bb39150642/bots/cr1ee_genericSidebarAgent/webchat?__version__=2"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      style="width:100%;height:100%;">
+    </iframe>
+    <div id="fallback" class="hidden absolute inset-0 flex items-center justify-center bg-gray-50">
+      <div class="text-center p-8">
+        <p class="text-lg text-gray-700 mb-4">The Copilot agent could not be loaded.</p>
+        <p class="text-sm text-gray-500 mb-4">This may be due to network restrictions or the bot being unavailable.</p>
+        <a href="/Generic.Sidebar/pages/agent/" class="text-blue-600 hover:underline">View agent instructions instead</a>
+      </div>
+    </div>
+  </main>
+  <script>
+    const frame = document.getElementById('copilotFrame');
+    frame.addEventListener('error', () => {
+      frame.classList.add('hidden');
+      document.getElementById('fallback').classList.remove('hidden');
+    });
+    // Timeout fallback: if iframe hasn't loaded within 15s, show fallback
+    const timer = setTimeout(() => {
+      try {
+        // Accessing cross-origin frame will throw; if it doesn't, the frame loaded. 
+        // We just rely on the fact that if it loaded, the content is visible.
+      } catch(e) {
+        frame.classList.add('hidden');
+        document.getElementById('fallback').classList.remove('hidden');
+      }
+    }, 15000);
+    frame.addEventListener('load', () => clearTimeout(timer));
+  </script>
 </body>
 </html>

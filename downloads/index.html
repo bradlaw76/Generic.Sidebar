@@ -6,6 +6,7 @@
   <title>Generic.Sidebar – Release Downloads</title>
 
   <meta name="description" content="Downloads per release and per-asset for bradlaw76/Generic.Sidebar with CSV export." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,14 +16,23 @@
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <main class="max-w-7xl mx-auto px-4 py-6">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>
+  <nav class="bg-white border-b border-gray-200 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center gap-6 text-sm font-medium text-gray-600">
+      <a href="/Generic.Sidebar/" class="hover:text-gray-900">Home</a>
+      <a href="/Generic.Sidebar/downloads/" class="text-gray-900 font-semibold">Downloads</a>
+      <a href="/Generic.Sidebar/pages/agent/" class="hover:text-gray-900">Agent</a>
+      <a href="/Generic.Sidebar/pages/copilot/" class="hover:text-gray-900">Copilot</a>
+    </div>
+  </nav>
+  <main id="main" class="max-w-7xl mx-auto px-4 py-6">
     <header class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Generic.Sidebar – Release Tracker</h1>
-        <p class="text-sm text-gray-600">Repository: <a class="text-blue-600 hover:underline" id="repoLink" href="#" target="_blank" rel="noopener">bradlaw76/Generic.Sidebar</a></p>
+        <p class="text-sm text-gray-600">Repository: <a class="text-blue-600 hover:underline" id="repoLink" href="#" target="_blank" rel="noopener noreferrer">bradlaw76/Generic.Sidebar</a></p>
       </div>
       <div class="flex items-center gap-2">
-        <a id="githubStar" href="#" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-100">
+        <a id="githubStar" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-100">
           ⭐️ Star on GitHub
         </a>
       </div>
@@ -60,7 +70,7 @@
         <div id="loading" class="hidden text-sm text-gray-600">Loading…</div>
       </div>
       <div id="chartWrap" class="relative">
-        <canvas id="releaseChart"></canvas>
+        <canvas id="releaseChart" aria-label="Line chart showing asset downloads per release" role="img"></canvas>
       </div>
     </section>
 
@@ -74,12 +84,12 @@
         <table class="min-w-full text-sm" id="releaseTable">
           <thead class="bg-gray-50 text-gray-600">
             <tr>
-              <th class="px-4 py-2 text-left">Release Date</th>
-              <th class="px-4 py-2 text-left">Tag</th>
-              <th class="px-4 py-2 text-left">Release</th>
-              <th class="px-4 py-2 text-left">Asset</th>
-              <th class="px-4 py-2 text-left">Downloads</th>
-              <th class="px-4 py-2 text-left">Total Downloads</th>
+              <th scope="col" class="px-4 py-2 text-left">Release Date</th>
+              <th scope="col" class="px-4 py-2 text-left">Tag</th>
+              <th scope="col" class="px-4 py-2 text-left">Release</th>
+              <th scope="col" class="px-4 py-2 text-left">Asset</th>
+              <th scope="col" class="px-4 py-2 text-left">Downloads</th>
+              <th scope="col" class="px-4 py-2 text-left">Total Downloads</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -88,6 +98,13 @@
     </section>
   </main>
 
+  <footer class="mt-8 py-6 border-t text-center text-gray-500 text-sm">
+    © <span id="footerYear"></span> Generic.Sidebar by bradlaw76
+  </footer>
+
+  <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+  </script>
   <script>
     // === Configuration (hardcoded to your repository) ===
     const REPO = "bradlaw76/Generic.Sidebar";
@@ -346,21 +363,12 @@
       clearStatus();
       loadingEl.classList.remove('hidden');
       try {
-        const res = await fetch(`${API_BASE}/releases?per_page=1`);
-        if (!res.ok) {
-          let msg = `Failed to reach GitHub (HTTP ${res.status}).`;
-          try { const j = await res.json(); if (j.message) msg += ` ${j.message}`; } catch {}
-          throw new Error(msg);
-        }
-        const info = computeRateInfo(res.headers);
-        if (info && info.remaining <= 5) {
-          showStatus('warn', `GitHub API rate limit is low (${info.remaining} remaining). It resets in ~${info.resetMins} minute(s).`);
-        }
-        // Now get all pages
+        // Get all releases
         const releases = await fetchAllReleases();
         if (!releases || releases.length === 0) {
           showStatus('warn', 'No releases found for this repository.');
         }
+        // Check rate limit from last fetch headers (if available)
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
         updateChart(viewData);

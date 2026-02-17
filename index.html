@@ -4,11 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Generic.Sidebar</title>
+  <meta name="description" content="Generic Sidebar for Dynamics 365 — a flexible, table-driven side pane for model-driven apps." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
-  <main class="max-w-5xl mx-auto px-6 py-12">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>
+  <nav class="bg-white border-b border-gray-200 px-6 py-3">
+    <div class="max-w-5xl mx-auto flex items-center gap-6 text-sm font-medium text-gray-600">
+      <a href="/Generic.Sidebar/" class="text-gray-900 font-semibold">Home</a>
+      <a href="/Generic.Sidebar/downloads/" class="hover:text-gray-900">Downloads</a>
+      <a href="/Generic.Sidebar/pages/agent/" class="hover:text-gray-900">Agent</a>
+      <a href="/Generic.Sidebar/pages/copilot/" class="hover:text-gray-900">Copilot</a>
+    </div>
+  </nav>
+  <main id="main" class="max-w-5xl mx-auto px-6 py-12">
     <header class="mb-12 text-center">
       <h1 class="text-4xl font-bold text-gray-900 mb-4">Generic.Sidebar</h1>
       <p class="text-lg text-gray-600">A project by <span class="font-medium">bradlaw76</span></p>
@@ -27,11 +38,11 @@
         Explore the repository, check out tagged releases, and get started by downloading the latest version.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="https://github.com/bradlaw76/Generic.Sidebar" target="_blank" rel="noopener"
+        <a href="https://github.com/bradlaw76/Generic.Sidebar" target="_blank" rel="noopener noreferrer"
            class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
           View Repository
         </a>
-        <a href="https://github.com/bradlaw76/Generic.Sidebar/tags" target="_blank" rel="noopener"
+        <a href="https://github.com/bradlaw76/Generic.Sidebar/tags" target="_blank" rel="noopener noreferrer"
            class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-gray-800 text-white font-medium hover:bg-gray-900">
           View Releases & Tags
         </a>
@@ -55,7 +66,7 @@
           <button id="toggleLegendButton" class="text-sm px-3 py-1 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">Toggle Legend</button>
         </div>
         <div class="relative h-96 mb-6">
-          <canvas id="releaseChart"></canvas>
+          <canvas id="releaseChart" aria-label="Line chart showing download counts per release" role="img"></canvas>
         </div>
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-lg font-medium text-gray-900">Release Data Table</h3>
@@ -65,12 +76,12 @@
           <table id="releaseTable" class="min-w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
               <tr>
-                <th class="px-4 py-2 text-left">Release Date</th>
-                <th class="px-4 py-2 text-left">Tag</th>
-                <th class="px-4 py-2 text-left">Release</th>
-                <th class="px-4 py-2 text-left">Asset</th>
-                <th class="px-4 py-2 text-left">Downloads</th>
-                <th class="px-4 py-2 text-left">Total Downloads</th>
+                <th scope="col" class="px-4 py-2 text-left">Release Date</th>
+                <th scope="col" class="px-4 py-2 text-left">Tag</th>
+                <th scope="col" class="px-4 py-2 text-left">Release</th>
+                <th scope="col" class="px-4 py-2 text-left">Asset</th>
+                <th scope="col" class="px-4 py-2 text-left">Downloads</th>
+                <th scope="col" class="px-4 py-2 text-left">Total Downloads</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -143,13 +154,45 @@
       tbody.innerHTML = '';
       data.forEach(r=>{
         r.assets.forEach(a=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML = `<td class='px-4 py-2'>${r.date}</td>
-                          <td class='px-4 py-2 font-medium'>${r.tag}</td>
-                          <td class='px-4 py-2'><a href='${r.url}' target='_blank' class='text-blue-600 hover:underline'>${r.name}</a></td>
-                          <td class='px-4 py-2'><a href='${a.url}' target='_blank' class='text-blue-600 hover:underline'>${a.name}</a></td>
-                          <td class='px-4 py-2'>${a.downloads}</td>
-                          <td class='px-4 py-2'>${r.total}</td>`;
+          const tr = document.createElement('tr');
+
+          const tdDate = document.createElement('td');
+          tdDate.className = 'px-4 py-2';
+          tdDate.textContent = r.date;
+
+          const tdTag = document.createElement('td');
+          tdTag.className = 'px-4 py-2 font-medium';
+          tdTag.textContent = r.tag;
+
+          const tdRelease = document.createElement('td');
+          tdRelease.className = 'px-4 py-2';
+          const linkRel = document.createElement('a');
+          linkRel.href = r.url;
+          linkRel.target = '_blank';
+          linkRel.rel = 'noopener noreferrer';
+          linkRel.className = 'text-blue-600 hover:underline';
+          linkRel.textContent = r.name;
+          tdRelease.appendChild(linkRel);
+
+          const tdAsset = document.createElement('td');
+          tdAsset.className = 'px-4 py-2';
+          const linkAsset = document.createElement('a');
+          linkAsset.href = a.url;
+          linkAsset.target = '_blank';
+          linkAsset.rel = 'noopener noreferrer';
+          linkAsset.className = 'text-blue-600 hover:underline';
+          linkAsset.textContent = a.name;
+          tdAsset.appendChild(linkAsset);
+
+          const tdDownloads = document.createElement('td');
+          tdDownloads.className = 'px-4 py-2';
+          tdDownloads.textContent = a.downloads;
+
+          const tdTotal = document.createElement('td');
+          tdTotal.className = 'px-4 py-2';
+          tdTotal.textContent = r.total;
+
+          tr.append(tdDate, tdTag, tdRelease, tdAsset, tdDownloads, tdTotal);
           tbody.appendChild(tr);
         });
       });
@@ -173,7 +216,12 @@
       if(!releaseData.length) return;
       const header=['Release Date','Tag','Name','Asset','Downloads','Total Downloads'];
       const rows=releaseData.flatMap(r=>r.assets.map(a=>[r.date,r.tag,r.name,a.name,a.downloads,r.total]));
-      const csv=[header,...rows].map(r=>r.join(',')).join('\n');
+      const csv=[header,...rows].map(r=>r.map(cell=>{
+        const s=String(cell);
+        const needsQuote=/[",\n]/.test(s);
+        let v=s.replace(/"/g,'""');
+        return needsQuote?`"${v}"`:v;
+      }).join(',')).join('\n');
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
       const link=document.createElement('a');
       link.href=URL.createObjectURL(blob);

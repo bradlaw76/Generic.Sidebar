@@ -49,20 +49,20 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
    <iframe ...></iframe> (Copilot or Canvas App)
    Raw HTML
 
-Example of HTML Configuratuion
+Example of HTML Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
 
 Example Displayed to End User
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.Embed.png)
 
 
-Example of Coplot Studio Configuratuion
+Example of Copilot Studio Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.CSStudio.Embed.png)
 
 Example Displayed to End User
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.CopilotStudio.Embed.png)
 
-Help, Issue Reporting and Surey\
+Help, Issue Reporting and Survey\
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
 How to Add JS to a new Form
