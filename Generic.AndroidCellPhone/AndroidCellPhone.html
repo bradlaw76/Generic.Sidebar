@@ -1,1283 +1,1337 @@
 <!--
 =============================================================================
-COMPONENT:    Android Cell Phone
+COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      1.2.0
+VERSION:      2.3.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-05
-ENVIRONMENT:  HTML | JavaScript
-PORTAL URL:   N/A
+ENVIRONMENT:  HTML | Vanilla JavaScript
 
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Simulated Android-style cell phone UI for use as a sidebar embed in
-Dynamics 365 model-driven apps. Renders incoming/connected/ended call
-states by reading the shared localStorage key (genericSimCall) written
-by the Generic Call Simulator. Provides a realistic Android dialer and
-in-call experience including contact avatar, call timer, and transcript
-playback.
+Samsung S25 Ultra Android phone simulator. Single self-contained HTML file.
+Places OUTGOING calls by writing localStorage.genericSimCall (state: CONNECTED).
+Handles INCOMING calls by listening for genericSimCall (state: RINGING).
+
+Works in two modes:
+  D365 Mode:        Xrm.WebApi reads config + contacts from Dataverse
+  Standalone Mode:  Embedded fallback JSON (file:// or any browser)
 
 -----------------------------------------------------------------------------
-ARCHITECTURE
+ARCHITECTURE CONTRACT (NON-NEGOTIABLES)
 -----------------------------------------------------------------------------
-- Data Source:      localStorage (genericSimCall key)
-- Entity/Table:     N/A (reads shared call payload from simulator)
-- Auth Model:       As implemented in host app
-- Rendering:        Client-side
-- API Pattern:      localStorage read/write; optional Xrm.WebApi for
-                    screen-pop
-- OData:            N/A
+- localStorage key: genericSimCall — must not change
+- Payload state:    CONNECTED (outgoing call)
+- Auth:             all Dataverse reads via Xrm.WebApi — never bypassed
+- Do NOT modify:    Genesys Softphone.html
+- All changes:      additive only
 
 -----------------------------------------------------------------------------
-FEATURES
+SCREENS
 -----------------------------------------------------------------------------
-- Search:           N/A
-- Filtering:        N/A
-- Sorting:          N/A
-- Pagination:       N/A
-- Create:           N/A
-- Update:           N/A
-- Delete:           N/A
-- Validation:       Call state validation before rendering
-- UX Notes:         Android Material-inspired design; supports RINGING,
-                    DIALING, CONNECTED, ENDED, DECLINED states; live
-                    call timer; outgoing dialer keypad; transcript
-                    bubble playback when enabled
-
------------------------------------------------------------------------------
-PREREQUISITES
------------------------------------------------------------------------------
-1. Must run inside Dynamics 365 sidebar or standalone browser context.
-2. Requires genericSimCall localStorage key written by the Generic Call
-   Simulator (sidebar_generic_call_simulator.html).
-3. For screen-pop features, Xrm.WebApi must be available.
-
------------------------------------------------------------------------------
-SECURITY MODEL
------------------------------------------------------------------------------
-- CSRF Token:      N/A
-- Auth Scope:      Inherits Dynamics 365 session auth via Xrm.WebApi
-- Data Exposure:   Reads/writes call state to localStorage only
-- Role Dependency: N/A
-
------------------------------------------------------------------------------
-STYLE ISOLATION
------------------------------------------------------------------------------
-- Root Scope ID:   .android-phone-shell
-- Fully self-contained styles
-
------------------------------------------------------------------------------
-KNOWN LIMITATIONS
------------------------------------------------------------------------------
-- Contact avatar uses initials only (no photo lookup).
-- Ringtone audio requires a valid URL in the call payload.
-- Transcript playback mirrors Genesys Softphone behavior.
-- Outgoing calls auto-connect after a simulated ring delay.
-
------------------------------------------------------------------------------
-TEST CASES
------------------------------------------------------------------------------
-✔ Load page without runtime errors
-✔ No-call state displays idle home screen with dialer access
-✔ Dialer keypad accepts digit input and displays number
-✔ Tapping call button with a number initiates DIALING state
-✔ DIALING state auto-transitions to CONNECTED after delay
-✔ RINGING state shows incoming call UI with Answer/Decline
-✔ CONNECTED state shows active call with timer and End button
-✔ ENDED/DECLINED states show call-ended summary
-✔ Transcript bubbles render when enabled in call payload
-✔ localStorage changes trigger UI refresh via storage event
+HOME -> PHONE_APP -> CONTACTS -> CALLING -> IN_CALL -> ENDED -> HOME
+HOME -> INCOMING -> IN_CALL -> ENDED -> HOME  (incoming call path)
+HOME -> BROWSER -> HOME  (embedded browser via Chrome icon)
 
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-v1.2.0  2026-03-05  Added demo transcript for outgoing calls
-v1.1.0  2026-03-05  Added outgoing call dialer keypad and DIALING state
-v1.0.0  2025-07-14  Initial Android cell phone simulator
+2.3.0  Simplified browser: removed shortcut grid & tab bar, fixed toolbar
+       below status bar, added Browser URL config to Demo Panel
+       (Ctrl+Shift+D), DuckDuckGo search, blocked-site detection with
+       "Open in New Tab" fallback
+2.2.0  Added embedded iframe browser screen (Chrome icon / dock)
+2.1.0  Fallback wallpaper, synthesized ringtone, default transcript
 
 -----------------------------------------------------------------------------
-NON-NEGOTIABLES (Architecture Contract)
+KEYBOARD SHORTCUTS
 -----------------------------------------------------------------------------
-- Do NOT change the localStorage key (genericSimCall) without updating
-  sidebar_generic_call_simulator.html and Genesys Softphone.html to match.
-- Do NOT bypass security or auth protections in host integrations.
-- Changes must be additive unless explicitly approved.
+CTRL+SHIFT+D    Open/close demo control panel
 =============================================================================
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Android Cell Phone (Simulated)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    /* ── Reset ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android Cell Phone Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;700&family=Jost:wght@300;400;500;600;700&display=swap');
 
-    body {
-      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: #2a2a2a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-      margin: 0;
-    }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
-    /* ── Phone Shell (S25 Ultra: 380×824px ≈ 19.5:9) ── */
-    .android-phone-shell {
-      width: 380px;
-      height: 824px;
-      max-width: 100%;
-      max-height: 100vh;
-      background: #121212;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-      color: #e0e0e0;
-      border-radius: 40px;
-      border: 4px solid #333;
-      box-shadow:
-        0 0 0 2px #1a1a1a,
-        0 20px 60px rgba(0,0,0,0.6),
-        0 0 80px rgba(0,0,0,0.3);
-    }
+:root{
+  --fd:'Raleway',sans-serif;
+  --fu:'Jost',sans-serif;
+  --bg:#000000;
+  --s1:#1c1c1e;
+  --s2:#2c2c2e;
+  --s3:#3c3c3e;
+  --s4:#4c4c4e;
+  --tx:#ffffff;
+  --t2:rgba(255,255,255,0.65);
+  --t3:rgba(255,255,255,0.35);
+  --ac:#4285f4;
+  --gn:#30d158;
+  --rd:#ff453a;
+  --or:#ff9f0a;
+  --sep:rgba(255,255,255,0.08);
+}
 
-    /* Full-screen fallback for small viewports / sidebar embed */
-    @media (max-width: 420px), (max-height: 860px) {
-      body { padding: 0; background: #121212; }
-      .android-phone-shell {
-        width: 100%;
-        height: 100vh;
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
-      }
-    }
+html,body{
+  width:100%;height:100%;
+  background:#0d0d0d;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fu);
+  overflow:hidden;
+  user-select:none;
+  -webkit-user-select:none;
+}
 
-    /* ── Status Bar (Android style) ── */
-    .status-bar {
-      height: 28px;
-      background: #1a1a1a;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 12px;
-      font-size: 11px;
-      color: #aaaaaa;
-      flex-shrink: 0;
-    }
-    .status-bar-left { display: flex; gap: 6px; align-items: center; }
-    .status-bar-right { display: flex; gap: 8px; align-items: center; }
+/* ---- Phone Chassis ---- */
+.chassis{
+  position:relative;
+  width:393px;height:852px;
+  border-radius:52px;
+  background:linear-gradient(160deg,#2a2a2a 0%,#1a1a1a 40%,#111 70%,#0d0d0d 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 0 2px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 30px 80px rgba(0,0,0,0.8),
+    0 8px 24px rgba(0,0,0,0.6);
+  flex-shrink:0;
+}
 
-    .signal-bars {
-      display: flex; gap: 1px; align-items: flex-end; height: 10px;
-    }
-    .signal-bars span {
-      width: 3px; background: #aaa; border-radius: 1px;
-    }
-    .signal-bars span:nth-child(1) { height: 3px; }
-    .signal-bars span:nth-child(2) { height: 5px; }
-    .signal-bars span:nth-child(3) { height: 7px; }
-    .signal-bars span:nth-child(4) { height: 10px; }
+.btn-vol-up,.btn-vol-dn,.btn-pwr{
+  position:absolute;
+  background:linear-gradient(90deg,#2a2a2a,#1e1e1e);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),-2px 0 4px rgba(0,0,0,0.5);
+}
+.btn-vol-up{left:-3px;top:140px;width:3px;height:56px;border-radius:3px 0 0 3px;}
+.btn-vol-dn{left:-3px;top:210px;width:3px;height:56px;border-radius:3px 0 0 3px;}
+.btn-pwr   {right:-3px;top:170px;width:3px;height:72px;border-radius:0 3px 3px 0;}
 
-    .battery-icon {
-      width: 20px; height: 10px;
-      border: 1.5px solid #aaa; border-radius: 2px;
-      position: relative;
-    }
-    .battery-icon::after {
-      content: ""; position: absolute; right: -4px; top: 2px;
-      width: 2px; height: 5px; background: #aaa; border-radius: 0 1px 1px 0;
-    }
-    .battery-fill {
-      height: 100%; width: 72%; background: #4caf50; border-radius: 1px;
-    }
+/* ---- Screen glass ---- */
+.screen-glass{
+  position:absolute;inset:8px;
+  border-radius:44px;
+  background:var(--bg);
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04),inset 0 2px 6px rgba(0,0,0,0.3);
+}
+.screen-glass::after{
+  content:'';position:absolute;inset:0;border-radius:44px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 40%,transparent 60%,rgba(255,255,255,0.02) 100%);
+  pointer-events:none;z-index:999;
+}
 
-    /* ── Screen Area ── */
-    .screen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
+/* ---- Punch-hole ---- */
+.punch-hole{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:11px;height:11px;border-radius:50%;
+  background:#000;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.06),inset 0 0 3px rgba(0,0,0,0.8);
+  z-index:100;
+}
 
-    /* ── Idle / Home Screen ── */
-    .home-screen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #1a237e 0%, #0d47a1 40%, #01579b 100%);
-      padding: 20px;
-      text-align: center;
-    }
-    .home-clock {
-      font-size: 54px;
-      font-weight: 300;
-      color: #ffffff;
-      letter-spacing: 2px;
-    }
-    .home-date {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
-      margin-top: 4px;
-    }
-    .home-bottom {
-      position: absolute;
-      bottom: 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .home-hint {
-      font-size: 11px;
-      color: rgba(255,255,255,0.5);
-    }
-    .home-dialer-btn {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: #4caf50;
-      border: none;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      transition: transform 0.15s;
-    }
-    .home-dialer-btn:hover { transform: scale(1.1); }
+/* ---- Status bar ---- */
+.status-bar{
+  position:absolute;top:0;left:0;right:0;height:44px;
+  display:flex;align-items:flex-end;
+  padding:0 24px 6px;justify-content:space-between;z-index:50;
+}
+.sb-time{font-family:var(--fu);font-weight:600;font-size:13px;color:var(--tx);letter-spacing:0.2px;}
+.sb-icons{display:flex;align-items:center;gap:5px;}
 
-    /* ── Dialer Screen ── */
-    .dialer-screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      background: #1a1a2e;
-      padding: 20px 20px 16px;
-    }
-    .dialer-display {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 8px;
-      min-height: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .dialer-number {
-      font-size: 32px;
-      font-weight: 300;
-      color: #ffffff;
-      letter-spacing: 2px;
-      min-height: 42px;
-      word-break: break-all;
-    }
-    .dialer-hint {
-      font-size: 12px;
-      color: rgba(255,255,255,0.35);
-      margin-top: 4px;
-    }
-    .keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      width: 100%;
-      max-width: 280px;
-      margin-bottom: 16px;
-    }
-    .key-btn {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.08);
-      border: none;
-      cursor: pointer;
-      justify-self: center;
-      transition: background 0.12s;
-    }
-    .key-btn:hover { background: rgba(255,255,255,0.16); }
-    .key-btn:active { background: rgba(255,255,255,0.24); }
-    .key-digit {
-      font-size: 28px; font-weight: 400; color: #fff;
-    }
-    .key-letters {
-      font-size: 9px; color: rgba(255,255,255,0.45);
-      letter-spacing: 2px; margin-top: 1px;
-    }
-    .dialer-actions {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-      margin-top: 8px;
-    }
-    .dial-call-btn {
-      width: 64px; height: 64px;
-      border-radius: 50%;
-      background: #4caf50;
-      border: none;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-      transition: transform 0.15s;
-    }
-    .dial-call-btn:hover { transform: scale(1.1); }
-    .dial-call-btn:disabled {
-      background: #555;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .dial-backspace-btn {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      color: rgba(255,255,255,0.5);
-      transition: color 0.12s;
-    }
-    .dial-backspace-btn:hover { color: #fff; }
-    .dial-back-btn {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      color: rgba(255,255,255,0.5);
-      transition: color 0.12s;
-    }
-    .dial-back-btn:hover { color: #fff; }
+/* ---- Screens container ---- */
+.screens-wrap{position:absolute;inset:0;overflow:hidden;border-radius:44px;}
 
-    /* ── Dialing Screen (outgoing ring) ── */
-    .dialing-screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(180deg, #0d47a1 0%, #1565c0 50%, #0d47a1 100%);
-      padding: 48px 20px 40px;
-    }
-    .dialing-section {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 12px;
-    }
-    .dialing-avatar {
-      width: 84px; height: 84px;
-      border-radius: 50%;
-      background: #1976d2;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 34px; font-weight: 600; color: #fff;
-      text-transform: uppercase;
-      animation: dialing-pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes dialing-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(25,118,210,0.6); }
-      50% { box-shadow: 0 0 0 18px rgba(25,118,210,0); }
-    }
-    .dialing-name { font-size: 26px; font-weight: 500; color: #fff; }
-    .dialing-number { font-size: 14px; color: rgba(255,255,255,0.7); }
-    .dialing-label {
-      font-size: 13px; color: rgba(255,255,255,0.6);
-      margin-top: 4px;
-    }
-    .dialing-cancel-btn {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: #f44336; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; transition: transform 0.15s;
-    }
-    .dialing-cancel-btn:hover { transform: scale(1.1); }
+/* ---- Screen transitions ---- */
+.screen{
+  position:absolute;inset:0;
+  transform:translateX(100%);
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  overflow:hidden;
+}
+.screen.active{transform:translateX(0);}
+.screen.prev  {transform:translateX(-30%);}
 
-    /* ── Incoming Call Screen ── */
-    .incoming-screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(180deg, #1b5e20 0%, #2e7d32 50%, #1b5e20 100%);
-      padding: 48px 20px 40px;
-    }
+/* ---- HOME SCREEN ---- */
+#scr-home{
+  background:linear-gradient(180deg,#0a1628 0%,#1a0a2e 40%,#0d1a3a 100%);
+  display:flex;flex-direction:column;
+}
+.home-wallpaper{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.85;}
+.home-clock-wrap{padding:64px 0 16px;text-align:center;position:relative;z-index:2;}
+.home-clock{
+  font-family:var(--fd);font-weight:100;font-size:76px;
+  color:#fff;letter-spacing:-2px;line-height:1;
+  text-shadow:0 2px 20px rgba(0,0,0,0.4);
+}
+.home-date{font-family:var(--fu);font-weight:300;font-size:15px;color:rgba(255,255,255,0.8);margin-top:6px;letter-spacing:0.3px;}
+.home-apps{
+  position:relative;z-index:2;flex:1;
+  padding:16px 24px 0;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:20px 12px;
+  align-content:center;
+}
+.app-icon{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.app-icon:active .app-icon-img{transform:scale(0.88);}
+.app-icon-img{
+  width:58px;height:58px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;transition:transform 0.1s;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+.app-icon-label{
+  font-family:var(--fu);font-size:11px;font-weight:400;
+  color:rgba(255,255,255,0.9);text-align:center;
+  text-shadow:0 1px 4px rgba(0,0,0,0.5);
+  max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ic-phone {background:linear-gradient(135deg,#30d158,#24a846);}
+.ic-msg   {background:linear-gradient(135deg,#30d158,#0a84ff);}
+.ic-chrome{background:linear-gradient(135deg,#4285f4,#34a853);}
+.ic-cam   {background:linear-gradient(135deg,#3c3c3e,#1c1c1e);}
+.ic-gal   {background:linear-gradient(135deg,#ff9f0a,#ff6b35);}
+.ic-set   {background:linear-gradient(135deg,#636366,#3c3c3e);}
+.ic-folder{background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.15);}
+.folder-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:6px;width:100%;height:100%;border-radius:14px;overflow:hidden;}
+.folder-app-dot{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+.home-dock{position:relative;z-index:2;padding:12px 24px 32px;display:flex;justify-content:center;}
+.dock-bar{
+  display:flex;gap:16px;
+  background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);
+  border-radius:28px;padding:12px 24px;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.dock-icon{
+  width:50px;height:50px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;cursor:pointer;transition:transform 0.1s;
+}
+.dock-icon:active{transform:scale(0.88);}
 
-    .caller-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
+/* ---- PHONE APP SCREEN ---- */
+#scr-phone{background:var(--bg);display:flex;flex-direction:column;}
+.phone-header{padding:52px 20px 0;display:flex;align-items:center;gap:12px;}
+.back-btn{
+  width:36px;height:36px;border-radius:50%;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+.phone-header-title{font-family:var(--fd);font-weight:300;font-size:26px;color:var(--tx);flex:1;}
+.phone-tabs{display:flex;margin:16px 20px 0;background:var(--s2);border-radius:12px;padding:3px;}
+.tab-btn{
+  flex:1;padding:9px 0;text-align:center;
+  font-family:var(--fu);font-size:13px;font-weight:500;color:var(--t2);
+  border-radius:10px;cursor:pointer;transition:background 0.2s,color 0.2s;
+}
+.tab-btn.on{background:var(--s3);color:var(--tx);}
+.tab-content{flex:1;overflow-y:auto;padding:12px 0;}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+.recents-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;}
+.recents-empty-icon{font-size:48px;opacity:0.3;}
+.recents-empty-txt{font-family:var(--fu);font-size:14px;color:var(--t3);}
 
-    .avatar-ring {
-      width: 96px; height: 96px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.4);
-      display: flex; align-items: center; justify-content: center;
-      animation: pulse-ring 2s ease-in-out infinite;
-    }
-    @keyframes pulse-ring {
-      0%, 100% { border-color: rgba(255,255,255,0.4); transform: scale(1); }
-      50% { border-color: rgba(255,255,255,0.8); transform: scale(1.04); }
-    }
+/* Keypad */
+.keypad-wrap{padding:20px 24px 8px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.keypad-display{font-family:var(--fd);font-weight:200;font-size:36px;color:var(--tx);letter-spacing:4px;height:50px;text-align:center;}
+.keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+.key-btn{height:60px;border-radius:50%;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s;}
+.key-btn:active{background:var(--s3);}
+.key-num{font-family:var(--fu);font-size:22px;font-weight:400;color:var(--tx);line-height:1;}
+.key-sub{font-family:var(--fu);font-size:8px;font-weight:500;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;}
+.keypad-call-btn{
+  width:64px;height:64px;border-radius:50%;background:var(--gn);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 4px 20px rgba(48,209,88,0.4);transition:transform 0.1s;
+}
+.keypad-call-btn:active{transform:scale(0.92);}
 
-    .avatar {
-      width: 84px; height: 84px;
-      border-radius: 50%;
-      background: #4caf50;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 34px; font-weight: 600; color: #fff;
-      text-transform: uppercase;
-    }
+/* ---- CONTACTS SCREEN ---- */
+#scr-contacts{background:var(--bg);display:flex;flex-direction:column;}
+.con-header{padding:52px 20px 8px;display:flex;align-items:center;gap:12px;}
+.con-header-title{font-family:var(--fd);font-weight:300;font-size:26px;color:var(--tx);flex:1;}
+.con-search-wrap{padding:0 20px 8px;display:flex;align-items:center;gap:12px;}
+.con-search{
+  flex:1;background:var(--s2);border:none;border-radius:12px;
+  padding:10px 14px 10px 36px;
+  font-family:var(--fu);font-size:14px;color:var(--tx);outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center;
+}
+.con-search::placeholder{color:var(--t3);}
+.tr-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 10px;border-bottom:1px solid var(--sep);}
+.tr-toggle-label{font-family:var(--fu);font-size:13px;color:var(--t2);}
+.toggle-sw{position:relative;width:44px;height:26px;cursor:pointer;}
+.toggle-sw input{display:none;}
+.toggle-track{position:absolute;inset:0;border-radius:13px;background:var(--s3);transition:background 0.2s;}
+.toggle-sw input:checked + .toggle-track{background:var(--ac);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.toggle-sw input:checked ~ .toggle-thumb{left:21px;}
+.con-list{flex:1;overflow-y:auto;padding:4px 0;}
+.con-item{
+  display:flex;align-items:center;gap:14px;padding:12px 20px;
+  cursor:pointer;transition:background 0.15s;border-bottom:1px solid var(--sep);
+}
+.con-item:active{background:var(--s1);}
+.con-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:17px;color:#fff;flex-shrink:0;overflow:hidden;}
+.con-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.con-name{font-family:var(--fu);font-size:15px;font-weight:400;color:var(--tx);flex:1;}
+.con-phone{font-family:var(--fu);font-size:12px;color:var(--t2);}
+.con-call-icon{width:34px;height:34px;border-radius:50%;background:rgba(48,209,88,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.con-empty{text-align:center;padding:60px 20px;color:var(--t3);font-size:14px;}
 
-    .caller-name {
-      font-size: 26px; font-weight: 500; color: #fff;
-    }
-    .caller-number {
-      font-size: 14px; color: rgba(255,255,255,0.7);
-    }
-    .caller-label {
-      font-size: 12px; color: rgba(255,255,255,0.5);
-      margin-top: -4px;
-    }
+/* ---- CALLING SCREEN ---- */
+#scr-calling{
+  background:linear-gradient(180deg,#060d1a 0%,#0a1628 60%,#060d1a 100%);
+  display:flex;flex-direction:column;align-items:center;
+}
+.calling-label{font-family:var(--fu);font-size:14px;font-weight:400;color:var(--t2);letter-spacing:1px;margin-top:52px;text-transform:uppercase;}
+.calling-name{font-family:var(--fd);font-weight:200;font-size:34px;color:var(--tx);margin-top:8px;text-align:center;padding:0 32px;}
+.calling-number{font-family:var(--fu);font-size:14px;color:var(--t2);margin-top:4px;}
+.calling-avatar-wrap{position:relative;margin:32px 0;display:flex;align-items:center;justify-content:center;}
+.pulse-ring{
+  position:absolute;border-radius:50%;
+  border:2px solid rgba(66,133,244,0.35);
+  animation:pulse-ring 2s ease-out infinite;
+}
+.pulse-ring:nth-child(1){width:120px;height:120px;animation-delay:0s;}
+.pulse-ring:nth-child(2){width:160px;height:160px;animation-delay:0.4s;}
+.pulse-ring:nth-child(3){width:200px;height:200px;animation-delay:0.8s;}
+@keyframes pulse-ring{
+  0%  {transform:scale(0.85);opacity:0.8;}
+  100%{transform:scale(1.15);opacity:0;}
+}
+.calling-avatar{
+  width:96px;height:96px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fu);font-weight:600;font-size:36px;color:#fff;
+  overflow:hidden;position:relative;z-index:2;
+  box-shadow:0 0 0 3px rgba(66,133,244,0.3);
+}
+.calling-avatar img{width:100%;height:100%;object-fit:cover;}
+.calling-status{font-family:var(--fu);font-size:15px;color:var(--t2);}
+.calling-tr-row{display:flex;align-items:center;gap:8px;margin-top:16px;}
+.calling-tr-label{font-family:var(--fu);font-size:12px;color:var(--t3);}
+.calling-controls{margin-top:auto;margin-bottom:52px;display:flex;justify-content:center;}
+.call-end-btn{
+  width:70px;height:70px;border-radius:50%;background:var(--rd);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 4px 24px rgba(255,69,58,0.5);transition:transform 0.1s;
+}
+.call-end-btn:active{transform:scale(0.92);}
 
-    /* Answer / Decline buttons */
-    .call-actions {
-      display: flex;
-      gap: 60px;
-      align-items: center;
-    }
-    .call-action-btn {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 8px;
-      cursor: pointer; border: none; background: none;
-    }
-    .call-action-btn .icon-circle {
-      width: 64px; height: 64px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; transition: transform 0.15s;
-    }
-    .call-action-btn:hover .icon-circle { transform: scale(1.1); }
-    .call-action-btn .label {
-      font-size: 12px; color: rgba(255,255,255,0.8);
-    }
-    .btn-answer .icon-circle { background: #4caf50; }
-    .btn-decline .icon-circle { background: #f44336; }
+/* ---- IN-CALL SCREEN ---- */
+#scr-incall{
+  background:linear-gradient(180deg,#060d1a 0%,#0a1628 100%);
+  display:flex;flex-direction:column;
+}
+.incall-header{padding:48px 20px 12px;display:flex;align-items:center;gap:14px;}
+.incall-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:18px;color:#fff;overflow:hidden;flex-shrink:0;}
+.incall-avatar img{width:100%;height:100%;object-fit:cover;}
+.incall-info{flex:1;}
+.incall-name{font-family:var(--fd);font-weight:300;font-size:20px;color:var(--tx);}
+.incall-timer{font-family:var(--fu);font-size:12px;color:var(--gn);margin-top:2px;}
+.incall-badge{display:flex;align-items:center;gap:5px;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.25);border-radius:12px;padding:4px 10px;}
+.incall-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);animation:blink-dot 1.5s ease-in-out infinite;}
+@keyframes blink-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.incall-badge-lbl{font-family:var(--fu);font-size:11px;color:var(--gn);font-weight:500;}
+.transcript-panel{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;}
+.transcript-panel.hidden{display:none;}
+.tr-bubble{max-width:80%;padding:10px 14px;border-radius:18px;font-family:var(--fu);font-size:13px;line-height:1.45;animation:bubble-in 0.25s ease-out;}
+@keyframes bubble-in{from{opacity:0;transform:translateY(8px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+.tr-bubble.customer{align-self:flex-start;background:var(--s2);color:var(--tx);border-bottom-left-radius:4px;}
+.tr-bubble.agent   {align-self:flex-end;background:var(--ac);color:#fff;border-bottom-right-radius:4px;}
+.tr-bubble-spk{font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;opacity:0.65;margin-bottom:4px;}
+.tr-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:0.35;}
+.tr-empty-icon{font-size:36px;}
+.tr-empty-txt{font-size:13px;color:var(--t2);}
 
-    /* ── Active Call Screen ── */
-    .active-screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      background: #1a1a2e;
-      padding: 40px 20px 32px;
-    }
+/* In-call controls */
+.incall-controls{padding:12px 20px 28px;display:flex;flex-direction:column;gap:12px;}
+.incall-ctrl-row{display:flex;justify-content:space-around;gap:12px;}
+.ctrl-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-width:64px;-webkit-tap-highlight-color:transparent;}
+.ctrl-btn-icon{width:52px;height:52px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;transition:background 0.2s,transform 0.1s;}
+.ctrl-btn:active .ctrl-btn-icon{transform:scale(0.9);}
+.ctrl-btn.on .ctrl-btn-icon{background:var(--tx);}
+.ctrl-btn.on .ctrl-btn-icon svg{color:var(--bg);}
+.ctrl-btn-lbl{font-family:var(--fu);font-size:11px;color:var(--t2);font-weight:400;}
+.ctrl-end .ctrl-btn-icon{background:var(--rd);box-shadow:0 4px 16px rgba(255,69,58,0.4);}
+.ctrl-end .ctrl-btn-icon svg{color:#fff;}
+.ctrl-end .ctrl-btn-lbl{color:var(--rd);}
 
-    .active-caller-section {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 8px;
-    }
-    .active-avatar {
-      width: 72px; height: 72px; border-radius: 50%;
-      background: #4caf50;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; font-weight: 600; color: #fff;
-      text-transform: uppercase;
-    }
-    .active-caller-name {
-      font-size: 22px; font-weight: 500; color: #fff;
-    }
-    .active-state-label {
-      font-size: 13px; color: #4caf50;
-    }
-    .active-timer {
-      font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.6);
-      margin-top: 4px;
-      font-variant-numeric: tabular-nums;
-    }
+/* ---- DEMO PANEL ---- */
+.demo-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  z-index:200;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+  border-radius:44px;overflow:hidden;
+}
+.demo-overlay.open{opacity:1;pointer-events:all;}
+.demo-sheet{
+  background:var(--s1);border-radius:20px 20px 0 0;width:100%;
+  padding:16px 20px 32px;
+  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.demo-overlay.open .demo-sheet{transform:translateY(0);}
+.demo-handle{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px;}
+.demo-title{font-family:var(--fd);font-weight:400;font-size:18px;color:var(--tx);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.demo-close{width:28px;height:28px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--t2);}
+.demo-section{margin-bottom:14px;}
+.demo-lbl{font-family:var(--fu);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.demo-select{
+  width:100%;background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;
+  padding:10px 14px;font-family:var(--fu);font-size:14px;color:var(--tx);outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+}
+.demo-select option{background:#1c1c1e;color:#fff;}
+.demo-row{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:10px;padding:10px 14px;margin-bottom:8px;}
+.demo-row-lbl{font-family:var(--fu);font-size:14px;color:var(--tx);}
+.demo-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.demo-btn{flex:1;min-width:80px;padding:10px 8px;border-radius:10px;font-family:var(--fu);font-size:13px;font-weight:500;text-align:center;cursor:pointer;border:none;transition:transform 0.1s,opacity 0.1s;}
+.demo-btn:active{transform:scale(0.96);opacity:0.85;}
+.demo-btn-call{background:var(--gn);color:#000;}
+.demo-btn-end {background:var(--rd);color:#fff;}
+.demo-btn-skip{background:var(--s3);color:var(--tx);}
 
-    /* In-call button grid */
-    .call-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-top: 32px;
-      width: 100%;
-      max-width: 280px;
-    }
-    .grid-btn {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 4px;
-      background: rgba(255,255,255,0.08);
-      border: none; border-radius: 12px;
-      padding: 14px 8px; cursor: pointer;
-      transition: background 0.15s;
-    }
-    .grid-btn:hover { background: rgba(255,255,255,0.15); }
-    .grid-btn .g-icon { font-size: 22px; }
-    .grid-btn .g-label { font-size: 10px; color: rgba(255,255,255,0.6); }
+/* ---- Nav indicator ---- */
+.nav-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);z-index:90;}
 
-    .end-call-btn {
-      margin-top: auto;
-      width: 64px; height: 64px; border-radius: 50%;
-      background: #f44336; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; transition: transform 0.15s;
-    }
-    .end-call-btn:hover { transform: scale(1.1); }
+/* ---- Scrollbars ---- */
+.transcript-panel::-webkit-scrollbar,.con-list::-webkit-scrollbar,.tab-content::-webkit-scrollbar{width:3px;}
+.transcript-panel::-webkit-scrollbar-track,.con-list::-webkit-scrollbar-track,.tab-content::-webkit-scrollbar-track{background:transparent;}
+.transcript-panel::-webkit-scrollbar-thumb,.con-list::-webkit-scrollbar-thumb,.tab-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px;}
 
-    /* ── Ended Screen ── */
-    .ended-screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #1a1a2e;
-      padding: 40px 20px;
-      gap: 12px;
-    }
-    .ended-icon { font-size: 48px; }
-    .ended-title { font-size: 20px; color: #fff; }
-    .ended-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); }
-    .ended-clear-btn {
-      margin-top: 24px;
-      padding: 10px 28px;
-      border-radius: 24px;
-      border: 1px solid rgba(255,255,255,0.3);
-      background: transparent;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .ended-clear-btn:hover { background: rgba(255,255,255,0.1); }
+/* ---- INCOMING SCREEN ---- */
+#scr-incoming{
+  background:linear-gradient(180deg,#061a06 0%,#0a280a 60%,#061a06 100%);
+  display:flex;flex-direction:column;align-items:center;
+}
+.incoming-label{font-family:var(--fu);font-size:14px;font-weight:400;color:var(--t2);letter-spacing:1px;margin-top:52px;text-transform:uppercase;}
+.incoming-name{font-family:var(--fd);font-weight:200;font-size:34px;color:var(--tx);margin-top:8px;text-align:center;padding:0 32px;}
+.incoming-number{font-family:var(--fu);font-size:14px;color:var(--t2);margin-top:4px;}
+.incoming-controls{margin-top:auto;margin-bottom:52px;display:flex;gap:52px;justify-content:center;align-items:center;}
+.ans-btn{width:70px;height:70px;border-radius:50%;background:var(--gn);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 24px rgba(48,209,88,0.5);transition:transform 0.1s;}
+.ans-btn:active{transform:scale(0.92);}
+.dec-btn{width:70px;height:70px;border-radius:50%;background:var(--rd);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 24px rgba(255,69,58,0.5);transition:transform 0.1s;}
+.dec-btn:active{transform:scale(0.92);}
 
-    /* ── Transcript Panel ── */
-    .transcript-panel {
-      display: none;
-      background: #111;
-      border-top: 1px solid #333;
-      max-height: 200px;
-      overflow-y: auto;
-      padding: 8px;
-    }
-    .transcript-panel .t-header {
-      font-size: 10px; font-weight: 600;
-      color: #888; margin-bottom: 6px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .transcript-panel .t-stream {
-      display: flex; flex-direction: column; gap: 4px;
-    }
-    .t-bubble {
-      max-width: 85%; padding: 6px 10px;
-      border-radius: 12px; font-size: 12px;
-      line-height: 1.35; word-wrap: break-word;
-    }
-    .t-bubble-agent {
-      align-self: flex-end;
-      background: #1565c0; color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-    .t-bubble-caller {
-      align-self: flex-start;
-      background: #333; color: #e0e0e0;
-      border-bottom-left-radius: 4px;
-    }
-    .t-bubble-system {
-      align-self: center;
-      background: #222; color: #888;
-      font-style: italic; font-size: 11px;
-    }
-    .t-speaker {
-      font-weight: 600; margin-right: 4px; font-size: 10px;
-    }
+/* ---- ENDED SCREEN ---- */
+#scr-ended{
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+}
+.ended-avatar{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:30px;color:#fff;overflow:hidden;margin-bottom:8px;}
+.ended-avatar img{width:100%;height:100%;object-fit:cover;}
+.ended-name{font-family:var(--fd);font-weight:300;font-size:22px;color:var(--t2);}
+.ended-reason{font-family:var(--fu);font-size:14px;color:var(--t3);}
+.ended-duration{font-family:var(--fu);font-size:12px;color:var(--t3);}
 
-    /* ── Bottom Nav Bar ── */
-    .nav-bar {
-      height: 44px;
-      background: #1a1a1a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 48px;
-      flex-shrink: 0;
-    }
-    .nav-btn {
-      width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0.5; cursor: pointer; font-size: 16px;
-    }
-    .nav-pill {
-      width: 36px; height: 4px;
-      background: #666; border-radius: 2px;
-    }
+/* ---- Browser Screen ---- */
+#scr-browser{background:#1a1a2e;display:flex;flex-direction:column;}
+#scr-browser .browser-toolbar{display:flex;align-items:center;gap:8px;padding:52px 12px 8px;background:#0f0f23;}
+#scr-browser .browser-back{font-size:20px;color:#8888bb;cursor:pointer;padding:2px 4px;user-select:none;line-height:1;}
+#scr-browser .browser-back:active{opacity:0.5;}
+#scr-browser .browser-url-bar{flex:1;background:#2a2a4a;border:none;border-radius:20px;padding:8px 16px;color:#e0e0ff;font-family:var(--fu);font-size:13px;outline:none;}
+#scr-browser .browser-url-bar::placeholder{color:#6a6a8a;}
+#scr-browser .browser-content{flex:1;position:relative;overflow:hidden;}
+#scr-browser .browser-iframe{width:100%;height:100%;border:none;background:#fff;}
+#scr-browser .browser-newtab{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#1a1a2e;}
+#scr-browser .browser-newtab-logo{font-size:48px;opacity:0.4;}
+#scr-browser .browser-newtab-hint{font-family:var(--fu);font-size:13px;color:#6a6a8a;text-align:center;line-height:1.6;padding:0 32px;}
+#scr-browser .browser-loading{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,#4285f4,#34a853);animation:browser-load 1.5s ease-in-out;display:none;}
+#scr-browser .browser-blocked{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1a1a2e;z-index:2;}
+#scr-browser .browser-blocked-icon{font-size:48px;opacity:0.5;}
+#scr-browser .browser-blocked-msg{font-family:var(--fu);font-size:14px;color:#8888aa;text-align:center;padding:0 32px;line-height:1.5;}
+#scr-browser .browser-blocked-url{font-family:var(--fu);font-size:11px;color:#6a6a8a;word-break:break-all;padding:0 24px;text-align:center;}
+#scr-browser .browser-open-ext{background:#4285f4;color:#fff;border:none;border-radius:20px;padding:10px 24px;font-family:var(--fu);font-size:13px;font-weight:500;cursor:pointer;transition:transform 0.1s;}
+#scr-browser .browser-open-ext:active{transform:scale(0.95);}
+@keyframes browser-load{0%{width:0;}50%{width:70%;}100%{width:100%;opacity:0;}}
 
-    /* ── Audio (hidden) ── */
-    .ringtone-audio { display: none; }
-  </style>
+/* ---- Demo panel URL input ---- */
+.demo-url-input{width:100%;background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-family:var(--fu);font-size:13px;color:var(--tx);outline:none;}
+.demo-url-input::placeholder{color:var(--t3);}
+.demo-url-input:focus{border-color:var(--ac);}
+.demo-url-hint{font-family:var(--fu);font-size:10px;color:var(--t3);margin-top:4px;opacity:0.7;}
+</style>
 </head>
 <body>
-  <div class="android-phone-shell">
-    <!-- Status Bar -->
+
+<!-- PHONE CHASSIS -->
+<div class="chassis">
+
+  <div class="btn-vol-up"></div>
+  <div class="btn-vol-dn"></div>
+  <div class="btn-pwr"></div>
+
+  <div class="screen-glass">
+    <div class="punch-hole"></div>
+
+    <!-- Status bar -->
     <div class="status-bar">
-      <div class="status-bar-left">
-        <span id="statusTime">12:00</span>
-        <div class="signal-bars"><span></span><span></span><span></span><span></span></div>
-      </div>
-      <div class="status-bar-right">
-        <span>LTE</span>
-        <span>WiFi</span>
-        <div class="battery-icon"><div class="battery-fill"></div></div>
+      <div class="sb-time" id="sbTime">9:41</div>
+      <div class="sb-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="white" opacity="0.9">
+          <rect x="0" y="6" width="3" height="6" rx="0.5"/>
+          <rect x="4" y="4" width="3" height="8" rx="0.5"/>
+          <rect x="8" y="2" width="3" height="10" rx="0.5"/>
+          <rect x="12" y="0" width="3" height="12" rx="0.5" opacity="0.4"/>
+        </svg>
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="white" stroke-width="1.5" opacity="0.9">
+          <path d="M7.5 8.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" fill="white" stroke="none"/>
+          <path d="M3.5 6C4.8 4.8 6.1 4 7.5 4s2.7.8 4 2" stroke-linecap="round"/>
+          <path d="M1 3C3 1.3 5.2 0 7.5 0S12 1.3 14 3" stroke-linecap="round"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity="0.9">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="white" stroke-opacity="0.5"/>
+          <rect x="2" y="2" width="16" height="8" rx="2" fill="white"/>
+          <path d="M22.5 4v4c.8-.4 1.5-1.1 1.5-2s-.7-1.6-1.5-2z" fill="white" opacity="0.4"/>
+        </svg>
       </div>
     </div>
 
-    <!-- Screen -->
-    <div class="screen">
-      <!-- Idle Home -->
-      <div id="homeScreen" class="home-screen">
-        <div id="homeClock" class="home-clock">12:00</div>
-        <div id="homeDate" class="home-date">Monday, January 1</div>
-        <div class="home-bottom">
-          <div class="home-hint">Tap to open dialer</div>
-          <button class="home-dialer-btn" id="btnOpenDialer" title="Open Dialer">📞</button>
-        </div>
-      </div>
+    <div class="screens-wrap">
 
-      <!-- Dialer -->
-      <div id="dialerScreen" class="dialer-screen">
-        <div class="dialer-display">
-          <div id="dialerNumber" class="dialer-number"></div>
-          <div class="dialer-hint">Enter a number</div>
+      <!-- HOME SCREEN -->
+      <div class="screen" id="scr-home">
+        <div class="home-wallpaper" id="homeWallpaper"></div>
+        <div class="home-clock-wrap">
+          <div class="home-clock" id="homeClock">9:41</div>
+          <div class="home-date" id="homeDate">Thursday, March 5</div>
         </div>
-        <div class="keypad">
-          <button class="key-btn" data-digit="1"><span class="key-digit">1</span><span class="key-letters">&nbsp;</span></button>
-          <button class="key-btn" data-digit="2"><span class="key-digit">2</span><span class="key-letters">ABC</span></button>
-          <button class="key-btn" data-digit="3"><span class="key-digit">3</span><span class="key-letters">DEF</span></button>
-          <button class="key-btn" data-digit="4"><span class="key-digit">4</span><span class="key-letters">GHI</span></button>
-          <button class="key-btn" data-digit="5"><span class="key-digit">5</span><span class="key-letters">JKL</span></button>
-          <button class="key-btn" data-digit="6"><span class="key-digit">6</span><span class="key-letters">MNO</span></button>
-          <button class="key-btn" data-digit="7"><span class="key-digit">7</span><span class="key-letters">PQRS</span></button>
-          <button class="key-btn" data-digit="8"><span class="key-digit">8</span><span class="key-letters">TUV</span></button>
-          <button class="key-btn" data-digit="9"><span class="key-digit">9</span><span class="key-letters">WXYZ</span></button>
-          <button class="key-btn" data-digit="*"><span class="key-digit">✱</span><span class="key-letters">&nbsp;</span></button>
-          <button class="key-btn" data-digit="0"><span class="key-digit">0</span><span class="key-letters">+</span></button>
-          <button class="key-btn" data-digit="#"><span class="key-digit">#</span><span class="key-letters">&nbsp;</span></button>
-        </div>
-        <div class="dialer-actions">
-          <button class="dial-back-btn" id="btnDialerBack" title="Back to home">◀</button>
-          <button class="dial-call-btn" id="btnDialCall" title="Call" disabled>📞</button>
-          <button class="dial-backspace-btn" id="btnBackspace" title="Backspace">⌫</button>
-        </div>
-      </div>
-
-      <!-- Dialing (outgoing ring) -->
-      <div id="dialingScreen" class="dialing-screen">
-        <div class="dialing-section">
-          <div id="dialingAvatar" class="dialing-avatar">?</div>
-          <div id="dialingName" class="dialing-name"></div>
-          <div id="dialingNumber" class="dialing-number"></div>
-          <div id="dialingLabel" class="dialing-label">Calling...</div>
-        </div>
-        <button class="dialing-cancel-btn" id="btnCancelDial" title="Cancel call">📵</button>
-      </div>
-
-      <!-- Incoming Call -->
-      <div id="incomingScreen" class="incoming-screen">
-        <div class="caller-section">
-          <div class="avatar-ring">
-            <div id="incomingAvatar" class="avatar">?</div>
+        <div class="home-apps" id="homeApps"></div>
+        <div class="home-dock">
+          <div class="dock-bar">
+            <div class="dock-icon ic-phone" onclick="goPhone()">&#128222;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#0a84ff,#0066cc)">&#128172;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#4285f4,#1a73e8)" onclick="goBrowser()">&#127760;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#636366,#3c3c3e)">&#128247;</div>
           </div>
-          <div id="incomingName" class="caller-name">Unknown Caller</div>
-          <div id="incomingNumber" class="caller-number"></div>
-          <div class="caller-label">Incoming call</div>
-        </div>
-        <div class="call-actions">
-          <button class="call-action-btn btn-decline" id="btnDecline" title="Decline">
-            <div class="icon-circle">📵</div>
-            <span class="label">Decline</span>
-          </button>
-          <button class="call-action-btn btn-answer" id="btnAnswer" title="Answer">
-            <div class="icon-circle">📞</div>
-            <span class="label">Answer</span>
-          </button>
         </div>
       </div>
 
-      <!-- Active Call -->
-      <div id="activeScreen" class="active-screen">
-        <div class="active-caller-section">
-          <div id="activeAvatar" class="active-avatar">?</div>
-          <div id="activeName" class="active-caller-name">Unknown Caller</div>
-          <div id="activeState" class="active-state-label">Connected</div>
-          <div id="activeTimer" class="active-timer">00:00</div>
+      <!-- PHONE APP SCREEN -->
+      <div class="screen" id="scr-phone">
+        <div class="phone-header">
+          <div class="back-btn" onclick="goHome()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="phone-header-title">Phone</div>
         </div>
-        <div class="call-grid">
-          <button class="grid-btn" title="Mute"><span class="g-icon">🔇</span><span class="g-label">Mute</span></button>
-          <button class="grid-btn" title="Keypad"><span class="g-icon">⌨️</span><span class="g-label">Keypad</span></button>
-          <button class="grid-btn" title="Speaker"><span class="g-icon">🔈</span><span class="g-label">Speaker</span></button>
-          <button class="grid-btn" title="Add call"><span class="g-icon">➕</span><span class="g-label">Add call</span></button>
-          <button class="grid-btn" title="Hold"><span class="g-icon">⏸️</span><span class="g-label">Hold</span></button>
-          <button class="grid-btn" id="btnTranscript" title="Transcript"><span class="g-icon">💬</span><span class="g-label">Transcript</span></button>
+        <div class="phone-tabs">
+          <div class="tab-btn on" id="tab-recent"   onclick="switchTab('recent')">Recents</div>
+          <div class="tab-btn"   id="tab-contacts"  onclick="switchTab('contacts')">Contacts</div>
+          <div class="tab-btn"   id="tab-keypad"    onclick="switchTab('keypad')">Keypad</div>
         </div>
-        <button class="end-call-btn" id="btnEndCall" title="End call">📵</button>
+        <div class="tab-content">
+          <div class="tab-pane on" id="pane-recent">
+            <div class="recents-empty">
+              <div class="recents-empty-icon">&#128203;</div>
+              <div class="recents-empty-txt">No recent calls</div>
+            </div>
+          </div>
+          <div class="tab-pane" id="pane-contacts">
+            <div style="padding:12px 20px 0;">
+              <input type="text" class="con-search" placeholder="Search contacts" id="phoneConSearch" oninput="filterPhoneCons(this.value)" style="width:100%;">
+            </div>
+            <div class="con-list" id="phoneConList"><div class="con-empty">Loading&#8230;</div></div>
+          </div>
+          <div class="tab-pane" id="pane-keypad">
+            <div class="keypad-wrap">
+              <div class="keypad-display" id="keypadDisplay"></div>
+              <div class="keypad-grid" id="keypadGrid"></div>
+              <div class="keypad-call-btn" onclick="keypadCall()">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Ended -->
-      <div id="endedScreen" class="ended-screen">
-        <div class="ended-icon">📴</div>
-        <div id="endedTitle" class="ended-title">Call Ended</div>
-        <div id="endedSubtitle" class="ended-subtitle"></div>
-        <button class="ended-clear-btn" id="btnClear">Dismiss</button>
+      <!-- CONTACTS SCREEN -->
+      <div class="screen" id="scr-contacts">
+        <div class="con-header">
+          <div class="back-btn" onclick="navTo('phone',true)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="con-header-title">Contacts</div>
+        </div>
+        <div class="con-search-wrap">
+          <input type="text" class="con-search" placeholder="Search contacts" id="conSearch" oninput="filterCons(this.value)">
+        </div>
+        <div class="tr-toggle-row">
+          <div class="tr-toggle-label">Transcript simulation</div>
+          <label class="toggle-sw">
+            <input type="checkbox" id="trToggle" onchange="S.trOn=this.checked;syncToggles()">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="con-list" id="conList"><div class="con-empty">Loading contacts&#8230;</div></div>
       </div>
 
-      <!-- Transcript -->
-      <div id="transcriptPanel" class="transcript-panel">
-        <div class="t-header">Live Transcript</div>
-        <div id="transcriptStream" class="t-stream"></div>
+      <!-- CALLING SCREEN -->
+      <div class="screen" id="scr-calling">
+        <div class="calling-label">Calling&#8230;</div>
+        <div class="calling-name" id="callingName">&#8211;</div>
+        <div class="calling-number" id="callingNumber"></div>
+        <div class="calling-avatar-wrap">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring"></div>
+          <div class="calling-avatar" id="callingAvatar"></div>
+        </div>
+        <div class="calling-status">Ringing&#8230;</div>
+        <div class="calling-tr-row">
+          <div class="calling-tr-label">Transcript</div>
+          <label class="toggle-sw" style="transform:scale(0.85)">
+            <input type="checkbox" id="callingTrToggle" onchange="S.trOn=this.checked;syncToggles()">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="calling-controls">
+          <div class="call-end-btn" onclick="endCall()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-CALL SCREEN -->
+      <div class="screen" id="scr-incall">
+        <div class="incall-header">
+          <div class="incall-avatar" id="incallAvatar"></div>
+          <div class="incall-info">
+            <div class="incall-name" id="incallName">&#8211;</div>
+            <div class="incall-timer" id="incallTimer">00:00</div>
+          </div>
+          <div class="incall-badge">
+            <div class="incall-badge-dot"></div>
+            <div class="incall-badge-lbl">Connected</div>
+          </div>
+        </div>
+        <div class="transcript-panel" id="transcriptPanel">
+          <div class="tr-empty" id="trEmpty">
+            <div class="tr-empty-icon">&#128172;</div>
+            <div class="tr-empty-txt">Transcript will appear here</div>
+          </div>
+        </div>
+        <div class="incall-controls">
+          <div class="incall-ctrl-row">
+            <div class="ctrl-btn" id="ctrlMute" onclick="toggleMute()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Mute</div>
+            </div>
+            <div class="ctrl-btn" id="ctrlTr" onclick="toggleTrPanel()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Transcript</div>
+            </div>
+            <div class="ctrl-btn" id="ctrlSkip" onclick="skipTr()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <polygon points="5 4 15 12 5 20 5 4"/>
+                  <line x1="19" y1="5" x2="19" y2="19"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Skip</div>
+            </div>
+          </div>
+          <div class="incall-ctrl-row">
+            <div class="ctrl-btn" id="ctrlSpk" onclick="toggleSpeaker()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Speaker</div>
+            </div>
+            <div class="ctrl-btn ctrl-end" onclick="endCall()">
+              <div class="ctrl-btn-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+              </div>
+              <div class="ctrl-btn-lbl">End</div>
+            </div>
+            <div class="ctrl-btn">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Keypad</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- INCOMING SCREEN -->
+      <div class="screen" id="scr-incoming">
+        <div class="incoming-label">Incoming Call</div>
+        <div class="incoming-name" id="incomingName">&#8211;</div>
+        <div class="incoming-number" id="incomingNumber"></div>
+        <div class="calling-avatar-wrap">
+          <div class="pulse-ring" style="border-color:rgba(48,209,88,0.35)"></div>
+          <div class="pulse-ring" style="border-color:rgba(48,209,88,0.35)"></div>
+          <div class="pulse-ring" style="border-color:rgba(48,209,88,0.35)"></div>
+          <div class="calling-avatar" id="incomingAvatar" style="box-shadow:0 0 0 3px rgba(48,209,88,0.3)"></div>
+        </div>
+        <div class="calling-status">Ringing&#8230;</div>
+        <div class="incoming-controls">
+          <div class="dec-btn" onclick="declineCall()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+          </div>
+          <div class="ans-btn" onclick="answerCall()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENDED SCREEN -->
+      <div class="screen" id="scr-ended">
+        <div class="ended-avatar" id="endedAvatar"></div>
+        <div class="ended-name" id="endedName"></div>
+        <div class="ended-reason" id="endedReason">Call Ended</div>
+        <div class="ended-duration" id="endedDuration"></div>
+      </div>
+
+      <!-- BROWSER SCREEN -->
+      <div class="screen" id="scr-browser">
+        <div class="browser-toolbar">
+          <div class="browser-back" onclick="goHome()">&#x2190;</div>
+          <input class="browser-url-bar" id="browserUrl" type="text" placeholder="Search or type URL" onkeydown="if(event.key==='Enter')loadBrowserUrl(this.value)">
+        </div>
+        <div class="browser-content">
+          <div class="browser-newtab" id="browserNewTab">
+            <div class="browser-newtab-logo">&#127760;</div>
+            <div class="browser-newtab-hint">Type a URL above or set one in<br>Demo Panel (Ctrl+Shift+D)</div>
+          </div>
+          <iframe class="browser-iframe" id="browserFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+          <div class="browser-blocked" id="browserBlocked">
+            <div class="browser-blocked-icon">&#128274;</div>
+            <div class="browser-blocked-msg">This site doesn't allow embedding.<br>Open it in a new tab instead.</div>
+            <div class="browser-blocked-url" id="browserBlockedUrl"></div>
+            <button class="browser-open-ext" onclick="openBrowserExternal()">Open in New Tab &#8599;</button>
+          </div>
+          <div class="browser-loading" id="browserLoading"></div>
+        </div>
+      </div>
+
+    </div><!-- /screens-wrap -->
+
+    <!-- DEMO CONTROL PANEL -->
+    <div class="demo-overlay" id="demoOverlay">
+      <div class="demo-sheet">
+        <div class="demo-handle"></div>
+        <div class="demo-title">
+          Demo Control Panel
+          <div class="demo-close" onclick="clsD()">&#x2715;</div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Demo Profile</div>
+          <select class="demo-select" id="demoProfileSel" onchange="applyProfile(this.value)">
+            <option value="">&#8212; Select profile &#8212;</option>
+          </select>
+        </div>
+        <div class="demo-section">
+          <div class="demo-row">
+            <div class="demo-row-lbl">Transcript</div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="dpTrToggle" onchange="S.trOn=this.checked;syncToggles()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Browser URL</div>
+          <input class="demo-url-input" id="demoBrowserUrl" type="text" placeholder="https://example.com" onchange="setBrowserUrl(this.value)">
+          <div class="demo-url-hint">Set a URL for the Chrome icon. Leave blank for DuckDuckGo search.</div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Actions</div>
+          <div class="demo-actions">
+            <div class="demo-btn demo-btn-call" onclick="demoStartCall()">&#9654; Start Call</div>
+            <div class="demo-btn demo-btn-end"  onclick="endCall()">&#9646; End Call</div>
+            <div class="demo-btn demo-btn-skip" onclick="skipTr()">&#9197; Skip Transcript</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Navigation Bar -->
-    <div class="nav-bar">
-      <div class="nav-btn">◀</div>
-      <div class="nav-pill"></div>
-      <div class="nav-btn">■</div>
-    </div>
-
-    <!-- Hidden audio -->
-    <audio id="ringtoneAudio" class="ringtone-audio" loop></audio>
-  </div>
-
-  <script>
-    (function () {
-      "use strict";
-
-      var STORAGE_KEY = "genericSimCall";
-      var DIAL_CONNECT_DELAY_MS = 3000;
-
-      // Demo transcript for outgoing calls
-      var DEMO_OUTGOING_TRANSCRIPT = JSON.stringify([
-        { "speaker": "system", "text": "Call connected" },
-        { "speaker": "agent",  "text": "Hi, this is support calling regarding your recent case." },
-        { "speaker": "caller", "text": "Oh hi, yes I was expecting your call." },
-        { "speaker": "agent",  "text": "Great. I wanted to follow up on the issue you reported." },
-        { "speaker": "caller", "text": "Sure, the problem was with my billing statement." },
-        { "speaker": "agent",  "text": "I see that here. Let me pull up your account details." },
-        { "speaker": "system", "text": "Account #48291 loaded" },
-        { "speaker": "agent",  "text": "It looks like the charge was a duplicate. I'll issue a refund." },
-        { "speaker": "caller", "text": "That would be great, thank you so much." },
-        { "speaker": "agent",  "text": "Done. You should see the credit within 3-5 business days." },
-        { "speaker": "caller", "text": "Perfect. Is there anything else I need to do?" },
-        { "speaker": "agent",  "text": "No, you're all set. Thanks for your patience." },
-        { "speaker": "caller", "text": "Thanks for the quick resolution. Have a good day!" },
-        { "speaker": "system", "text": "Case #48291 updated \u2014 status: resolved" }
-      ]);
-
-      var call = null;
-      var callTimerId = null;
-      var clockTimerId = null;
-      var dialingTimerId = null;
-      var dialingDotsId = null;
-      var dialerInput = "";
-
-      // Transcript playback state
-      var transcriptTimerId = null;
-      var transcriptBlocks = [];
-      var transcriptIndex = 0;
-      var transcriptVisible = false;
-
-      var els = {
-        // Screens
-        homeScreen: document.getElementById("homeScreen"),
-        dialerScreen: document.getElementById("dialerScreen"),
-        dialingScreen: document.getElementById("dialingScreen"),
-        incomingScreen: document.getElementById("incomingScreen"),
-        activeScreen: document.getElementById("activeScreen"),
-        endedScreen: document.getElementById("endedScreen"),
-        // Home
-        homeClock: document.getElementById("homeClock"),
-        homeDate: document.getElementById("homeDate"),
-        statusTime: document.getElementById("statusTime"),
-        // Dialer
-        dialerNumber: document.getElementById("dialerNumber"),
-        btnOpenDialer: document.getElementById("btnOpenDialer"),
-        btnDialerBack: document.getElementById("btnDialerBack"),
-        btnDialCall: document.getElementById("btnDialCall"),
-        btnBackspace: document.getElementById("btnBackspace"),
-        // Dialing
-        dialingAvatar: document.getElementById("dialingAvatar"),
-        dialingName: document.getElementById("dialingName"),
-        dialingNumber: document.getElementById("dialingNumber"),
-        dialingLabel: document.getElementById("dialingLabel"),
-        btnCancelDial: document.getElementById("btnCancelDial"),
-        // Incoming
-        incomingAvatar: document.getElementById("incomingAvatar"),
-        incomingName: document.getElementById("incomingName"),
-        incomingNumber: document.getElementById("incomingNumber"),
-        // Active
-        activeAvatar: document.getElementById("activeAvatar"),
-        activeName: document.getElementById("activeName"),
-        activeState: document.getElementById("activeState"),
-        activeTimer: document.getElementById("activeTimer"),
-        // Ended
-        endedTitle: document.getElementById("endedTitle"),
-        endedSubtitle: document.getElementById("endedSubtitle"),
-        // Buttons
-        btnAnswer: document.getElementById("btnAnswer"),
-        btnDecline: document.getElementById("btnDecline"),
-        btnEndCall: document.getElementById("btnEndCall"),
-        btnClear: document.getElementById("btnClear"),
-        btnTranscript: document.getElementById("btnTranscript"),
-        // Transcript
-        transcriptPanel: document.getElementById("transcriptPanel"),
-        transcriptStream: document.getElementById("transcriptStream"),
-        // Audio
-        ringtoneAudio: document.getElementById("ringtoneAudio")
-      };
-
-      // ─── Helpers ───
-
-      function getInitials(name) {
-        if (!name) return "?";
-        var parts = name.trim().split(/\s+/);
-        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-        return parts[0].substring(0, 2).toUpperCase();
-      }
-
-      function formatPhoneDisplay(digits) {
-        var d = digits.replace(/[^0-9]/g, "");
-        if (d.length <= 3) return d;
-        if (d.length <= 6) return "(" + d.substring(0, 3) + ") " + d.substring(3);
-        return "(" + d.substring(0, 3) + ") " + d.substring(3, 6) + "-" + d.substring(6, 10);
-      }
-
-      function formatTime(date) {
-        var h = date.getHours();
-        var m = String(date.getMinutes()).padStart(2, "0");
-        return h + ":" + m;
-      }
-
-      function formatDate(date) {
-        var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        var months = ["January","February","March","April","May","June",
-                        "July","August","September","October","November","December"];
-        return days[date.getDay()] + ", " + months[date.getMonth()] + " " + date.getDate();
-      }
-
-      function updateClock() {
-        var now = new Date();
-        els.homeClock.textContent = formatTime(now);
-        els.homeDate.textContent = formatDate(now);
-        els.statusTime.textContent = formatTime(now);
-      }
-
-      // ─── Screen Management ───
-
-      function hideAllScreens() {
-        els.homeScreen.style.display = "none";
-        els.dialerScreen.style.display = "none";
-        els.dialingScreen.style.display = "none";
-        els.incomingScreen.style.display = "none";
-        els.activeScreen.style.display = "none";
-        els.endedScreen.style.display = "none";
-        els.transcriptPanel.style.display = "none";
-      }
-
-      function showScreen(name) {
-        hideAllScreens();
-        switch (name) {
-          case "home":
-            els.homeScreen.style.display = "flex"; break;
-          case "dialer":
-            els.dialerScreen.style.display = "flex"; break;
-          case "dialing":
-            els.dialingScreen.style.display = "flex"; break;
-          case "incoming":
-            els.incomingScreen.style.display = "flex"; break;
-          case "active":
-            els.activeScreen.style.display = "flex"; break;
-          case "ended":
-            els.endedScreen.style.display = "flex"; break;
-        }
-      }
-
-      // ─── Ringtone ───
-
-      function playRingtone() {
-        try {
-          var url = call && call.ringtoneUrl;
-          if (!url || (call && call.muteRingtone)) return;
-          els.ringtoneAudio.src = url;
-          els.ringtoneAudio.play().catch(function () {});
-        } catch (e) { /* ignore */ }
-      }
-
-      function stopRingtone() {
-        try {
-          els.ringtoneAudio.pause();
-          els.ringtoneAudio.currentTime = 0;
-        } catch (e) { /* ignore */ }
-      }
-
-      // ─── Timer ───
-
-      function startTimer() {
-        stopTimer();
-        callTimerId = setInterval(function () {
-          if (!call || !call.startTime) return;
-          var start = new Date(call.startTime).getTime();
-          var now = Date.now();
-          var seconds = Math.floor((now - start) / 1000);
-          var mm = String(Math.floor(seconds / 60)).padStart(2, "0");
-          var ss = String(seconds % 60).padStart(2, "0");
-          els.activeTimer.textContent = mm + ":" + ss;
-        }, 1000);
-      }
-
-      function stopTimer() {
-        if (callTimerId) {
-          clearInterval(callTimerId);
-          callTimerId = null;
-        }
-      }
-
-      // ─── Transcript ───
-
-      function parseTranscript(text) {
-        if (!text) return [];
-        try { return JSON.parse(text); }
-        catch (e) { /* ignore */ }
-        // Fallback: line-by-line
-        return text.split("\n").filter(function (l) { return l.trim(); }).map(function (line) {
-          return { speaker: "system", text: line.trim() };
-        });
-      }
-
-      function startTranscriptPlayback() {
-        resetTranscriptPlayback();
-        if (!call || !call.transcriptEnabled || !call.transcriptText) return;
-        transcriptBlocks = parseTranscript(call.transcriptText);
-        if (!transcriptBlocks.length) return;
-        var interval = (call.transcriptIntervalSeconds || 3) * 1000;
-        transcriptTimerId = setInterval(function () {
-          if (transcriptIndex >= transcriptBlocks.length) {
-            clearInterval(transcriptTimerId);
-            transcriptTimerId = null;
-            return;
-          }
-          appendTranscriptBubble(transcriptBlocks[transcriptIndex]);
-          transcriptIndex++;
-        }, interval);
-      }
-
-      function resetTranscriptPlayback() {
-        if (transcriptTimerId) {
-          clearInterval(transcriptTimerId);
-          transcriptTimerId = null;
-        }
-        transcriptBlocks = [];
-        transcriptIndex = 0;
-        els.transcriptStream.innerHTML = "";
-      }
-
-      function appendTranscriptBubble(block) {
-        var div = document.createElement("div");
-        div.classList.add("t-bubble");
-
-        if (block.speaker === "agent") {
-          div.classList.add("t-bubble-agent");
-        } else if (block.speaker === "caller") {
-          div.classList.add("t-bubble-caller");
-        } else {
-          div.classList.add("t-bubble-system");
-        }
-
-        var label = document.createElement("span");
-        label.classList.add("t-speaker");
-        if (block.speaker === "agent") label.textContent = "Agent:";
-        else if (block.speaker === "caller") label.textContent = "Caller:";
-        else label.textContent = "";
-
-        if (label.textContent) div.appendChild(label);
-        div.appendChild(document.createTextNode(block.text || ""));
-        els.transcriptStream.appendChild(div);
-        els.transcriptPanel.scrollTop = els.transcriptPanel.scrollHeight;
-      }
-
-      function toggleTranscript() {
-        transcriptVisible = !transcriptVisible;
-        els.transcriptPanel.style.display = transcriptVisible ? "block" : "none";
-      }
-
-      // ─── Dialer ───
-
-      function updateDialerDisplay() {
-        if (dialerInput.length > 0) {
-          els.dialerNumber.textContent = formatPhoneDisplay(dialerInput);
-          els.btnDialCall.disabled = false;
-        } else {
-          els.dialerNumber.textContent = "";
-          els.btnDialCall.disabled = true;
-        }
-      }
-
-      function onKeypadPress(digit) {
-        if (dialerInput.length >= 15) return;
-        dialerInput += digit;
-        updateDialerDisplay();
-      }
-
-      function onBackspace() {
-        dialerInput = dialerInput.slice(0, -1);
-        updateDialerDisplay();
-      }
-
-      function onOpenDialer() {
-        dialerInput = "";
-        updateDialerDisplay();
-        showScreen("dialer");
-      }
-
-      function onDialerBack() {
-        dialerInput = "";
-        updateDialerDisplay();
-        showScreen("home");
-      }
-
-      function onDialCall() {
-        if (!dialerInput) return;
-        var rawNumber = dialerInput;
-        dialerInput = "";
-        updateDialerDisplay();
-
-        call = {
-          state: "DIALING",
-          direction: "outgoing",
-          phoneNumber: rawNumber,
-          callerName: formatPhoneDisplay(rawNumber),
-          startTime: null,
-          transcriptEnabled: true,
-          transcriptIntervalSeconds: 3,
-          transcriptText: DEMO_OUTGOING_TRANSCRIPT
-        };
-
-        saveCall();
-        renderDialing();
-      }
-
-      function renderDialing() {
-        if (!call) return;
-        var name = call.callerName || call.phoneNumber || "Unknown";
-        var number = call.phoneNumber || "";
-        els.dialingAvatar.textContent = getInitials(name);
-        els.dialingName.textContent = name;
-        els.dialingNumber.textContent = formatPhoneDisplay(number);
-        els.dialingLabel.textContent = "Calling...";
-        showScreen("dialing");
-        stopRingtone();
-
-        var dotCount = 0;
-        if (dialingDotsId) clearInterval(dialingDotsId);
-        dialingDotsId = setInterval(function () {
-          dotCount = (dotCount + 1) % 4;
-          els.dialingLabel.textContent = "Calling" + ".".repeat(dotCount);
-        }, 500);
-
-        if (dialingTimerId) clearTimeout(dialingTimerId);
-        dialingTimerId = setTimeout(function () {
-          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
-          if (!call || call.state !== "DIALING") return;
-          call.state = "CONNECTED";
-          call.startTime = new Date().toISOString();
-          saveCall();
-          renderCall();
-        }, DIAL_CONNECT_DELAY_MS);
-      }
-
-      function onCancelDial() {
-        if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
-        if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
-        if (call) {
-          call.state = "ENDED";
-          saveCall();
-          renderCall();
-        }
-      }
-
-      // ─── Call State ───
-
-      function loadCall() {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          call = null;
-          renderHome();
-          return;
-        }
-        try {
-          call = JSON.parse(raw);
-        } catch (e) {
-          call = null;
-          renderHome();
-          return;
-        }
-        if (!call.state) call.state = "RINGING";
-        renderCall();
-      }
-
-      function saveCall() {
-        if (!call) {
-          localStorage.removeItem(STORAGE_KEY);
-          return;
-        }
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(call));
-        } catch (e) { /* ignore */ }
-      }
-
-      function renderHome() {
-        stopTimer();
-        stopRingtone();
-        resetTranscriptPlayback();
-        if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
-        if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
-        showScreen("home");
-        updateClock();
-      }
-
-      function renderCall() {
-        if (!call) { renderHome(); return; }
-
-        var name = call.callerName || "Unknown Caller";
-        var number = call.phoneNumber || "";
-        var initials = getInitials(name);
-
-        if (call.state === "DIALING") {
-          renderDialing();
-
-        } else if (call.state === "RINGING") {
-          els.incomingAvatar.textContent = initials;
-          els.incomingName.textContent = name;
-          els.incomingNumber.textContent = number;
-          showScreen("incoming");
-          playRingtone();
-          stopTimer();
-          resetTranscriptPlayback();
-
-        } else if (call.state === "CONNECTED") {
-          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
-          if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
-          els.activeAvatar.textContent = initials;
-          els.activeName.textContent = name;
-          var dirLabel = call.direction === "outgoing" ? "Outgoing · Connected" : "Connected";
-          els.activeState.textContent = dirLabel;
-          els.activeTimer.textContent = "00:00";
-          showScreen("active");
-          stopRingtone();
-          startTimer();
-          startTranscriptPlayback();
-
-        } else {
-          // ENDED, DECLINED, or any terminal state
-          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
-          if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
-          var label = call.state === "DECLINED" ? "Call Declined" : "Call Ended";
-          els.endedTitle.textContent = label;
-          els.endedSubtitle.textContent = name + (number ? " · " + number : "");
-          showScreen("ended");
-          stopTimer();
-          stopRingtone();
-          resetTranscriptPlayback();
-        }
-      }
-
-      // ─── Button Handlers ───
-
-      function onAnswer() {
-        if (!call) return;
-        call.state = "CONNECTED";
-        call.startTime = new Date().toISOString();
-        saveCall();
-        renderCall();
-      }
-
-      function onDecline() {
-        if (!call) return;
-        call.state = "DECLINED";
-        saveCall();
-        renderCall();
-      }
-
-      function onEndCall() {
-        if (!call) return;
-        call.state = "ENDED";
-        saveCall();
-        renderCall();
-      }
-
-      function onClear() {
-        call = null;
-        localStorage.removeItem(STORAGE_KEY);
-        renderHome();
-      }
-
-      // ─── Init ───
-
-      // Incoming call buttons
-      els.btnAnswer.addEventListener("click", onAnswer);
-      els.btnDecline.addEventListener("click", onDecline);
-      els.btnEndCall.addEventListener("click", onEndCall);
-      els.btnClear.addEventListener("click", onClear);
-      els.btnTranscript.addEventListener("click", toggleTranscript);
-
-      // Dialer buttons
-      els.btnOpenDialer.addEventListener("click", onOpenDialer);
-      els.btnDialerBack.addEventListener("click", onDialerBack);
-      els.btnDialCall.addEventListener("click", onDialCall);
-      els.btnBackspace.addEventListener("click", onBackspace);
-      els.btnCancelDial.addEventListener("click", onCancelDial);
-
-      // Keypad digit buttons
-      var keyBtns = document.querySelectorAll(".key-btn");
-      keyBtns.forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var digit = btn.getAttribute("data-digit");
-          if (digit) onKeypadPress(digit);
-        });
-      });
-
-      // Sync across tabs
-      window.addEventListener("storage", function (evt) {
-        if (evt.key === STORAGE_KEY) loadCall();
-      });
-
-      // Keep clock ticking
-      clockTimerId = setInterval(updateClock, 10000);
-
-      // Boot
-      function boot() {
-        updateClock();
-        loadCall();
-      }
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", boot);
-      } else {
-        boot();
-      }
-    })();
-  </script>
+    <div class="nav-bar"></div>
+  </div><!-- /screen-glass -->
+</div><!-- /chassis -->
+
+<script>
+(function(){
+'use strict';
+
+var STORAGE_KEY = 'genericSimCall';
+
+/* ---- Fallback data (standalone mode) ---- */
+var FALLBACK_CONFIG = {
+  id:null, queueName:'Support',
+  ringtoneUrl:'',
+  muteRingtone:false,
+  popMode:null, defaultCaseTitle:'Customer Inquiry',
+  transcriptEnabled:true,
+  transcriptText:'Customer: Hi, I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: I\'m sorry to hear that. Let me pull up your account and take a look.\n\nCustomer: Sure, my member ID is HCB-449821.\n\nAgent: Thank you. I can see the $1,200 charge is your annual deductible portion for this plan year.\n\nCustomer: Oh, I didn\'t realize I hadn\'t met my deductible yet. Is there anything I can do?\n\nAgent: Absolutely. You can set up a payment plan directly with the hospital. And once your deductible is met, your coinsurance kicks in — you\'ll only pay 20% going forward.\n\nCustomer: That\'s helpful, thank you.\n\nAgent: You\'re welcome. Is there anything else I can help with today?',
+  transcriptIntervalSeconds:3,
+  wallpaperUrl:'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=400&h=800&fit=crop&q=80'
+};
+
+var FALLBACK_CONTACTS = [
+  { contactid:'demo-1', fullname:'Jamie Carter',    telephone1:'(555) 201-4832', entityimage_thumbnail:null },
+  { contactid:'demo-2', fullname:'Robert Martinez', telephone1:'(555) 376-9154', entityimage_thumbnail:null },
+  { contactid:'demo-3', fullname:'Sarah Johnson',   telephone1:'(555) 448-2267', entityimage_thumbnail:null }
+];
+
+var FALLBACK_PROFILES = [
+  {
+    gensoft_name:'FDA Safety Recall',
+    gensoft_contactname:'Sarah Johnson',
+    gensoft_queuename:'Safety Recall',
+    gensoft_defaultcasetitle:'Product Safety Recall',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: Hi, I heard about a product recall and need to know if my medication is affected.\n\nAgent: Thank you for calling the FDA Safety Information line. I can help with that. Can you provide the medication name and lot number?\n\nCustomer: Yes, Metformin lot number 4521-B.\n\nAgent: Lot 4521-B is included in the voluntary recall. Please stop using it immediately. I\'ll arrange a replacement at no cost.',
+    gensoft_transcriptplaybackintervalseconds:3
+  },
+  {
+    gensoft_name:'Veteran Benefits',
+    gensoft_contactname:'Robert Martinez',
+    gensoft_queuename:'Benefits',
+    gensoft_defaultcasetitle:'Veterans Benefits Inquiry',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: Hello, I\'m a veteran trying to understand my healthcare benefits after transitioning out of service.\n\nAgent: Welcome, and thank you for your service. Could you share your discharge date and branch?\n\nCustomer: Army, separated November 2023.\n\nAgent: You should be eligible for VA healthcare. Since it\'s been less than 2 years since separation, you have enhanced eligibility. I\'ll walk you through enrollment.',
+    gensoft_transcriptplaybackintervalseconds:3
+  },
+  {
+    gensoft_name:'Insurance Inquiry',
+    gensoft_contactname:'Jamie Carter',
+    gensoft_queuename:'Insurance',
+    gensoft_defaultcasetitle:'Insurance Coverage Question',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: Let me pull up your account. The $1,200 is your deductible portion for this plan year.\n\nCustomer: Is there anything I can do?\n\nAgent: You can set up a payment plan with the hospital. Once your deductible is met, coinsurance kicks in and you\'ll pay 20% going forward.',
+    gensoft_transcriptplaybackintervalseconds:3
+  }
+];
+
+/* ---- State ---- */
+var S = {
+  scr:'home', prev:null, con:null, cfg:null, dp:null,
+  trOn:true, active:false, muted:false, spk:false,
+  trLines:[], trIdx:0, trTimer:null, callTimer:null, connectTimer:null,
+  ringAudio:null, contacts:[], profiles:[]
+};
+
+/* ---- Xrm detection ---- */
+var isD365 = false;
+function ensureXrm() {
+  if (typeof Xrm !== 'undefined' && Xrm) return;
+  var w = window;
+  for (var i = 0; i < 10 && w; i++) {
+    try { if (w.Xrm) { window.Xrm = w.Xrm; return; } } catch(e) {}
+    if (!w.parent || w.parent === w) break;
+    w = w.parent;
+  }
+  try { if (window.top && window.top.Xrm) window.Xrm = window.top.Xrm; } catch(e) {}
+}
+function detectMode() { ensureXrm(); isD365 = (typeof Xrm !== 'undefined') && !!Xrm && !!Xrm.WebApi; }
+
+/* ---- Avatar helpers ---- */
+var AV_COLORS = ['#4285f4','#ea4335','#fbbc04','#34a853','#bf5af2','#ff9f0a','#30d158','#ff453a','#64d2ff','#ff6b6b'];
+function avColor(n) { var h=0; for(var i=0;i<n.length;i++) h=((h<<5)-h)+n.charCodeAt(i); return AV_COLORS[Math.abs(h)%AV_COLORS.length]; }
+function avInit(n)  { var p=(n||'?').trim().split(/\s+/); return p.length>1?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0].substring(0,2).toUpperCase(); }
+function avHtml(c,sz) {
+  sz=sz||46;
+  var thumb=c&&c.entityimage_thumbnail;
+  if (thumb) return '<img src="data:image/jpeg;base64,'+thumb+'" style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;object-fit:cover;" alt="">';
+  var nm=(c&&c.fullname)||'?', col=avColor(nm), ini=avInit(nm);
+  return '<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:'+Math.round(sz*0.37)+'px;color:#fff;">'+ini+'</div>';
+}
+
+/* ---- Clock ---- */
+var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function updC() {
+  var now=new Date(), h=now.getHours(), m=now.getMinutes();
+  h=h%12||12;
+  var t=h+':'+(m<10?'0':'')+m;
+  var el=document.getElementById('sbTime'), cl=document.getElementById('homeClock');
+  if(el) el.textContent=t;
+  if(cl) cl.textContent=t;
+  var de=document.getElementById('homeDate');
+  if(de) de.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
+}
+
+/* ---- Screen navigation ---- */
+function navTo(key,back) {
+  var prev=S.scr; S.prev=prev; S.scr=key;
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var tEl=document.getElementById('scr-'+key), pEl=document.getElementById('scr-'+prev);
+  if (back) {
+    if(pEl) pEl.classList.add('active');
+    if(tEl) tEl.classList.add('prev');
+    setTimeout(function(){ if(pEl) pEl.classList.remove('active'); if(tEl){tEl.classList.remove('prev');tEl.classList.add('active');} },20);
+  } else {
+    if(tEl) tEl.classList.add('active');
+    if(pEl) pEl.classList.add('prev');
+  }
+}
+function goHome() {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var h=document.getElementById('scr-home'); if(h) h.classList.add('active');
+  if(S.scr==='browser') resetBrowser();
+  S.scr='home';
+}
+function goPhone() { navTo('phone'); }
+window.goHome=goHome; window.goPhone=goPhone; window.navTo=navTo;
+
+/* ---- Browser ---- */
+var _browserCurrentUrl='';
+var _browserConfigUrl=''; /* set via Demo Panel */
+function goBrowser() {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var b=document.getElementById('scr-browser'); if(b) b.classList.add('active');
+  S.scr='browser';
+  /* Auto-load configured URL if set and iframe is currently empty */
+  if(_browserConfigUrl && !_browserCurrentUrl) {
+    loadBrowserUrl(_browserConfigUrl);
+  }
+}
+function loadBrowserUrl(v) {
+  if(!v) return;
+  var url=v.trim();
+  // Smart detect: if it looks like a URL, use it; otherwise search DuckDuckGo (iframe-friendly)
+  if(!/^https?:\/\//i.test(url)) {
+    if(/^www\./i.test(url)) { url='https://'+url; }
+    else if(/\.[a-z]{2,}$/i.test(url) && url.indexOf(' ')===-1) { url='https://'+url; }
+    else { url='https://duckduckgo.com/?q='+encodeURIComponent(url); }
+  }
+  _browserCurrentUrl=url;
+  var frame=document.getElementById('browserFrame');
+  var ntp=document.getElementById('browserNewTab');
+  var bar=document.getElementById('browserUrl');
+  var loading=document.getElementById('browserLoading');
+  var blocked=document.getElementById('browserBlocked');
+  if(bar) bar.value=url;
+  if(ntp) ntp.style.display='none';
+  if(blocked) blocked.style.display='none';
+  if(frame){ frame.style.display='block'; frame.src=url; }
+  if(loading){ loading.style.display='block'; }
+  /* Listen for load completion */
+  if(frame){
+    frame.onload=function(){ if(loading) loading.style.display='none'; };
+    frame.onerror=function(){ if(loading) loading.style.display='none'; showBrowserBlocked(url); };
+    setTimeout(function(){ if(loading) loading.style.display='none'; },6000);
+  }
+}
+function showBrowserBlocked(url) {
+  var frame=document.getElementById('browserFrame');
+  var blocked=document.getElementById('browserBlocked');
+  var bUrl=document.getElementById('browserBlockedUrl');
+  if(frame) frame.style.display='none';
+  if(blocked) blocked.style.display='flex';
+  if(bUrl) bUrl.textContent=url;
+}
+function openBrowserExternal() {
+  if(_browserCurrentUrl) window.open(_browserCurrentUrl,'_blank');
+}
+function setBrowserUrl(v) {
+  _browserConfigUrl=(v||'').trim();
+}
+function resetBrowser() {
+  var frame=document.getElementById('browserFrame');
+  var ntp=document.getElementById('browserNewTab');
+  var bar=document.getElementById('browserUrl');
+  var blocked=document.getElementById('browserBlocked');
+  if(frame){ frame.style.display='none'; frame.src='about:blank'; }
+  if(blocked) blocked.style.display='none';
+  if(ntp) ntp.style.display='';
+  if(bar) bar.value='';
+  _browserCurrentUrl='';
+}
+window.goBrowser=goBrowser; window.loadBrowserUrl=loadBrowserUrl;
+window.setBrowserUrl=setBrowserUrl; window.openBrowserExternal=openBrowserExternal;
+
+/* ---- Tabs ---- */
+function switchTab(n) {
+  ['recent','contacts','keypad'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('on',t===n);
+    document.getElementById('pane-'+t).classList.toggle('on',t===n);
+  });
+  if(n==='contacts'&&S.contacts.length) renderPhoneCons(S.contacts);
+}
+window.switchTab=switchTab;
+
+/* ---- Keypad ---- */
+function buildKeypad() {
+  var keys=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
+  var g=document.getElementById('keypadGrid'); if(!g) return; g.innerHTML='';
+  keys.forEach(function(k){
+    var b=document.createElement('div'); b.className='key-btn';
+    b.innerHTML='<div class="key-num">'+k[0]+'</div>'+(k[1]?'<div class="key-sub">'+k[1]+'</div>':'');
+    b.onclick=function(){ var d=document.getElementById('keypadDisplay'); if(d) d.textContent=(d.textContent||'')+k[0]; };
+    g.appendChild(b);
+  });
+}
+function keypadCall() {
+  var n=(document.getElementById('keypadDisplay')||{}).textContent||''; if(!n) return;
+  doCall({contactid:null,fullname:n,telephone1:n,entityimage_thumbnail:null});
+}
+window.keypadCall=keypadCall;
+
+/* ---- Home apps ---- */
+function buildHomeApps() {
+  var apps=[
+    {label:'Phone',   cls:'ic-phone', icon:'&#128222;',fn:'goPhone()'},
+    {label:'Messages',cls:'ic-msg',   icon:'&#128172;',fn:''},
+    {label:'Chrome',  cls:'ic-chrome',icon:'&#127760;',fn:'goBrowser()'},
+    {label:'Camera',  cls:'ic-cam',   icon:'&#128247;',fn:''},
+    {label:'Gallery', cls:'ic-gal',   icon:'&#128444;',fn:''},
+    {label:'Settings',cls:'ic-set',   icon:'&#9881;',  fn:''},
+    {label:'Microsoft',cls:'ic-folder',icon:'',fn:'',folder:true}
+  ];
+  var el=document.getElementById('homeApps'); if(!el) return;
+  el.innerHTML=apps.map(function(a){
+    var ic=a.folder?buildMsFolder():'<span style="font-size:28px;line-height:58px;">'+a.icon+'</span>';
+    return '<div class="app-icon"'+(a.fn?' onclick="'+a.fn+'"':'')+'>'+
+      '<div class="app-icon-img '+a.cls+'">'+ic+'</div>'+
+      '<div class="app-icon-label">'+a.label+'</div></div>';
+  }).join('');
+}
+function buildMsFolder() {
+  var a=[{c:'#2564CF',i:'T'},{c:'#0078D4',i:'O'},{c:'#0078D4',i:'&#9711;'},{c:'#185ABD',i:'W'},{c:'#107C41',i:'X'},{c:'#C43E1C',i:'P'}];
+  return '<div class="folder-grid">'+a.map(function(x){ return '<div class="folder-app-dot" style="background:'+x.c+';color:#fff;">'+x.i+'</div>'; }).join('')+'</div>';
+}
+
+/* ---- Load config ---- */
+function ldCfg(cb) {
+  if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); return; }
+  var cols='gensoft_genericsoftphoneid,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl';
+  var q='?$select='+cols+'&$filter=gensoft_defaultsoftphoneconfig eq true&$orderby=createdon desc&$top=1';
+  Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone',q).then(function(res){
+    var rec=(res.entities&&res.entities[0])||null;
+    if(!rec) return Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone','?$select='+cols+'&$orderby=createdon desc&$top=1').then(function(r2){ parseCfg((r2.entities&&r2.entities[0])||{}); cb&&cb(); });
+    parseCfg(rec); cb&&cb();
+  }).catch(function(){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); });
+}
+function parseCfg(r) {
+  S.cfg={
+    id:r.gensoft_genericsoftphoneid||null,
+    queueName:r.gensoft_queuename||'Support',
+    ringtoneUrl:r.gensoft_outgoingringtoneurl||r.gensoft_ringtoneurl||'',
+    muteRingtone:r.gensoft_muteringtone===true,
+    popMode:r.gensoft_popmode||null,
+    defaultCaseTitle:r.gensoft_defaultcasetitle||'',
+    transcriptEnabled:r.gensoft_transcriptenabled!==false,
+    transcriptText:r.gensoft_transcripttext||'',
+    transcriptIntervalSeconds:r.gensoft_transcriptplaybackintervalseconds||3,
+    wallpaperUrl:r.gensoft_phonewallpaperurl||''
+  };
+  S.trOn=S.cfg.transcriptEnabled; syncToggles();
+  if(S.cfg.wallpaperUrl){ var wp=document.getElementById('homeWallpaper'); if(wp) wp.style.backgroundImage='url('+S.cfg.wallpaperUrl+')'; }
+}
+
+/* ---- Load contacts ---- */
+function ldCon() {
+  if(!isD365){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); return; }
+  Xrm.WebApi.retrieveMultipleRecords('contact','?$select=fullname,telephone1,contactid,entityimage_thumbnail&$orderby=fullname asc&$top=50')
+    .then(function(res){ S.contacts=res.entities||[]; renderCons(S.contacts); renderPhoneCons(S.contacts); })
+    .catch(function(){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); });
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function conRow(c){
+  return '<div class="con-avatar">'+avHtml(c,46)+'</div>'+
+    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div>'+
+    '<div class="con-call-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="#30d158"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>';
+}
+function renderCons(list) {
+  var el=document.getElementById('conList'); if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
+  el.innerHTML=list.map(function(c){ return '<div class="con-item">'+conRow(c)+'</div>'; }).join('');
+  el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
+}
+function renderPhoneCons(list) {
+  var el=document.getElementById('phoneConList'); if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
+  el.innerHTML=list.map(function(c){ return '<div class="con-item"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>'; }).join('');
+  el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
+}
+function filterCons(q){
+  renderCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+}
+function filterPhoneCons(q){
+  renderPhoneCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+}
+window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
+
+/* ---- Call flow ---- */
+function doCall(c) {
+  S.con=c; S.active=false; clsD();
+  var nEl=document.getElementById('callingName'), nuEl=document.getElementById('callingNumber'), avEl=document.getElementById('callingAvatar');
+  if(nEl) nEl.textContent=c.fullname||'Unknown';
+  if(nuEl) nuEl.textContent=c.telephone1||'';
+  if(avEl) avEl.innerHTML=avHtml(c,96);
+  var ct=document.getElementById('callingTrToggle'); if(ct) ct.checked=S.trOn;
+  navTo('calling');
+  startRing();
+  S.connectTimer=setTimeout(function(){ connect(c); },3000);
+}
+function startRing() {
+  stopRing();
+  var url=(S.cfg&&S.cfg.ringtoneUrl)||'';
+  if(url){ try{ S.ringAudio=new Audio(url); S.ringAudio.loop=true; S.ringAudio.play().catch(function(){}); }catch(e){} return; }
+  /* ── Synthesised ringtone (Web Audio API) ──────────────────────────
+     Classic North-American phone ring: 440 Hz + 480 Hz dual-tone,
+     2 s ON / 4 s OFF cadence.  No external files required.          */
+  try{
+    var ac=new (window.AudioContext||window.webkitAudioContext)();
+    var gain=ac.createGain(); gain.gain.value=0.18; gain.connect(ac.destination);
+    var o1=ac.createOscillator(), o2=ac.createOscillator();
+    o1.type='sine'; o1.frequency.value=440;
+    o2.type='sine'; o2.frequency.value=480;
+    o1.connect(gain); o2.connect(gain);
+    o1.start(); o2.start();
+    S._ringCtx=ac; S._ringGain=gain; S._ringOsc=[o1,o2];
+    function ringCycle(){
+      if(!S._ringCtx) return;
+      gain.gain.value=0.18;
+      S._ringCadence=setTimeout(function(){
+        if(!S._ringCtx) return;
+        gain.gain.value=0;
+        S._ringCadence=setTimeout(ringCycle,4000);
+      },2000);
+    }
+    ringCycle();
+  }catch(e){}
+}
+function stopRing() {
+  if(S.ringAudio){ try{ S.ringAudio.pause(); S.ringAudio.src=''; }catch(e){} S.ringAudio=null; }
+  if(S._ringOsc){ try{ S._ringOsc.forEach(function(o){ o.stop(); }); }catch(e){} S._ringOsc=null; }
+  if(S._ringCadence){ clearTimeout(S._ringCadence); S._ringCadence=null; }
+  if(S._ringCtx){ try{ S._ringCtx.close(); }catch(e){} S._ringCtx=null; }
+  S._ringGain=null;
+}
+function connect(c) {
+  stopRing(); S.active=true;
+  var nEl=document.getElementById('incallName'), avEl=document.getElementById('incallAvatar');
+  if(nEl) nEl.textContent=c.fullname||'Unknown';
+  if(avEl) avEl.innerHTML=avHtml(c,48);
+  wrP(c);
+  navTo('incall');
+  var secs=0, tEl=document.getElementById('incallTimer');
+  S.callTimer=setInterval(function(){
+    secs++; var m=Math.floor(secs/60),s=secs%60;
+    if(tEl) tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  },1000);
+  initTr();
+}
+function wrP(c) {
+  var cfg=S.cfg||{}, dp=S.dp||{};
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      callerName:c.fullname||'Unknown',
+      queueName:dp.qN||cfg.queueName||'',
+      phoneNumber:c.telephone1||'',
+      contactId:c.contactid||null,
+      state:'CONNECTED',
+      startTime:new Date().toISOString(),
+      ringtoneUrl:'', muteRingtone:false,
+      popMode:cfg.popMode||null,
+      defaultCaseTitle:dp.ct||cfg.defaultCaseTitle||'',
+      transcriptEnabled:S.trOn,
+      transcriptText:dp.tr||cfg.transcriptText||'',
+      transcriptIntervalSeconds:cfg.transcriptIntervalSeconds||3,
+      softphoneConfigId:cfg.id||null
+    }));
+  }catch(e){}
+}
+
+/* ---- Transcript ---- */
+function parseTr(txt) {
+  if(!txt) return [];
+  return txt.split(/\n\n+/).map(function(blk){
+    blk=blk.trim(); if(!blk) return null;
+    var m=blk.match(/^(Customer|Agent|caller|agent):\s*/i);
+    if(m){ var t=(m[1].toLowerCase()==='customer'||m[1].toLowerCase()==='caller')?'customer':'agent'; return {type:t,spk:m[1],txt:blk.substring(m[0].length)}; }
+    return {type:'customer',spk:'Customer',txt:blk};
+  }).filter(Boolean);
+}
+function initTr() {
+  var p=document.getElementById('transcriptPanel'); if(!p) return;
+  var dp=S.dp||{}, cfg=S.cfg||{};
+  S.trLines=parseTr(dp.tr||cfg.transcriptText||''); S.trIdx=0; clearInterval(S.trTimer); p.innerHTML='';
+  if(!S.trLines.length||!S.trOn){
+    p.innerHTML='<div class="tr-empty"><div class="tr-empty-icon">&#128172;</div><div class="tr-empty-txt">'+(S.trOn?'No transcript available':'Transcript disabled')+'</div></div>';
+    return;
+  }
+  var iv=((dp.iv||(cfg.transcriptIntervalSeconds||3)))*1000;
+  nxtL();
+  if(S.trIdx<S.trLines.length) S.trTimer=setInterval(function(){ if(!S.trOn){clearInterval(S.trTimer);return;} nxtL(); if(S.trIdx>=S.trLines.length) clearInterval(S.trTimer); },iv);
+}
+function nxtL() {
+  var p=document.getElementById('transcriptPanel'); if(!p||S.trIdx>=S.trLines.length) return;
+  var ln=S.trLines[S.trIdx++];
+  var b=document.createElement('div'); b.className='tr-bubble '+ln.type;
+  b.innerHTML='<div class="tr-bubble-spk">'+esc(ln.spk)+'</div>'+esc(ln.txt);
+  p.appendChild(b); p.scrollTop=p.scrollHeight;
+}
+function skipTr() { clearInterval(S.trTimer); while(S.trIdx<S.trLines.length) nxtL(); }
+window.skipTr=skipTr;
+function toggleTrPanel() {
+  var p=document.getElementById('transcriptPanel'), b=document.getElementById('ctrlTr'); if(!p) return;
+  var h=p.classList.toggle('hidden'); if(b) b.classList.toggle('on',!h);
+  if(!h&&S.trOn&&!S.trTimer&&S.trIdx<S.trLines.length) initTr();
+}
+window.toggleTrPanel=toggleTrPanel;
+function syncToggles() {
+  ['trToggle','callingTrToggle','dpTrToggle'].forEach(function(id){ var el=document.getElementById(id); if(el) el.checked=S.trOn; });
+}
+window.syncToggles=syncToggles;
+
+/* ---- End call ---- */
+function endCall() {
+  var tEl=document.getElementById('incallTimer');
+  var dur=tEl&&tEl.textContent&&tEl.textContent!=='00:00'?'Duration: '+tEl.textContent:'';
+  var c=S.con||{};
+  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); stopRing();
+  S.active=false; S.dp=null; S.trLines=[]; S.trIdx=0;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  if(tEl) tEl.textContent='00:00';
+  var p=document.getElementById('transcriptPanel'); if(p) p.innerHTML='';
+  clsD(); showEnded('Call Ended', dur, c);
+}
+window.endCall=endCall;
+
+/* ---- Incoming call handling ---- */
+function showIncoming(data) {
+  var c={contactid:data.contactId||null,fullname:data.callerName||'Unknown',telephone1:data.phoneNumber||'',entityimage_thumbnail:null};
+  S.con=c;
+  if(data.transcriptEnabled!==undefined) S.trOn=data.transcriptEnabled;
+  if(!S.cfg) S.cfg=Object.assign({},FALLBACK_CONFIG);
+  if(data.transcriptText) S.cfg.transcriptText=data.transcriptText;
+  if(data.transcriptIntervalSeconds) S.cfg.transcriptIntervalSeconds=data.transcriptIntervalSeconds;
+  syncToggles();
+  var nEl=document.getElementById('incomingName'),nuEl=document.getElementById('incomingNumber'),avEl=document.getElementById('incomingAvatar');
+  if(nEl) nEl.textContent=c.fullname;
+  if(nuEl) nuEl.textContent=c.telephone1;
+  if(avEl) avEl.innerHTML=avHtml(c,96);
+  navTo('incoming');
+  if(data.ringtoneUrl&&!data.muteRingtone){
+    try{ S.ringAudio=new Audio(data.ringtoneUrl); S.ringAudio.loop=true; S.ringAudio.play().catch(function(){}); }catch(e){}
+  } else if(!data.muteRingtone) {
+    startRing();
+  }
+}
+function answerCall() {
+  stopRing();
+  var c=S.con||{contactid:null,fullname:'Unknown',telephone1:'',entityimage_thumbnail:null};
+  connect(c);
+}
+function declineCall() {
+  stopRing();
+  clearTimeout(S.connectTimer);
+  var c=S.con||{};
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  showEnded('Call Declined','',c);
+}
+function showEnded(reason,duration,c) {
+  c=c||S.con||{};
+  clearInterval(S.callTimer); clearInterval(S.trTimer); stopRing();
+  S.active=false;
+  var avEl=document.getElementById('endedAvatar'),nEl=document.getElementById('endedName');
+  var rEl=document.getElementById('endedReason'),dEl=document.getElementById('endedDuration');
+  if(avEl) avEl.innerHTML=avHtml(c,80);
+  if(nEl) nEl.textContent=c.fullname||'';
+  if(rEl) rEl.textContent=reason||'Call Ended';
+  if(dEl) dEl.textContent=duration||'';
+  navTo('ended');
+  setTimeout(function(){ S.con=null; goHome(); },2500);
+}
+window.answerCall=answerCall; window.declineCall=declineCall;
+
+/* ---- Controls ---- */
+function toggleMute()    { S.muted=!S.muted;   document.getElementById('ctrlMute').classList.toggle('on',S.muted); }
+function toggleSpeaker() { S.spk=!S.spk;       document.getElementById('ctrlSpk').classList.toggle('on',S.spk); }
+window.toggleMute=toggleMute; window.toggleSpeaker=toggleSpeaker;
+
+/* ---- Demo profiles ---- */
+function ldDP() {
+  if(!isD365){ S.profiles=FALLBACK_PROFILES; popDemoSel(); return; }
+  var q='?$select=gensoft_name,gensoft_contactname,gensoft_queuename,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds&$orderby=gensoft_name asc&$top=20';
+  Xrm.WebApi.retrieveMultipleRecords('gensoft_demo_profile',q)
+    .then(function(res){ S.profiles=res.entities||[]; popDemoSel(); })
+    .catch(function(){ S.profiles=FALLBACK_PROFILES; popDemoSel(); });
+}
+function popDemoSel() {
+  var s=document.getElementById('demoProfileSel'); if(!s) return;
+  s.innerHTML='<option value="">&#8212; Select profile &#8212;</option>'+
+    S.profiles.map(function(p,i){ return '<option value="'+i+'">'+esc(p.gensoft_name||('Profile '+(i+1)))+'</option>'; }).join('');
+}
+function applyProfile(idx) {
+  if(idx===''||idx===null) return;
+  var p=S.profiles[parseInt(idx)]; if(!p) return;
+  S.dp={ qN:p.gensoft_queuename||'', ct:p.gensoft_defaultcasetitle||'', tr:p.gensoft_transcripttext||'', iv:p.gensoft_transcriptplaybackintervalseconds||3, contactName:p.gensoft_contactname||'' };
+  S.trOn=p.gensoft_transcriptenabled!==false; syncToggles();
+  if(S.dp.contactName){ var m=S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; }); if(m.length) S.con=m[0]; }
+}
+window.applyProfile=applyProfile;
+function demoStartCall() {
+  var c=S.con||(S.contacts.length?S.contacts[0]:{contactid:null,fullname:'Demo Contact',telephone1:'',entityimage_thumbnail:null});
+  clsD(); doCall(c);
+}
+window.demoStartCall=demoStartCall;
+
+/* ---- Demo panel ---- */
+function opnD() { document.getElementById('demoOverlay').classList.add('open'); if(!S.profiles.length) ldDP(); }
+function clsD() { document.getElementById('demoOverlay').classList.remove('open'); }
+window.clsD=clsD;
+document.getElementById('demoOverlay').addEventListener('click',function(e){ if(e.target===this) clsD(); });
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.shiftKey&&(e.key==='D'||e.key==='d')){ e.preventDefault(); var o=document.getElementById('demoOverlay'); o.classList.contains('open')?clsD():opnD(); }
+});
+
+/* ---- Init ---- */
+document.addEventListener('DOMContentLoaded',function(){
+  detectMode();
+  updC(); setInterval(updC,15000);
+  buildKeypad(); buildHomeApps();
+  ldCfg(function(){ ldCon(); ldDP(); });
+  goHome();
+  // Listen for incoming calls from sidebar_generic_call_simulator.html
+  window.addEventListener('storage',function(e){
+    if(e.key!==STORAGE_KEY) return;
+    if(!e.newValue){ if(S.active){ showEnded('Call Ended','',S.con||{}); } return; }
+    var data; try{ data=JSON.parse(e.newValue); }catch(err){ return; }
+    if(!data) return;
+    if(data.state==='RINGING'&&!S.active) showIncoming(data);
+  });
+});
+
+})();
+</script>
 </body>
 </html>
