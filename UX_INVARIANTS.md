@@ -1,7 +1,7 @@
 # Generic.Sidebar — UX Invariants
 
 **Status:** DRAFT
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 ---
 
@@ -20,3 +20,5 @@ These UX behaviors must NEVER break across releases:
 - The GitHub Pages site must have a consistent navigation bar across all pages (Home, Downloads, Agent, Copilot).
 - The release statistics chart and table must degrade gracefully when the GitHub API is rate-limited or unreachable.
 - CSV export must properly escape values containing commas, quotes, or newlines.
+- **Switching between tabs must preserve iframe content state (chat messages, form inputs, scroll position) — iframes must be hidden/shown, not destroyed/recreated.**
+- **Navigating between D365 records must not reload the sidebar if the same configuration is already loaded.**

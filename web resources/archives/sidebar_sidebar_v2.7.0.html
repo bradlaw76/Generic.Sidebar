@@ -1,7 +1,7 @@
 <!--
 =============================================================================
-COMPONENT:    sidebar_sidebar
-FILE:         web resources\sidebar_sidebar.html
+COMPONENT:    sidebar_sidebar_v2.7.0
+FILE:         web resources\archives\sidebar_sidebar_v2.7.0.html
 VERSION:      1.0.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-04
@@ -84,7 +84,7 @@ NON-NEGOTIABLES (Architecture Contract)
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sidebar v2.14.0 – Full-Height Iframe Widgets</title>
+  <title>Sidebar v2.7.0 – Preserve State Across Pane Switches</title>
 
   <style>
     :root { --band-bg:#0f5c73; --band-fg:#ffffff; }
@@ -201,79 +201,6 @@ NON-NEGOTIABLES (Architecture Contract)
       font-weight: 600;
     }
 
-    /* Pop-out Button - now more visible */
-    .popout-btn {
-      position: absolute;
-      top: 4px;
-      right: 60px;
-      z-index: 25;
-      background: #f3f2f1;
-      border: 1px solid #edebe9;
-      border-radius: 4px;
-      color: #323130;
-      font-size: 14px;
-      padding: 4px 8px;
-      cursor: pointer;
-      display: none;
-    }
-    .popout-btn:hover { 
-      background: #edebe9;
-      color: #0078d4;
-    }
-
-    /* Pop-out Placeholder - shows when content is popped out */
-    .popout-placeholder {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #f8f8f8;
-      z-index: 20;
-      gap: 16px;
-      padding: 24px;
-      text-align: center;
-    }
-    .popout-placeholder.active {
-      display: flex;
-    }
-    .popout-placeholder p {
-      color: #605e5c;
-      font-size: 13px;
-      margin: 0;
-      max-width: 280px;
-    }
-    .focus-btn, .restore-btn {
-      padding: 10px 20px;
-      border-radius: 4px;
-      font-size: 13px;
-      cursor: pointer;
-      border: 1px solid #0078d4;
-    }
-    .focus-btn {
-      background: #0078d4;
-      color: white;
-    }
-    .focus-btn:hover {
-      background: #106ebe;
-    }
-    .restore-btn {
-      background: white;
-      color: #0078d4;
-    }
-    .restore-btn:hover {
-      background: #f3f2f1;
-    }
-    .restore-note {
-      font-size: 11px;
-      color: #a19f9d;
-      margin-top: 12px;
-    }
-
     /* Panel Container */
     .panel-container {
       flex: 1;
@@ -281,7 +208,7 @@ NON-NEGOTIABLES (Architecture Contract)
       flex-direction: column;
       overflow: hidden;
       position: relative;
-      background: #faf9f8;
+      background: white;
     }
 
     .panel-container iframe {
@@ -294,17 +221,7 @@ NON-NEGOTIABLES (Architecture Contract)
       transition: transform 0.2s ease;
     }
 
-    /* Non-zoomed iframes - subtle visual frame */
-    .panel-container iframe:not(.force-zoom) {
-      margin: 4px;
-      width: calc(100% - 8px) !important;
-      height: calc(100% - 8px) !important;
-      border: 1px solid #e1dfdd;
-      border-radius: 4px;
-      background: white;
-    }
-
-    /* Zooming for Genesys / phone simulators - NO framing */
+    /* Zooming for Genesys / phone simulators */
     .force-zoom {
       width: 320px !important;
       min-width: 320px !important;
@@ -312,10 +229,6 @@ NON-NEGOTIABLES (Architecture Contract)
       height: 64% !important;
       transform-origin: 0 0;
       transform: scale(1.56);
-      margin: 0 !important;
-      border: none !important;
-      border-radius: 0 !important;
-      background: white !important;
     }
   </style>
 
@@ -354,47 +267,10 @@ NON-NEGOTIABLES (Architecture Contract)
     }
   }
 
-  // For iframe widgets (Copilot, Canvas Apps) - full height but top-aligned
-  function ensureFullHeightIframeWidget(html) {
-    try {
-      const doc = new DOMParser().parseFromString(html, "text/html");
-      const style = doc.createElement("style");
-      style.textContent = `
-        html, body {
-          height: 100%; width: 100%;
-          margin: 0; padding: 0;
-          overflow: hidden;
-        }
-        body {
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-        }
-        iframe {
-          flex: 1;
-          width: 100% !important;
-          height: 100% !important;
-          border: none;
-        }
-      `;
-      doc.head.appendChild(style);
-      return doc.documentElement.outerHTML;
-    } catch {
-      return html;
-    }
-  }
-
   function resolveEmbed(raw) {
     const t = (raw || "").trim();
     if (!t) return null;
-    
-    if (t.startsWith("<")) {
-      // Check if this HTML contains an iframe with src - extract it for pop-out capability
-      const iframeMatch = t.match(/<iframe[^>]+src=["']([^"']+)["']/i);
-      const extractedUrl = iframeMatch ? iframeMatch[1] : null;
-      console.log("Sidebar resolveEmbed: HTML mode, extractedUrl =", extractedUrl);
-      return { mode: "html", html: t, extractedUrl };
-    }
+    if (t.startsWith("<")) return { mode: "html", html: t };
 
     const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
     if (/^webresource:/i.test(t)) return { mode: "url", url: `${base}/WebResources/${t.replace(/^webresource:/i,"")}` };
@@ -403,7 +279,7 @@ NON-NEGOTIABLES (Architecture Contract)
   }
 
   function toggleZoom() {
-    const iframe = document.querySelector(".panel-container iframe:not([style*='display: none'])");
+    const iframe = document.querySelector(".panel-container iframe");
     const btn = document.getElementById("zoomToggle");
     if (!iframe) return;
 
@@ -411,83 +287,6 @@ NON-NEGOTIABLES (Architecture Contract)
     btn.classList.toggle("active");
     btn.textContent = iframe.classList.contains("force-zoom") ? "⤢ Reset" : "⤢ Fit";
   }
-
-  // Track the currently active URL and panel for pop-out
-  let currentPopoutUrl = null;
-  let currentPopoutPanelIndex = null;
-  let popoutWindow = null;
-
-  function popOutPanel() {
-    if (!currentPopoutUrl) return;
-    // Calculate position for easy snap-to-side (right side of screen)
-    const width = 450;
-    const height = screen.availHeight - 50;
-    const left = screen.availWidth - width - 10;
-    const top = 25;
-    
-    // Open with a window name so we can track it
-    popoutWindow = window.open(
-      currentPopoutUrl,
-      "SidebarPopout",
-      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
-    
-    // Show placeholder in the sidebar
-    if (popoutWindow && currentPopoutPanelIndex !== null) {
-      showPopoutPlaceholder(currentPopoutPanelIndex);
-    }
-  }
-
-  function focusPopoutWindow() {
-    if (popoutWindow && !popoutWindow.closed) {
-      popoutWindow.focus();
-    } else {
-      // Window was closed externally, restore embedded content
-      restoreEmbeddedContent();
-    }
-  }
-
-  function showPopoutPlaceholder(panelIndex) {
-    const placeholder = document.getElementById("popoutPlaceholder");
-    const iframe = document.querySelector(`iframe[data-panel-index="${panelIndex}"]`);
-    
-    if (iframe) {
-      iframe.style.display = "none";
-    }
-    placeholder.classList.add("active");
-    
-    // Hide pop-out button when already popped out
-    document.getElementById("popoutBtn").style.display = "none";
-  }
-
-  function restoreEmbeddedContent() {
-    const placeholder = document.getElementById("popoutPlaceholder");
-    placeholder.classList.remove("active");
-    
-    // Close pop-out window if still open
-    if (popoutWindow && !popoutWindow.closed) {
-      popoutWindow.close();
-    }
-    popoutWindow = null;
-    
-    // Show the iframe again
-    if (currentPopoutPanelIndex !== null) {
-      const iframe = document.querySelector(`iframe[data-panel-index="${currentPopoutPanelIndex}"]`);
-      if (iframe) {
-        iframe.style.display = "block";
-      }
-    }
-    
-    // Show pop-out button again
-    document.getElementById("popoutBtn").style.display = "block";
-  }
-
-  // Check if pop-out window was closed externally
-  setInterval(() => {
-    if (popoutWindow && popoutWindow.closed) {
-      restoreEmbeddedContent();
-    }
-  }, 1000);
 
   async function loadConfigAndRender() {
     const { configId, mode } = getParams();
@@ -571,25 +370,11 @@ NON-NEGOTIABLES (Architecture Contract)
         iframe.dataset.configId = configId; // Track which config this iframe belongs to
 
         if (target.mode === "html") {
-          // Apply appropriate styling based on content type
-          const hasEmbeddedIframe = !!target.extractedUrl;
-          if (hasEmbeddedIframe) {
-            // Iframe widgets (Copilot, Canvas Apps) - full height, top-aligned
-            iframe.srcdoc = ensureFullHeightIframeWidget(target.html);
-          } else {
-            // Raw HTML - full height with flex layout
-            iframe.srcdoc = ensureFullHeightHtml(target.html);
-          }
+          iframe.srcdoc = ensureFullHeightHtml(target.html);
           iframe.dataset.isHtml = "true";
-          iframe.dataset.hasEmbeddedIframe = hasEmbeddedIframe ? "true" : "false";
-          // If HTML contains an iframe, extract its URL for pop-out
-          if (target.extractedUrl) {
-            iframe.dataset.popoutUrl = target.extractedUrl;
-          }
         } else {
           iframe.src = target.url;
           iframe.dataset.isHtml = "false";
-          iframe.dataset.popoutUrl = target.url; // Store URL for pop-out
 
           const lower = panel.title.toLowerCase();
           if (lower.includes("phone") || lower.includes("genesys")) {
@@ -654,13 +439,8 @@ NON-NEGOTIABLES (Architecture Contract)
         });
 
         const activeIframe = iframes[idx];
-        const popoutBtn = document.getElementById("popoutBtn");
         if (activeIframe) {
           const isHtml = activeIframe.dataset.isHtml === "true";
-          const hasPopoutUrl = !!activeIframe.dataset.popoutUrl;
-          console.log("Sidebar setActivePanel:", idx, "isHtml=", isHtml, "hasPopoutUrl=", hasPopoutUrl, "popoutUrl=", activeIframe.dataset.popoutUrl);
-          
-          // Zoom button only for URL embeds (not HTML)
           if (isHtml) {
             zoomBtn.style.display = "none";
           } else {
@@ -673,21 +453,7 @@ NON-NEGOTIABLES (Architecture Contract)
               zoomBtn.textContent = "⤢ Fit";
             }
           }
-          
-          // Pop-out button shows if there's a URL (even for HTML with iframe src)
-          if (hasPopoutUrl) {
-            popoutBtn.style.display = "block";
-            currentPopoutUrl = activeIframe.dataset.popoutUrl;
-            currentPopoutPanelIndex = idx;
-          } else {
-            popoutBtn.style.display = "none";
-            currentPopoutUrl = null;
-            currentPopoutPanelIndex = null;
-          }
         }
-        
-        // Reset placeholder state when switching tabs
-        document.getElementById("popoutPlaceholder").classList.remove("active");
       }
 
       // Restore active panel from sessionStorage, or default to panel 0
@@ -722,15 +488,8 @@ NON-NEGOTIABLES (Architecture Contract)
 
   <div id="host">
     <div id="tabRow" class="tabs"></div>
-    <button id="popoutBtn" class="popout-btn" onclick="popOutPanel()" title="Open in new window">↗</button>
     <button id="zoomToggle" class="zoom-btn" onclick="toggleZoom()">⤢ Fit</button>
     <div id="panelContainer" class="panel-container"></div>
-    <div id="popoutPlaceholder" class="popout-placeholder">
-      <p>Content is open in a separate window.<br/>Use the buttons below to manage it.</p>
-      <button class="focus-btn" onclick="focusPopoutWindow()">Bring to Front</button>
-      <button class="restore-btn" onclick="restoreEmbeddedContent()">Restore Here</button>
-      <p class="restore-note">Note: Restoring will reload the content and reset any chat conversation.</p>
-    </div>
   </div>
 </body>
 </html>

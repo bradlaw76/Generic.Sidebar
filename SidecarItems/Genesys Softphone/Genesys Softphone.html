@@ -1,0 +1,925 @@
+<!--
+=============================================================================
+COMPONENT:    Genesys Softphone
+FILE:         SidecarItems\Genesys Softphone.html
+VERSION:      1.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-03-04
+ENVIRONMENT:  HTML | JavaScript
+PORTAL URL:   N/A
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+SpeckKit component header applied for governance and maintainability.
+
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source:      As implemented in file
+- Entity/Table:     N/A
+- Auth Model:       As implemented in host app
+- Rendering:        Client-side
+- API Pattern:      As implemented in file
+- OData:            N/A
+
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Search:           As implemented
+- Filtering:        As implemented
+- Sorting:          As implemented
+- Pagination:       As implemented
+- Create:           As implemented
+- Update:           As implemented
+- Delete:           As implemented
+- Validation:       As implemented
+- UX Notes:         See file content
+
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. Dependencies:    As required by this file and host page.
+
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF Token:      As implemented
+- Auth Scope:      As implemented
+- Data Exposure:   As implemented
+- Role Dependency: As implemented
+
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- Root Scope ID:   As implemented
+- Scoped styles where applicable
+
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- See project docs and inline implementation constraints.
+
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+✔ Load component without runtime errors
+✔ Core interactions behave as expected
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v1.0.0  2026-03-04  Added SpeckKit component header block
+
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- Do NOT remove scoped root container where applicable.
+- Do NOT bypass security or auth protections in host integrations.
+- Changes must be additive unless explicitly approved.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Genesys TTEC Softphone (Simulated)</title>
+  <!-- Genesys TTEC Softphone – Version 1.7.1 -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f3f2f1;
+    }
+
+    .softphone-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      border-left: 1px solid #e1dfdd;
+      background-color: #ffffff;
+    }
+
+    /* Top header bar (Genesys-style) */
+    .softphone-header {
+      background-color: #2f343a;
+      color: #ffffff;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e2227;
+      font-size: 11px;
+    }
+
+    .softphone-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hamburger {
+      width: 14px;
+      height: 2px;
+      background-color: #ffffff;
+      position: relative;
+    }
+    .hamburger::before,
+    .hamburger::after {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 2px;
+      background-color: #ffffff;
+      left: 0;
+    }
+    .hamburger::before { top: -4px; }
+    .hamburger::after { top: 4px; }
+
+    .softphone-title {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .softphone-header-right {
+      font-size: 10px;
+    }
+
+    .softphone-header-chevron {
+      cursor: default;
+    }
+
+    /* Genesys-like toolbar row */
+    .genesys-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 6px;
+      background-color: #3a4048;
+      border-bottom: 1px solid #1e2227;
+    }
+
+    .toolbar-btn {
+      border: none;
+      background: transparent;
+      color: #f3f2f1;
+      font-size: 12px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .toolbar-btn:hover:not(:disabled) {
+      background-color: #4b5260;
+    }
+
+    .toolbar-dot {
+      font-size: 8px;
+    }
+
+    .softphone-body {
+      flex: 1;
+      padding: 8px;
+      overflow-y: auto; /* outer scroll, not transcript */
+      background-color: #f3f2f1;
+      box-sizing: border-box;
+    }
+
+    .no-call-panel {
+      padding: 24px 12px;
+      text-align: center;
+      font-size: 12px;
+      color: #605e5c;
+      border: 1px dashed #c8c6c4;
+      border-radius: 4px;
+      background-color: #ffffff;
+    }
+
+    .call-card {
+      border-radius: 4px;
+      padding: 8px;
+      background-color: #e6ffe6;
+      border: 1px solid #c5e1a5;
+      margin-bottom: 8px;
+    }
+
+    .call-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .caller-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .call-state {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .call-meta {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #323130;
+    }
+
+    .call-footer {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      border: 1px solid #605e5c;
+      background-color: #ffffff;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background-color: #0078d4;
+      border-color: #0078d4;
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background-color: #d13438;
+      border-color: #a80000;
+      color: #ffffff;
+    }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      border-color: #605e5c;
+      color: #323130;
+    }
+
+    .info-line {
+      font-size: 10px;
+      color: #605e5c;
+      margin-top: 4px;
+    }
+
+    /* Transcript panel BELOW the call card */
+
+    .transcript-outer {
+      margin-top: 8px;
+      border-radius: 4px;
+      border: 1px solid #e1dfdd;
+      background-color: #ffffff;
+      display: none; /* shown when we have transcript + enabled */
+    }
+
+    .transcript-header {
+      font-size: 10px;
+      font-weight: 600;
+      color: #605e5c;
+      padding: 4px 6px;
+      border-bottom: 1px solid #e1dfdd;
+      background-color: #f8f8f8;
+    }
+
+    .transcript-container {
+      padding: 6px;
+      /* NO fixed height / NO own scrolling: it grows inside the softphone */
+      overflow-y: visible;
+      max-height: none;
+    }
+
+    .transcript-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bubble {
+      max-width: 90%;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      line-height: 1.3;
+      word-wrap: break-word;
+    }
+
+    .bubble-agent {
+      align-self: flex-end;
+      background-color: #0078d4;
+      color: #ffffff;
+    }
+
+    .bubble-caller {
+      align-self: flex-start;
+      background-color: #e1e1e1;
+      color: #323130;
+    }
+
+    .bubble-system {
+      align-self: center;
+      background-color: #f3f2f1;
+      color: #605e5c;
+      font-style: italic;
+    }
+
+    .bubble .speaker-label {
+      font-weight: 600;
+      margin-right: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="softphone-shell">
+    <!-- Genesys TTEC header -->
+    <div class="softphone-header">
+      <div class="softphone-header-left">
+        <div class="hamburger"></div>
+        <div class="softphone-title">Interaction Sync for Genesys Cloud</div>
+      </div>
+      <div class="softphone-header-right">
+        <span class="softphone-header-chevron">▾</span>
+      </div>
+    </div>
+
+    <!-- Genesys-style toolbar row -->
+    <div class="genesys-toolbar">
+      <button class="toolbar-btn" title="Phone">📞</button>
+      <button class="toolbar-btn" title="Pause">⏸</button>
+      <button class="toolbar-btn" title="Microphone">🎙</button>
+      <button class="toolbar-btn" title="Transfer">➡</button>
+      <button class="toolbar-btn" title="Hang Up">⏹</button>
+      <button class="toolbar-btn toolbar-dot" title="Status">●</button>
+      <button class="toolbar-btn" title="Lock">🔒</button>
+      <button class="toolbar-btn" title="Apps">☷</button>
+      <button class="toolbar-btn" title="Calendar">📅</button>
+      <button class="toolbar-btn" title="Flag">🚩</button>
+      <!-- Transcript toggle button -->
+      <button id="btnTranscriptToggle" class="toolbar-btn" title="Show / Hide Transcript">💬</button>
+    </div>
+
+    <div class="softphone-body">
+      <div id="noCallPanel" class="no-call-panel">
+        No active call.<br />
+        Use the <strong>Generic Call Simulator</strong> to generate an incoming call.
+      </div>
+
+      <div id="callPanel" class="call-card" style="display:none;">
+        <div class="call-header">
+          <div class="caller-name" id="callerNameLabel">Caller</div>
+          <div class="call-state" id="callStateLabel">RINGING</div>
+        </div>
+        <div class="call-meta" id="callMetaLine1"></div>
+        <div class="call-meta" id="callMetaLine2"></div>
+
+        <div class="call-footer" id="callFooterButtons">
+          <!-- Buttons injected by script -->
+        </div>
+
+        <div class="info-line" id="infoLine"></div>
+      </div>
+
+      <!-- Transcript panel BELOW call card -->
+      <div id="transcriptOuter" class="transcript-outer">
+        <div class="transcript-header">Transcript (simulated)</div>
+        <div class="transcript-container" id="transcriptContainer">
+          <div class="transcript-stream" id="transcriptStream"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEY = "genericSimCall";
+
+      // Pop Mode values from Generic Softphone table
+      const POPMODE_CONTACT_ONLY = 687940000;
+      const POPMODE_NEW_CASE_FOR_CONTACT = 687940001;
+
+      let call = null;
+      let callTimerId = null;
+
+      // Transcript playback state
+      let transcriptTimerId = null;
+      let transcriptBlocks = [];
+      let transcriptIndex = 0;
+      let transcriptCompletionUpdated = false;
+
+      const els = {
+        noCallPanel: document.getElementById("noCallPanel"),
+        callPanel: document.getElementById("callPanel"),
+        callerNameLabel: document.getElementById("callerNameLabel"),
+        callStateLabel: document.getElementById("callStateLabel"),
+        callMetaLine1: document.getElementById("callMetaLine1"),
+        callMetaLine2: document.getElementById("callMetaLine2"),
+        callFooterButtons: document.getElementById("callFooterButtons"),
+        infoLine: document.getElementById("infoLine"),
+        transcriptOuter: document.getElementById("transcriptOuter"),
+        transcriptContainer: document.getElementById("transcriptContainer"),
+        transcriptStream: document.getElementById("transcriptStream"),
+        transcriptToggleBtn: document.getElementById("btnTranscriptToggle")
+      };
+
+      function ensureXrm() {
+        if (typeof Xrm !== "undefined" && Xrm) return;
+        let w = window;
+        for (let i = 0; i < 10 && w; i++) {
+          try {
+            if (w.Xrm) { window.Xrm = w.Xrm; return; }
+          } catch {}
+          if (!w.parent || w.parent === w) break;
+          w = w.parent;
+        }
+        try {
+          if (window.top && window.top.Xrm) window.Xrm = window.top.Xrm;
+        } catch {}
+      }
+
+      function loadCallFromStorage() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          call = null;
+          renderNoCall();
+          return;
+        }
+
+        try {
+          call = JSON.parse(raw);
+        } catch {
+          call = null;
+          renderNoCall();
+          return;
+        }
+
+        if (!call.state) {
+          call.state = "RINGING";
+        }
+
+        // reset transcript completion flag per new call
+        transcriptCompletionUpdated = false;
+
+        renderCall();
+      }
+
+      function renderNoCall() {
+        els.noCallPanel.style.display = "block";
+        els.callPanel.style.display = "none";
+        els.transcriptOuter.style.display = "none";
+        stopTimer();
+        resetTranscriptPlayback();
+        if (els.transcriptToggleBtn) {
+          els.transcriptToggleBtn.disabled = true;
+        }
+      }
+
+      function renderCall() {
+        if (!call) {
+          renderNoCall();
+          return;
+        }
+
+        els.noCallPanel.style.display = "none";
+        els.callPanel.style.display = "block";
+
+        const callerName = call.callerName || "Unknown Caller";
+        const queueName = call.queueName || "";
+        const phoneNumber = call.phoneNumber || "";
+
+        els.callerNameLabel.textContent = callerName;
+
+        if (call.state === "CONNECTED") {
+          els.callStateLabel.textContent = "CONNECTED";
+          els.callStateLabel.style.color = "#107c10";
+        } else if (call.state === "RINGING") {
+          els.callStateLabel.textContent = "RINGING";
+          els.callStateLabel.style.color = "#d13438";
+        } else {
+          els.callStateLabel.textContent = call.state;
+          els.callStateLabel.style.color = "#605e5c";
+        }
+
+        els.callMetaLine1.textContent = queueName ? queueName : "";
+        els.callMetaLine2.textContent = phoneNumber ? phoneNumber : "";
+
+        while (els.callFooterButtons.firstChild) {
+          els.callFooterButtons.removeChild(els.callFooterButtons.firstChild);
+        }
+
+        if (call.state === "RINGING") {
+          addButton("Answer", "btn btn-primary", onAnswerClicked);
+          addButton("Decline", "btn btn-secondary", onDeclineClicked);
+          els.infoLine.textContent = "Incoming simulated call. Use Answer or Decline.";
+          stopTimer();
+          resetTranscriptPlayback();
+        } else if (call.state === "CONNECTED") {
+          addButton("End", "btn btn-danger", onEndClicked);
+          els.infoLine.textContent = "Simulated call is connected.";
+          startTimer();
+          startTranscriptPlaybackIfEnabled();
+        } else {
+          addButton("Clear", "btn btn-secondary", onEndClicked);
+          els.infoLine.textContent = "Simulated call ended. Clear to reset.";
+          stopTimer();
+          resetTranscriptPlayback();
+        }
+
+        // Enable or disable transcript toggle based on config
+        const hasTranscript =
+          !!(call.transcriptEnabled && call.transcriptText && call.transcriptText.trim());
+
+        if (els.transcriptToggleBtn) {
+          els.transcriptToggleBtn.disabled = !hasTranscript;
+        }
+
+        if (!hasTranscript) {
+          els.transcriptOuter.style.display = "none";
+        }
+      }
+
+      function addButton(label, className, handler) {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        btn.className = className;
+        btn.addEventListener("click", handler);
+        els.callFooterButtons.appendChild(btn);
+      }
+
+      function startTimer() {
+        stopTimer();
+        if (!call || !call.startTime) {
+          call.startTime = new Date().toISOString();
+          saveCall();
+        }
+
+        callTimerId = setInterval(() => {
+          if (!call || !call.startTime) return;
+          const start = new Date(call.startTime).getTime();
+          const now = Date.now();
+          const seconds = Math.floor((now - start) / 1000);
+          const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+          const ss = String(seconds % 60).padStart(2, "0");
+          els.callMetaLine2.textContent =
+            (call.phoneNumber ? call.phoneNumber + " • " : "") + mm + ":" + ss;
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (callTimerId) {
+          clearInterval(callTimerId);
+          callTimerId = null;
+        }
+      }
+
+      function saveCall() {
+        if (!call) {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(call));
+        } catch (e) {
+          console.warn("Failed to save call state", e);
+        }
+      }
+
+      function formatGuid(id) {
+        if (!id) return null;
+        return id.replace("{", "").replace("}", "");
+      }
+
+      function getCurrentUserId() {
+        ensureXrm();
+        if (!window.Xrm || !Xrm.Utility || !Xrm.Utility.getGlobalContext) return null;
+        try {
+          const idWithBraces = Xrm.Utility.getGlobalContext().userSettings.userId;
+          return formatGuid(idWithBraces);
+        } catch (e) {
+          console.warn("Unable to read current user id", e);
+          return null;
+        }
+      }
+
+      function onAnswerClicked() {
+        call.state = "CONNECTED";
+        call.startTime = new Date().toISOString();
+        saveCall();
+        renderCall();
+        performScreenPopBasedOnMode();
+      }
+
+      function onDeclineClicked() {
+        call.state = "DECLINED";
+        saveCall();
+        renderCall();
+      }
+
+      function onEndClicked() {
+        call.state = "ENDED";
+        saveCall();
+        renderCall();
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      function performScreenPopBasedOnMode() {
+        const mode = call && typeof call.popMode === "number"
+          ? call.popMode
+          : POPMODE_CONTACT_ONLY; // default
+
+        if (mode === POPMODE_NEW_CASE_FOR_CONTACT) {
+          createCaseAndOpenForm();
+        } else {
+          performScreenPopToContact();
+        }
+      }
+
+      function performScreenPopToContact() {
+        ensureXrm();
+        if (!window.Xrm || !Xrm.Navigation) {
+          console.warn("Xrm.Navigation is not available; cannot screen pop.");
+          els.infoLine.textContent = "Contact screen pop unavailable (Xrm.Navigation missing).";
+          return;
+        }
+
+        const contactId = call && call.contactId ? formatGuid(call.contactId) : null;
+        if (!contactId) {
+          console.warn("No contactId on simulated call; skipping contact screen pop.");
+          els.infoLine.textContent = "No Contact ID on call. Cannot open Contact.";
+          return;
+        }
+
+        const entityFormOptions = {
+          entityName: "contact",
+          entityId: contactId
+        };
+
+        Xrm.Navigation.openForm(entityFormOptions).then(
+          function () {
+            // success
+          },
+          function (error) {
+            console.warn("Screen pop failed", error);
+            els.infoLine.textContent = "Contact screen pop failed. See console for details.";
+          }
+        );
+      }
+
+      function createCaseAndOpenForm() {
+        ensureXrm();
+        if (!window.Xrm || !Xrm.WebApi || !Xrm.Navigation) {
+          console.warn("Xrm.WebApi or Xrm.Navigation not available; cannot create Case.");
+          els.infoLine.textContent = "Case creation unavailable (Xrm APIs missing).";
+          return;
+        }
+
+        const contactId = call && call.contactId ? formatGuid(call.contactId) : null;
+        if (!contactId) {
+          console.warn("No contactId on simulated call; cannot create Case.");
+          els.infoLine.textContent = "No Contact ID on call. Cannot create Case.";
+          return;
+        }
+
+        const userId = getCurrentUserId();
+        const caseTitle = call && call.defaultCaseTitle
+          ? call.defaultCaseTitle
+          : "New Case";
+
+        const caseData = {
+          "title": caseTitle,
+          "customerid_contact@odata.bind": "/contacts(" + contactId + ")"
+        };
+
+        if (userId) {
+          caseData["ownerid@odata.bind"] = "/systemusers(" + userId + ")";
+        }
+
+        els.infoLine.textContent = "Creating Case for contact and opening form…";
+
+        Xrm.WebApi.createRecord("incident", caseData)
+          .then(function (result) {
+            const caseId = result.id;
+            call.caseId = caseId;
+            saveCall();
+
+            return Xrm.Navigation.openForm({
+              entityName: "incident",
+              entityId: caseId
+            });
+          })
+          .then(function () {
+            els.infoLine.textContent = "Case created and opened.";
+          })
+          .catch(function (error) {
+            console.warn("Case creation or open failed", error);
+            els.infoLine.textContent = "Case creation failed. See console for details.";
+          });
+      }
+
+      // -----------------------------
+      // Transcript & completion logic
+      // -----------------------------
+
+      function resetTranscriptPlayback() {
+        if (transcriptTimerId) {
+          clearInterval(transcriptTimerId);
+          transcriptTimerId = null;
+        }
+        transcriptBlocks = [];
+        transcriptIndex = 0;
+        els.transcriptStream.innerHTML = "";
+        els.transcriptOuter.style.display = "none";
+      }
+
+      function parseTranscript(text) {
+        if (!text) return [];
+        const lines = text.split(/\r?\n/);
+        const blocks = [];
+
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+
+          let speaker = "system";
+          let content = trimmed;
+
+          const lower = trimmed.toLowerCase();
+          if (lower.startsWith("agent:")) {
+            speaker = "agent";
+            content = trimmed.substring(6).trim();
+          } else if (lower.startsWith("customer:")) {
+            speaker = "caller";
+            content = trimmed.substring(9).trim();
+          } else if (lower.startsWith("caller:")) {
+            speaker = "caller";
+            content = trimmed.substring(7).trim();
+          }
+
+          blocks.push({ speaker, content });
+        });
+
+        return blocks;
+      }
+
+      function markTranscriptCompletedIfNeeded() {
+        if (transcriptCompletionUpdated) return;
+        transcriptCompletionUpdated = true;
+
+        try {
+          ensureXrm();
+          if (!window.Xrm || !Xrm.WebApi) {
+            console.warn("Xrm.WebApi not available; cannot mark transcript completed.");
+            return;
+          }
+
+          // Use the active Generic Softphone configuration ID from the call payload
+          const softphoneConfigId = call && call.softphoneConfigId
+            ? formatGuid(call.softphoneConfigId)
+            : null;
+
+          if (!softphoneConfigId) {
+            console.warn("No softphoneConfigId on call; cannot update gensoft_transcriptcompleted.");
+            return;
+          }
+
+          const entityName = "gensoft_genericsoftphone";
+          const data = {
+            gensoft_transcriptcompleted: true
+          };
+
+          Xrm.WebApi.updateRecord(entityName, softphoneConfigId, data)
+            .then(function () {
+              console.log("Transcript completed flag set on Generic Softphone.");
+            })
+            .catch(function (error) {
+              console.warn("Failed to update gensoft_transcriptcompleted", error);
+            });
+        } catch (e) {
+          console.warn("Unexpected error updating gensoft_transcriptcompleted", e);
+        }
+      }
+
+      function appendTranscriptBubble(block) {
+        const div = document.createElement("div");
+        div.classList.add("bubble");
+
+        if (block.speaker === "agent") {
+          div.classList.add("bubble-agent");
+        } else if (block.speaker === "caller") {
+          div.classList.add("bubble-caller");
+        } else {
+          div.classList.add("bubble-system");
+        }
+
+        const label = document.createElement("span");
+        label.classList.add("speaker-label");
+
+        if (block.speaker === "agent") {
+          label.textContent = "Agent:";
+        } else if (block.speaker === "caller") {
+          label.textContent = "Caller:";
+        } else {
+          label.textContent = "";
+        }
+
+        if (label.textContent) {
+          div.appendChild(label);
+        }
+
+        const textNode = document.createTextNode(block.content);
+        div.appendChild(textNode);
+
+        els.transcriptStream.appendChild(div);
+
+        // Auto-show transcript panel once there is content
+        if (window.getComputedStyle(els.transcriptOuter).display === "none") {
+          els.transcriptOuter.style.display = "block";
+        }
+
+        // Let outer softphone-body handle scrolling; keep transcript itself un-scrolled
+        // Flip the Dataverse flag the first time we render a bubble
+        markTranscriptCompletedIfNeeded();
+      }
+
+      function startTranscriptPlaybackIfEnabled() {
+        resetTranscriptPlayback();
+
+        if (!call || call.state !== "CONNECTED" || !call.transcriptEnabled) {
+          return;
+        }
+
+        transcriptBlocks = parseTranscript(call.transcriptText);
+        if (!transcriptBlocks.length) {
+          return;
+        }
+
+        const intervalSeconds =
+          call.transcriptIntervalSeconds && call.transcriptIntervalSeconds > 0
+            ? call.transcriptIntervalSeconds
+            : 3;
+        const intervalMs = intervalSeconds * 1000;
+
+        transcriptTimerId = setInterval(() => {
+          if (!call || call.state !== "CONNECTED") {
+            resetTranscriptPlayback();
+            return;
+          }
+
+          if (transcriptIndex >= transcriptBlocks.length) {
+            clearInterval(transcriptTimerId);
+            transcriptTimerId = null;
+            return;
+          }
+
+          const block = transcriptBlocks[transcriptIndex++];
+          appendTranscriptBubble(block);
+        }, intervalMs);
+      }
+
+      function onTranscriptToggleClicked() {
+        if (!call || !call.transcriptEnabled) {
+          els.infoLine.textContent = "Transcript is not enabled for this call.";
+          return;
+        }
+
+        const style = window.getComputedStyle(els.transcriptOuter);
+        if (style.display === "none") {
+          els.transcriptOuter.style.display = "block";
+        } else {
+          els.transcriptOuter.style.display = "none";
+        }
+      }
+
+      // -----------------------------
+      // Storage + init wiring
+      // -----------------------------
+
+      window.addEventListener("storage", function (evt) {
+        if (evt.key === STORAGE_KEY) {
+          loadCallFromStorage();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        loadCallFromStorage();
+        if (els.transcriptToggleBtn) {
+          els.transcriptToggleBtn.addEventListener("click", onTranscriptToggleClicked);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

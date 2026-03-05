@@ -1,3 +1,84 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_welcome
+FILE:         web resources\sidebar_welcome.html
+VERSION:      1.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-03-04
+ENVIRONMENT:  HTML | JavaScript
+PORTAL URL:   N/A
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+SpeckKit component header applied for governance and maintainability.
+
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source:      As implemented in file
+- Entity/Table:     N/A
+- Auth Model:       As implemented in host app
+- Rendering:        Client-side
+- API Pattern:      As implemented in file
+- OData:            N/A
+
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Search:           As implemented
+- Filtering:        As implemented
+- Sorting:          As implemented
+- Pagination:       As implemented
+- Create:           As implemented
+- Update:           As implemented
+- Delete:           As implemented
+- Validation:       As implemented
+- UX Notes:         See file content
+
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. Dependencies:    As required by this file and host page.
+
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF Token:      As implemented
+- Auth Scope:      As implemented
+- Data Exposure:   As implemented
+- Role Dependency: As implemented
+
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- Root Scope ID:   As implemented
+- Scoped styles where applicable
+
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- See project docs and inline implementation constraints.
+
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+✔ Load component without runtime errors
+✔ Core interactions behave as expected
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v1.0.0  2026-03-04  Added SpeckKit component header block
+
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- Do NOT remove scoped root container where applicable.
+- Do NOT bypass security or auth protections in host integrations.
+- Changes must be additive unless explicitly approved.
+=============================================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,9 +239,26 @@
       <li>Blank pane → Ensure one row has <code>sidebar_default = Yes</code>.</li>
       <li>Odd bullets → Rich Text field normalizes them.</li>
       <li>External site blocked → Host may disallow iframe (X-Frame-Options).</li>
+      <li>Chat resets on tab switch → Upgrade to sidebar v2.6.0+ (iframes now hidden, not destroyed).</li>
+      <li>Chat resets when OOB pane opens → Use the pop-out button (↗) to keep chat in separate window.</li>
     </ul>
+
+    <h2>Pop-out Window (v2.11.0)</h2>
+    <p>
+      When Dynamics 365 opens an OOB sidecar (Smart Assist, Copilot Studio), the custom sidebar is unloaded.
+      Use the <strong>pop-out button (↗)</strong> to open your Copilot chat in a separate window.
+    </p>
+    <ul>
+      <li><strong>Bring to Front</strong> — Focus the pop-out window from the sidebar placeholder.</li>
+      <li><strong>Restore Here</strong> — Close pop-out and reload content in sidebar (resets chat).</li>
+      <li><strong>Auto-restore</strong> — If you close the pop-out window, the sidebar restores automatically.</li>
+    </ul>
+    <div class="info">
+      <strong>Tip:</strong> Position the pop-out window on the right edge of your screen for easy split-screen snapping (Win+Arrow keys).
+    </div>
 
     <p class="small">© Generic Sidebar kit — configurable, table-driven side pane for model-driven apps.</p>
   </div>
 </body>
 </html>
+

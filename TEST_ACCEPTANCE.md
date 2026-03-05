@@ -1,7 +1,7 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 ---
 
@@ -22,6 +22,18 @@
 - ✔ `force-zoom` class applied when panel title contains "phone" or "genesys"
 - ✔ Placeholder shown when `configId` is missing
 - ✔ Error div shown when `Xrm.WebApi.retrieveRecord` fails
+
+### Chat State Preservation (v2.5.0+ JS, v2.6.0+ HTML)
+
+- ✔ All panel iframes are created upfront when sidebar loads (not on-demand per tab)
+- ✔ Tab switching hides/shows iframes via CSS `display` (does not destroy/recreate)
+- ✔ Chat messages in panel 1 persist after switching to panel 2 and back
+- ✔ `window.__sidebarLoadedConfigId` tracks the currently loaded config
+- ✔ When same configId is already loaded, `openSidebar` skips `navigate()` call
+- ✔ Navigating between D365 records does not reload sidebar if config unchanged
+- ✔ Closing and reopening sidebar resets tracking and reloads content
+- ✔ Console logs indicate "Reusing existing sidebar pane" vs "Created new sidebar pane"
+- ✔ Console logs show "Sidebar already showing same config" when skip occurs
 
 ### GitHub Pages Site
 

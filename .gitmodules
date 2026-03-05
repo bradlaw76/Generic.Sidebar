@@ -1,0 +1,3 @@
+[submodule ".speckkit-registry"]
+	path = .speckkit-registry
+	url = https://github.com/bradlaw76/SpeckKit-Project-Development.git

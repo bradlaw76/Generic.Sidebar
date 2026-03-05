@@ -1,0 +1,1283 @@
+<!--
+=============================================================================
+COMPONENT:    Android Cell Phone
+FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
+VERSION:      1.2.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-03-05
+ENVIRONMENT:  HTML | JavaScript
+PORTAL URL:   N/A
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Simulated Android-style cell phone UI for use as a sidebar embed in
+Dynamics 365 model-driven apps. Renders incoming/connected/ended call
+states by reading the shared localStorage key (genericSimCall) written
+by the Generic Call Simulator. Provides a realistic Android dialer and
+in-call experience including contact avatar, call timer, and transcript
+playback.
+
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source:      localStorage (genericSimCall key)
+- Entity/Table:     N/A (reads shared call payload from simulator)
+- Auth Model:       As implemented in host app
+- Rendering:        Client-side
+- API Pattern:      localStorage read/write; optional Xrm.WebApi for
+                    screen-pop
+- OData:            N/A
+
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Search:           N/A
+- Filtering:        N/A
+- Sorting:          N/A
+- Pagination:       N/A
+- Create:           N/A
+- Update:           N/A
+- Delete:           N/A
+- Validation:       Call state validation before rendering
+- UX Notes:         Android Material-inspired design; supports RINGING,
+                    DIALING, CONNECTED, ENDED, DECLINED states; live
+                    call timer; outgoing dialer keypad; transcript
+                    bubble playback when enabled
+
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. Must run inside Dynamics 365 sidebar or standalone browser context.
+2. Requires genericSimCall localStorage key written by the Generic Call
+   Simulator (sidebar_generic_call_simulator.html).
+3. For screen-pop features, Xrm.WebApi must be available.
+
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF Token:      N/A
+- Auth Scope:      Inherits Dynamics 365 session auth via Xrm.WebApi
+- Data Exposure:   Reads/writes call state to localStorage only
+- Role Dependency: N/A
+
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- Root Scope ID:   .android-phone-shell
+- Fully self-contained styles
+
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- Contact avatar uses initials only (no photo lookup).
+- Ringtone audio requires a valid URL in the call payload.
+- Transcript playback mirrors Genesys Softphone behavior.
+- Outgoing calls auto-connect after a simulated ring delay.
+
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+✔ Load page without runtime errors
+✔ No-call state displays idle home screen with dialer access
+✔ Dialer keypad accepts digit input and displays number
+✔ Tapping call button with a number initiates DIALING state
+✔ DIALING state auto-transitions to CONNECTED after delay
+✔ RINGING state shows incoming call UI with Answer/Decline
+✔ CONNECTED state shows active call with timer and End button
+✔ ENDED/DECLINED states show call-ended summary
+✔ Transcript bubbles render when enabled in call payload
+✔ localStorage changes trigger UI refresh via storage event
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v1.2.0  2026-03-05  Added demo transcript for outgoing calls
+v1.1.0  2026-03-05  Added outgoing call dialer keypad and DIALING state
+v1.0.0  2025-07-14  Initial Android cell phone simulator
+
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- Do NOT change the localStorage key (genericSimCall) without updating
+  sidebar_generic_call_simulator.html and Genesys Softphone.html to match.
+- Do NOT bypass security or auth protections in host integrations.
+- Changes must be additive unless explicitly approved.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Android Cell Phone (Simulated)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #2a2a2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      margin: 0;
+    }
+
+    /* ── Phone Shell (S25 Ultra: 380×824px ≈ 19.5:9) ── */
+    .android-phone-shell {
+      width: 380px;
+      height: 824px;
+      max-width: 100%;
+      max-height: 100vh;
+      background: #121212;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      color: #e0e0e0;
+      border-radius: 40px;
+      border: 4px solid #333;
+      box-shadow:
+        0 0 0 2px #1a1a1a,
+        0 20px 60px rgba(0,0,0,0.6),
+        0 0 80px rgba(0,0,0,0.3);
+    }
+
+    /* Full-screen fallback for small viewports / sidebar embed */
+    @media (max-width: 420px), (max-height: 860px) {
+      body { padding: 0; background: #121212; }
+      .android-phone-shell {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+      }
+    }
+
+    /* ── Status Bar (Android style) ── */
+    .status-bar {
+      height: 28px;
+      background: #1a1a1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 11px;
+      color: #aaaaaa;
+      flex-shrink: 0;
+    }
+    .status-bar-left { display: flex; gap: 6px; align-items: center; }
+    .status-bar-right { display: flex; gap: 8px; align-items: center; }
+
+    .signal-bars {
+      display: flex; gap: 1px; align-items: flex-end; height: 10px;
+    }
+    .signal-bars span {
+      width: 3px; background: #aaa; border-radius: 1px;
+    }
+    .signal-bars span:nth-child(1) { height: 3px; }
+    .signal-bars span:nth-child(2) { height: 5px; }
+    .signal-bars span:nth-child(3) { height: 7px; }
+    .signal-bars span:nth-child(4) { height: 10px; }
+
+    .battery-icon {
+      width: 20px; height: 10px;
+      border: 1.5px solid #aaa; border-radius: 2px;
+      position: relative;
+    }
+    .battery-icon::after {
+      content: ""; position: absolute; right: -4px; top: 2px;
+      width: 2px; height: 5px; background: #aaa; border-radius: 0 1px 1px 0;
+    }
+    .battery-fill {
+      height: 100%; width: 72%; background: #4caf50; border-radius: 1px;
+    }
+
+    /* ── Screen Area ── */
+    .screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Idle / Home Screen ── */
+    .home-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a237e 0%, #0d47a1 40%, #01579b 100%);
+      padding: 20px;
+      text-align: center;
+    }
+    .home-clock {
+      font-size: 54px;
+      font-weight: 300;
+      color: #ffffff;
+      letter-spacing: 2px;
+    }
+    .home-date {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 4px;
+    }
+    .home-bottom {
+      position: absolute;
+      bottom: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .home-hint {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+    .home-dialer-btn {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: #4caf50;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: transform 0.15s;
+    }
+    .home-dialer-btn:hover { transform: scale(1.1); }
+
+    /* ── Dialer Screen ── */
+    .dialer-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: #1a1a2e;
+      padding: 20px 20px 16px;
+    }
+    .dialer-display {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 8px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .dialer-number {
+      font-size: 32px;
+      font-weight: 300;
+      color: #ffffff;
+      letter-spacing: 2px;
+      min-height: 42px;
+      word-break: break-all;
+    }
+    .dialer-hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 4px;
+    }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 16px;
+    }
+    .key-btn {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      cursor: pointer;
+      justify-self: center;
+      transition: background 0.12s;
+    }
+    .key-btn:hover { background: rgba(255,255,255,0.16); }
+    .key-btn:active { background: rgba(255,255,255,0.24); }
+    .key-digit {
+      font-size: 28px; font-weight: 400; color: #fff;
+    }
+    .key-letters {
+      font-size: 9px; color: rgba(255,255,255,0.45);
+      letter-spacing: 2px; margin-top: 1px;
+    }
+    .dialer-actions {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-top: 8px;
+    }
+    .dial-call-btn {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: #4caf50;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      transition: transform 0.15s;
+    }
+    .dial-call-btn:hover { transform: scale(1.1); }
+    .dial-call-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .dial-backspace-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      color: rgba(255,255,255,0.5);
+      transition: color 0.12s;
+    }
+    .dial-backspace-btn:hover { color: #fff; }
+    .dial-back-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      color: rgba(255,255,255,0.5);
+      transition: color 0.12s;
+    }
+    .dial-back-btn:hover { color: #fff; }
+
+    /* ── Dialing Screen (outgoing ring) ── */
+    .dialing-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #0d47a1 0%, #1565c0 50%, #0d47a1 100%);
+      padding: 48px 20px 40px;
+    }
+    .dialing-section {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+    }
+    .dialing-avatar {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      background: #1976d2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 600; color: #fff;
+      text-transform: uppercase;
+      animation: dialing-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes dialing-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(25,118,210,0.6); }
+      50% { box-shadow: 0 0 0 18px rgba(25,118,210,0); }
+    }
+    .dialing-name { font-size: 26px; font-weight: 500; color: #fff; }
+    .dialing-number { font-size: 14px; color: rgba(255,255,255,0.7); }
+    .dialing-label {
+      font-size: 13px; color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+    }
+    .dialing-cancel-btn {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #f44336; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; transition: transform 0.15s;
+    }
+    .dialing-cancel-btn:hover { transform: scale(1.1); }
+
+    /* ── Incoming Call Screen ── */
+    .incoming-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #1b5e20 0%, #2e7d32 50%, #1b5e20 100%);
+      padding: 48px 20px 40px;
+    }
+
+    .caller-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar-ring {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      animation: pulse-ring 2s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { border-color: rgba(255,255,255,0.4); transform: scale(1); }
+      50% { border-color: rgba(255,255,255,0.8); transform: scale(1.04); }
+    }
+
+    .avatar {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      background: #4caf50;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 600; color: #fff;
+      text-transform: uppercase;
+    }
+
+    .caller-name {
+      font-size: 26px; font-weight: 500; color: #fff;
+    }
+    .caller-number {
+      font-size: 14px; color: rgba(255,255,255,0.7);
+    }
+    .caller-label {
+      font-size: 12px; color: rgba(255,255,255,0.5);
+      margin-top: -4px;
+    }
+
+    /* Answer / Decline buttons */
+    .call-actions {
+      display: flex;
+      gap: 60px;
+      align-items: center;
+    }
+    .call-action-btn {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      cursor: pointer; border: none; background: none;
+    }
+    .call-action-btn .icon-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; transition: transform 0.15s;
+    }
+    .call-action-btn:hover .icon-circle { transform: scale(1.1); }
+    .call-action-btn .label {
+      font-size: 12px; color: rgba(255,255,255,0.8);
+    }
+    .btn-answer .icon-circle { background: #4caf50; }
+    .btn-decline .icon-circle { background: #f44336; }
+
+    /* ── Active Call Screen ── */
+    .active-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: #1a1a2e;
+      padding: 40px 20px 32px;
+    }
+
+    .active-caller-section {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+    }
+    .active-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: #4caf50;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 600; color: #fff;
+      text-transform: uppercase;
+    }
+    .active-caller-name {
+      font-size: 22px; font-weight: 500; color: #fff;
+    }
+    .active-state-label {
+      font-size: 13px; color: #4caf50;
+    }
+    .active-timer {
+      font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* In-call button grid */
+    .call-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+      width: 100%;
+      max-width: 280px;
+    }
+    .grid-btn {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.08);
+      border: none; border-radius: 12px;
+      padding: 14px 8px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .grid-btn:hover { background: rgba(255,255,255,0.15); }
+    .grid-btn .g-icon { font-size: 22px; }
+    .grid-btn .g-label { font-size: 10px; color: rgba(255,255,255,0.6); }
+
+    .end-call-btn {
+      margin-top: auto;
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #f44336; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; transition: transform 0.15s;
+    }
+    .end-call-btn:hover { transform: scale(1.1); }
+
+    /* ── Ended Screen ── */
+    .ended-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      padding: 40px 20px;
+      gap: 12px;
+    }
+    .ended-icon { font-size: 48px; }
+    .ended-title { font-size: 20px; color: #fff; }
+    .ended-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); }
+    .ended-clear-btn {
+      margin-top: 24px;
+      padding: 10px 28px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: transparent;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ended-clear-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Transcript Panel ── */
+    .transcript-panel {
+      display: none;
+      background: #111;
+      border-top: 1px solid #333;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .transcript-panel .t-header {
+      font-size: 10px; font-weight: 600;
+      color: #888; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .transcript-panel .t-stream {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .t-bubble {
+      max-width: 85%; padding: 6px 10px;
+      border-radius: 12px; font-size: 12px;
+      line-height: 1.35; word-wrap: break-word;
+    }
+    .t-bubble-agent {
+      align-self: flex-end;
+      background: #1565c0; color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .t-bubble-caller {
+      align-self: flex-start;
+      background: #333; color: #e0e0e0;
+      border-bottom-left-radius: 4px;
+    }
+    .t-bubble-system {
+      align-self: center;
+      background: #222; color: #888;
+      font-style: italic; font-size: 11px;
+    }
+    .t-speaker {
+      font-weight: 600; margin-right: 4px; font-size: 10px;
+    }
+
+    /* ── Bottom Nav Bar ── */
+    .nav-bar {
+      height: 44px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0.5; cursor: pointer; font-size: 16px;
+    }
+    .nav-pill {
+      width: 36px; height: 4px;
+      background: #666; border-radius: 2px;
+    }
+
+    /* ── Audio (hidden) ── */
+    .ringtone-audio { display: none; }
+  </style>
+</head>
+<body>
+  <div class="android-phone-shell">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-bar-left">
+        <span id="statusTime">12:00</span>
+        <div class="signal-bars"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="status-bar-right">
+        <span>LTE</span>
+        <span>WiFi</span>
+        <div class="battery-icon"><div class="battery-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Screen -->
+    <div class="screen">
+      <!-- Idle Home -->
+      <div id="homeScreen" class="home-screen">
+        <div id="homeClock" class="home-clock">12:00</div>
+        <div id="homeDate" class="home-date">Monday, January 1</div>
+        <div class="home-bottom">
+          <div class="home-hint">Tap to open dialer</div>
+          <button class="home-dialer-btn" id="btnOpenDialer" title="Open Dialer">📞</button>
+        </div>
+      </div>
+
+      <!-- Dialer -->
+      <div id="dialerScreen" class="dialer-screen">
+        <div class="dialer-display">
+          <div id="dialerNumber" class="dialer-number"></div>
+          <div class="dialer-hint">Enter a number</div>
+        </div>
+        <div class="keypad">
+          <button class="key-btn" data-digit="1"><span class="key-digit">1</span><span class="key-letters">&nbsp;</span></button>
+          <button class="key-btn" data-digit="2"><span class="key-digit">2</span><span class="key-letters">ABC</span></button>
+          <button class="key-btn" data-digit="3"><span class="key-digit">3</span><span class="key-letters">DEF</span></button>
+          <button class="key-btn" data-digit="4"><span class="key-digit">4</span><span class="key-letters">GHI</span></button>
+          <button class="key-btn" data-digit="5"><span class="key-digit">5</span><span class="key-letters">JKL</span></button>
+          <button class="key-btn" data-digit="6"><span class="key-digit">6</span><span class="key-letters">MNO</span></button>
+          <button class="key-btn" data-digit="7"><span class="key-digit">7</span><span class="key-letters">PQRS</span></button>
+          <button class="key-btn" data-digit="8"><span class="key-digit">8</span><span class="key-letters">TUV</span></button>
+          <button class="key-btn" data-digit="9"><span class="key-digit">9</span><span class="key-letters">WXYZ</span></button>
+          <button class="key-btn" data-digit="*"><span class="key-digit">✱</span><span class="key-letters">&nbsp;</span></button>
+          <button class="key-btn" data-digit="0"><span class="key-digit">0</span><span class="key-letters">+</span></button>
+          <button class="key-btn" data-digit="#"><span class="key-digit">#</span><span class="key-letters">&nbsp;</span></button>
+        </div>
+        <div class="dialer-actions">
+          <button class="dial-back-btn" id="btnDialerBack" title="Back to home">◀</button>
+          <button class="dial-call-btn" id="btnDialCall" title="Call" disabled>📞</button>
+          <button class="dial-backspace-btn" id="btnBackspace" title="Backspace">⌫</button>
+        </div>
+      </div>
+
+      <!-- Dialing (outgoing ring) -->
+      <div id="dialingScreen" class="dialing-screen">
+        <div class="dialing-section">
+          <div id="dialingAvatar" class="dialing-avatar">?</div>
+          <div id="dialingName" class="dialing-name"></div>
+          <div id="dialingNumber" class="dialing-number"></div>
+          <div id="dialingLabel" class="dialing-label">Calling...</div>
+        </div>
+        <button class="dialing-cancel-btn" id="btnCancelDial" title="Cancel call">📵</button>
+      </div>
+
+      <!-- Incoming Call -->
+      <div id="incomingScreen" class="incoming-screen">
+        <div class="caller-section">
+          <div class="avatar-ring">
+            <div id="incomingAvatar" class="avatar">?</div>
+          </div>
+          <div id="incomingName" class="caller-name">Unknown Caller</div>
+          <div id="incomingNumber" class="caller-number"></div>
+          <div class="caller-label">Incoming call</div>
+        </div>
+        <div class="call-actions">
+          <button class="call-action-btn btn-decline" id="btnDecline" title="Decline">
+            <div class="icon-circle">📵</div>
+            <span class="label">Decline</span>
+          </button>
+          <button class="call-action-btn btn-answer" id="btnAnswer" title="Answer">
+            <div class="icon-circle">📞</div>
+            <span class="label">Answer</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Call -->
+      <div id="activeScreen" class="active-screen">
+        <div class="active-caller-section">
+          <div id="activeAvatar" class="active-avatar">?</div>
+          <div id="activeName" class="active-caller-name">Unknown Caller</div>
+          <div id="activeState" class="active-state-label">Connected</div>
+          <div id="activeTimer" class="active-timer">00:00</div>
+        </div>
+        <div class="call-grid">
+          <button class="grid-btn" title="Mute"><span class="g-icon">🔇</span><span class="g-label">Mute</span></button>
+          <button class="grid-btn" title="Keypad"><span class="g-icon">⌨️</span><span class="g-label">Keypad</span></button>
+          <button class="grid-btn" title="Speaker"><span class="g-icon">🔈</span><span class="g-label">Speaker</span></button>
+          <button class="grid-btn" title="Add call"><span class="g-icon">➕</span><span class="g-label">Add call</span></button>
+          <button class="grid-btn" title="Hold"><span class="g-icon">⏸️</span><span class="g-label">Hold</span></button>
+          <button class="grid-btn" id="btnTranscript" title="Transcript"><span class="g-icon">💬</span><span class="g-label">Transcript</span></button>
+        </div>
+        <button class="end-call-btn" id="btnEndCall" title="End call">📵</button>
+      </div>
+
+      <!-- Ended -->
+      <div id="endedScreen" class="ended-screen">
+        <div class="ended-icon">📴</div>
+        <div id="endedTitle" class="ended-title">Call Ended</div>
+        <div id="endedSubtitle" class="ended-subtitle"></div>
+        <button class="ended-clear-btn" id="btnClear">Dismiss</button>
+      </div>
+
+      <!-- Transcript -->
+      <div id="transcriptPanel" class="transcript-panel">
+        <div class="t-header">Live Transcript</div>
+        <div id="transcriptStream" class="t-stream"></div>
+      </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+      <div class="nav-btn">◀</div>
+      <div class="nav-pill"></div>
+      <div class="nav-btn">■</div>
+    </div>
+
+    <!-- Hidden audio -->
+    <audio id="ringtoneAudio" class="ringtone-audio" loop></audio>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var STORAGE_KEY = "genericSimCall";
+      var DIAL_CONNECT_DELAY_MS = 3000;
+
+      // Demo transcript for outgoing calls
+      var DEMO_OUTGOING_TRANSCRIPT = JSON.stringify([
+        { "speaker": "system", "text": "Call connected" },
+        { "speaker": "agent",  "text": "Hi, this is support calling regarding your recent case." },
+        { "speaker": "caller", "text": "Oh hi, yes I was expecting your call." },
+        { "speaker": "agent",  "text": "Great. I wanted to follow up on the issue you reported." },
+        { "speaker": "caller", "text": "Sure, the problem was with my billing statement." },
+        { "speaker": "agent",  "text": "I see that here. Let me pull up your account details." },
+        { "speaker": "system", "text": "Account #48291 loaded" },
+        { "speaker": "agent",  "text": "It looks like the charge was a duplicate. I'll issue a refund." },
+        { "speaker": "caller", "text": "That would be great, thank you so much." },
+        { "speaker": "agent",  "text": "Done. You should see the credit within 3-5 business days." },
+        { "speaker": "caller", "text": "Perfect. Is there anything else I need to do?" },
+        { "speaker": "agent",  "text": "No, you're all set. Thanks for your patience." },
+        { "speaker": "caller", "text": "Thanks for the quick resolution. Have a good day!" },
+        { "speaker": "system", "text": "Case #48291 updated \u2014 status: resolved" }
+      ]);
+
+      var call = null;
+      var callTimerId = null;
+      var clockTimerId = null;
+      var dialingTimerId = null;
+      var dialingDotsId = null;
+      var dialerInput = "";
+
+      // Transcript playback state
+      var transcriptTimerId = null;
+      var transcriptBlocks = [];
+      var transcriptIndex = 0;
+      var transcriptVisible = false;
+
+      var els = {
+        // Screens
+        homeScreen: document.getElementById("homeScreen"),
+        dialerScreen: document.getElementById("dialerScreen"),
+        dialingScreen: document.getElementById("dialingScreen"),
+        incomingScreen: document.getElementById("incomingScreen"),
+        activeScreen: document.getElementById("activeScreen"),
+        endedScreen: document.getElementById("endedScreen"),
+        // Home
+        homeClock: document.getElementById("homeClock"),
+        homeDate: document.getElementById("homeDate"),
+        statusTime: document.getElementById("statusTime"),
+        // Dialer
+        dialerNumber: document.getElementById("dialerNumber"),
+        btnOpenDialer: document.getElementById("btnOpenDialer"),
+        btnDialerBack: document.getElementById("btnDialerBack"),
+        btnDialCall: document.getElementById("btnDialCall"),
+        btnBackspace: document.getElementById("btnBackspace"),
+        // Dialing
+        dialingAvatar: document.getElementById("dialingAvatar"),
+        dialingName: document.getElementById("dialingName"),
+        dialingNumber: document.getElementById("dialingNumber"),
+        dialingLabel: document.getElementById("dialingLabel"),
+        btnCancelDial: document.getElementById("btnCancelDial"),
+        // Incoming
+        incomingAvatar: document.getElementById("incomingAvatar"),
+        incomingName: document.getElementById("incomingName"),
+        incomingNumber: document.getElementById("incomingNumber"),
+        // Active
+        activeAvatar: document.getElementById("activeAvatar"),
+        activeName: document.getElementById("activeName"),
+        activeState: document.getElementById("activeState"),
+        activeTimer: document.getElementById("activeTimer"),
+        // Ended
+        endedTitle: document.getElementById("endedTitle"),
+        endedSubtitle: document.getElementById("endedSubtitle"),
+        // Buttons
+        btnAnswer: document.getElementById("btnAnswer"),
+        btnDecline: document.getElementById("btnDecline"),
+        btnEndCall: document.getElementById("btnEndCall"),
+        btnClear: document.getElementById("btnClear"),
+        btnTranscript: document.getElementById("btnTranscript"),
+        // Transcript
+        transcriptPanel: document.getElementById("transcriptPanel"),
+        transcriptStream: document.getElementById("transcriptStream"),
+        // Audio
+        ringtoneAudio: document.getElementById("ringtoneAudio")
+      };
+
+      // ─── Helpers ───
+
+      function getInitials(name) {
+        if (!name) return "?";
+        var parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        return parts[0].substring(0, 2).toUpperCase();
+      }
+
+      function formatPhoneDisplay(digits) {
+        var d = digits.replace(/[^0-9]/g, "");
+        if (d.length <= 3) return d;
+        if (d.length <= 6) return "(" + d.substring(0, 3) + ") " + d.substring(3);
+        return "(" + d.substring(0, 3) + ") " + d.substring(3, 6) + "-" + d.substring(6, 10);
+      }
+
+      function formatTime(date) {
+        var h = date.getHours();
+        var m = String(date.getMinutes()).padStart(2, "0");
+        return h + ":" + m;
+      }
+
+      function formatDate(date) {
+        var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        var months = ["January","February","March","April","May","June",
+                        "July","August","September","October","November","December"];
+        return days[date.getDay()] + ", " + months[date.getMonth()] + " " + date.getDate();
+      }
+
+      function updateClock() {
+        var now = new Date();
+        els.homeClock.textContent = formatTime(now);
+        els.homeDate.textContent = formatDate(now);
+        els.statusTime.textContent = formatTime(now);
+      }
+
+      // ─── Screen Management ───
+
+      function hideAllScreens() {
+        els.homeScreen.style.display = "none";
+        els.dialerScreen.style.display = "none";
+        els.dialingScreen.style.display = "none";
+        els.incomingScreen.style.display = "none";
+        els.activeScreen.style.display = "none";
+        els.endedScreen.style.display = "none";
+        els.transcriptPanel.style.display = "none";
+      }
+
+      function showScreen(name) {
+        hideAllScreens();
+        switch (name) {
+          case "home":
+            els.homeScreen.style.display = "flex"; break;
+          case "dialer":
+            els.dialerScreen.style.display = "flex"; break;
+          case "dialing":
+            els.dialingScreen.style.display = "flex"; break;
+          case "incoming":
+            els.incomingScreen.style.display = "flex"; break;
+          case "active":
+            els.activeScreen.style.display = "flex"; break;
+          case "ended":
+            els.endedScreen.style.display = "flex"; break;
+        }
+      }
+
+      // ─── Ringtone ───
+
+      function playRingtone() {
+        try {
+          var url = call && call.ringtoneUrl;
+          if (!url || (call && call.muteRingtone)) return;
+          els.ringtoneAudio.src = url;
+          els.ringtoneAudio.play().catch(function () {});
+        } catch (e) { /* ignore */ }
+      }
+
+      function stopRingtone() {
+        try {
+          els.ringtoneAudio.pause();
+          els.ringtoneAudio.currentTime = 0;
+        } catch (e) { /* ignore */ }
+      }
+
+      // ─── Timer ───
+
+      function startTimer() {
+        stopTimer();
+        callTimerId = setInterval(function () {
+          if (!call || !call.startTime) return;
+          var start = new Date(call.startTime).getTime();
+          var now = Date.now();
+          var seconds = Math.floor((now - start) / 1000);
+          var mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+          var ss = String(seconds % 60).padStart(2, "0");
+          els.activeTimer.textContent = mm + ":" + ss;
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (callTimerId) {
+          clearInterval(callTimerId);
+          callTimerId = null;
+        }
+      }
+
+      // ─── Transcript ───
+
+      function parseTranscript(text) {
+        if (!text) return [];
+        try { return JSON.parse(text); }
+        catch (e) { /* ignore */ }
+        // Fallback: line-by-line
+        return text.split("\n").filter(function (l) { return l.trim(); }).map(function (line) {
+          return { speaker: "system", text: line.trim() };
+        });
+      }
+
+      function startTranscriptPlayback() {
+        resetTranscriptPlayback();
+        if (!call || !call.transcriptEnabled || !call.transcriptText) return;
+        transcriptBlocks = parseTranscript(call.transcriptText);
+        if (!transcriptBlocks.length) return;
+        var interval = (call.transcriptIntervalSeconds || 3) * 1000;
+        transcriptTimerId = setInterval(function () {
+          if (transcriptIndex >= transcriptBlocks.length) {
+            clearInterval(transcriptTimerId);
+            transcriptTimerId = null;
+            return;
+          }
+          appendTranscriptBubble(transcriptBlocks[transcriptIndex]);
+          transcriptIndex++;
+        }, interval);
+      }
+
+      function resetTranscriptPlayback() {
+        if (transcriptTimerId) {
+          clearInterval(transcriptTimerId);
+          transcriptTimerId = null;
+        }
+        transcriptBlocks = [];
+        transcriptIndex = 0;
+        els.transcriptStream.innerHTML = "";
+      }
+
+      function appendTranscriptBubble(block) {
+        var div = document.createElement("div");
+        div.classList.add("t-bubble");
+
+        if (block.speaker === "agent") {
+          div.classList.add("t-bubble-agent");
+        } else if (block.speaker === "caller") {
+          div.classList.add("t-bubble-caller");
+        } else {
+          div.classList.add("t-bubble-system");
+        }
+
+        var label = document.createElement("span");
+        label.classList.add("t-speaker");
+        if (block.speaker === "agent") label.textContent = "Agent:";
+        else if (block.speaker === "caller") label.textContent = "Caller:";
+        else label.textContent = "";
+
+        if (label.textContent) div.appendChild(label);
+        div.appendChild(document.createTextNode(block.text || ""));
+        els.transcriptStream.appendChild(div);
+        els.transcriptPanel.scrollTop = els.transcriptPanel.scrollHeight;
+      }
+
+      function toggleTranscript() {
+        transcriptVisible = !transcriptVisible;
+        els.transcriptPanel.style.display = transcriptVisible ? "block" : "none";
+      }
+
+      // ─── Dialer ───
+
+      function updateDialerDisplay() {
+        if (dialerInput.length > 0) {
+          els.dialerNumber.textContent = formatPhoneDisplay(dialerInput);
+          els.btnDialCall.disabled = false;
+        } else {
+          els.dialerNumber.textContent = "";
+          els.btnDialCall.disabled = true;
+        }
+      }
+
+      function onKeypadPress(digit) {
+        if (dialerInput.length >= 15) return;
+        dialerInput += digit;
+        updateDialerDisplay();
+      }
+
+      function onBackspace() {
+        dialerInput = dialerInput.slice(0, -1);
+        updateDialerDisplay();
+      }
+
+      function onOpenDialer() {
+        dialerInput = "";
+        updateDialerDisplay();
+        showScreen("dialer");
+      }
+
+      function onDialerBack() {
+        dialerInput = "";
+        updateDialerDisplay();
+        showScreen("home");
+      }
+
+      function onDialCall() {
+        if (!dialerInput) return;
+        var rawNumber = dialerInput;
+        dialerInput = "";
+        updateDialerDisplay();
+
+        call = {
+          state: "DIALING",
+          direction: "outgoing",
+          phoneNumber: rawNumber,
+          callerName: formatPhoneDisplay(rawNumber),
+          startTime: null,
+          transcriptEnabled: true,
+          transcriptIntervalSeconds: 3,
+          transcriptText: DEMO_OUTGOING_TRANSCRIPT
+        };
+
+        saveCall();
+        renderDialing();
+      }
+
+      function renderDialing() {
+        if (!call) return;
+        var name = call.callerName || call.phoneNumber || "Unknown";
+        var number = call.phoneNumber || "";
+        els.dialingAvatar.textContent = getInitials(name);
+        els.dialingName.textContent = name;
+        els.dialingNumber.textContent = formatPhoneDisplay(number);
+        els.dialingLabel.textContent = "Calling...";
+        showScreen("dialing");
+        stopRingtone();
+
+        var dotCount = 0;
+        if (dialingDotsId) clearInterval(dialingDotsId);
+        dialingDotsId = setInterval(function () {
+          dotCount = (dotCount + 1) % 4;
+          els.dialingLabel.textContent = "Calling" + ".".repeat(dotCount);
+        }, 500);
+
+        if (dialingTimerId) clearTimeout(dialingTimerId);
+        dialingTimerId = setTimeout(function () {
+          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
+          if (!call || call.state !== "DIALING") return;
+          call.state = "CONNECTED";
+          call.startTime = new Date().toISOString();
+          saveCall();
+          renderCall();
+        }, DIAL_CONNECT_DELAY_MS);
+      }
+
+      function onCancelDial() {
+        if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
+        if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
+        if (call) {
+          call.state = "ENDED";
+          saveCall();
+          renderCall();
+        }
+      }
+
+      // ─── Call State ───
+
+      function loadCall() {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          call = null;
+          renderHome();
+          return;
+        }
+        try {
+          call = JSON.parse(raw);
+        } catch (e) {
+          call = null;
+          renderHome();
+          return;
+        }
+        if (!call.state) call.state = "RINGING";
+        renderCall();
+      }
+
+      function saveCall() {
+        if (!call) {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(call));
+        } catch (e) { /* ignore */ }
+      }
+
+      function renderHome() {
+        stopTimer();
+        stopRingtone();
+        resetTranscriptPlayback();
+        if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
+        if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
+        showScreen("home");
+        updateClock();
+      }
+
+      function renderCall() {
+        if (!call) { renderHome(); return; }
+
+        var name = call.callerName || "Unknown Caller";
+        var number = call.phoneNumber || "";
+        var initials = getInitials(name);
+
+        if (call.state === "DIALING") {
+          renderDialing();
+
+        } else if (call.state === "RINGING") {
+          els.incomingAvatar.textContent = initials;
+          els.incomingName.textContent = name;
+          els.incomingNumber.textContent = number;
+          showScreen("incoming");
+          playRingtone();
+          stopTimer();
+          resetTranscriptPlayback();
+
+        } else if (call.state === "CONNECTED") {
+          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
+          if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
+          els.activeAvatar.textContent = initials;
+          els.activeName.textContent = name;
+          var dirLabel = call.direction === "outgoing" ? "Outgoing · Connected" : "Connected";
+          els.activeState.textContent = dirLabel;
+          els.activeTimer.textContent = "00:00";
+          showScreen("active");
+          stopRingtone();
+          startTimer();
+          startTranscriptPlayback();
+
+        } else {
+          // ENDED, DECLINED, or any terminal state
+          if (dialingDotsId) { clearInterval(dialingDotsId); dialingDotsId = null; }
+          if (dialingTimerId) { clearTimeout(dialingTimerId); dialingTimerId = null; }
+          var label = call.state === "DECLINED" ? "Call Declined" : "Call Ended";
+          els.endedTitle.textContent = label;
+          els.endedSubtitle.textContent = name + (number ? " · " + number : "");
+          showScreen("ended");
+          stopTimer();
+          stopRingtone();
+          resetTranscriptPlayback();
+        }
+      }
+
+      // ─── Button Handlers ───
+
+      function onAnswer() {
+        if (!call) return;
+        call.state = "CONNECTED";
+        call.startTime = new Date().toISOString();
+        saveCall();
+        renderCall();
+      }
+
+      function onDecline() {
+        if (!call) return;
+        call.state = "DECLINED";
+        saveCall();
+        renderCall();
+      }
+
+      function onEndCall() {
+        if (!call) return;
+        call.state = "ENDED";
+        saveCall();
+        renderCall();
+      }
+
+      function onClear() {
+        call = null;
+        localStorage.removeItem(STORAGE_KEY);
+        renderHome();
+      }
+
+      // ─── Init ───
+
+      // Incoming call buttons
+      els.btnAnswer.addEventListener("click", onAnswer);
+      els.btnDecline.addEventListener("click", onDecline);
+      els.btnEndCall.addEventListener("click", onEndCall);
+      els.btnClear.addEventListener("click", onClear);
+      els.btnTranscript.addEventListener("click", toggleTranscript);
+
+      // Dialer buttons
+      els.btnOpenDialer.addEventListener("click", onOpenDialer);
+      els.btnDialerBack.addEventListener("click", onDialerBack);
+      els.btnDialCall.addEventListener("click", onDialCall);
+      els.btnBackspace.addEventListener("click", onBackspace);
+      els.btnCancelDial.addEventListener("click", onCancelDial);
+
+      // Keypad digit buttons
+      var keyBtns = document.querySelectorAll(".key-btn");
+      keyBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var digit = btn.getAttribute("data-digit");
+          if (digit) onKeypadPress(digit);
+        });
+      });
+
+      // Sync across tabs
+      window.addEventListener("storage", function (evt) {
+        if (evt.key === STORAGE_KEY) loadCall();
+      });
+
+      // Keep clock ticking
+      clockTimerId = setInterval(updateClock, 10000);
+
+      // Boot
+      function boot() {
+        updateClock();
+        loadCall();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
+</body>
+</html>

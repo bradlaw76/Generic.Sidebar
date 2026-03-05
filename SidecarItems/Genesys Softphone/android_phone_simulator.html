@@ -1,0 +1,1057 @@
+<!--
+=============================================================================
+COMPONENT:    Android Phone Simulator (Samsung S25 Ultra)
+FILE:         SidecarItems\Genesys Softphone\android_phone_simulator.html
+VERSION:      1.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-03-05
+ENVIRONMENT:  HTML | Vanilla JavaScript
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Samsung S25 Ultra Android phone simulator. Single self-contained HTML file.
+Places outgoing calls via localStorage.genericSimCall (state: CONNECTED),
+compatible with the existing Genesys Softphone.html listener.
+
+Works in two modes:
+  D365 Mode:        Xrm.WebApi reads config + contacts from Dataverse
+  Standalone Mode:  Embedded fallback JSON (file:// or any browser)
+
+-----------------------------------------------------------------------------
+ARCHITECTURE CONTRACT (NON-NEGOTIABLES)
+-----------------------------------------------------------------------------
+- localStorage key: genericSimCall — must not change
+- Payload state:    CONNECTED (outgoing call)
+- Auth:             all Dataverse reads via Xrm.WebApi — never bypassed
+- Do NOT modify:    Genesys Softphone.html
+- All changes:      additive only
+
+-----------------------------------------------------------------------------
+SCREENS
+-----------------------------------------------------------------------------
+HOME -> PHONE_APP -> CONTACTS -> CALLING -> IN_CALL -> (end) -> HOME
+
+-----------------------------------------------------------------------------
+KEYBOARD SHORTCUTS
+-----------------------------------------------------------------------------
+CTRL+SHIFT+D    Open/close demo control panel
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android Phone Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;700&family=Jost:wght@300;400;500;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --fd:'Raleway',sans-serif;
+  --fu:'Jost',sans-serif;
+  --bg:#000000;
+  --s1:#1c1c1e;
+  --s2:#2c2c2e;
+  --s3:#3c3c3e;
+  --s4:#4c4c4e;
+  --tx:#ffffff;
+  --t2:rgba(255,255,255,0.65);
+  --t3:rgba(255,255,255,0.35);
+  --ac:#4285f4;
+  --gn:#30d158;
+  --rd:#ff453a;
+  --or:#ff9f0a;
+  --sep:rgba(255,255,255,0.08);
+}
+
+html,body{
+  width:100%;height:100%;
+  background:#0d0d0d;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fu);
+  overflow:hidden;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* ---- Phone Chassis ---- */
+.chassis{
+  position:relative;
+  width:393px;height:852px;
+  border-radius:52px;
+  background:linear-gradient(160deg,#2a2a2a 0%,#1a1a1a 40%,#111 70%,#0d0d0d 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 0 2px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 30px 80px rgba(0,0,0,0.8),
+    0 8px 24px rgba(0,0,0,0.6);
+  flex-shrink:0;
+}
+
+.btn-vol-up,.btn-vol-dn,.btn-pwr{
+  position:absolute;
+  background:linear-gradient(90deg,#2a2a2a,#1e1e1e);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),-2px 0 4px rgba(0,0,0,0.5);
+}
+.btn-vol-up{left:-3px;top:140px;width:3px;height:56px;border-radius:3px 0 0 3px;}
+.btn-vol-dn{left:-3px;top:210px;width:3px;height:56px;border-radius:3px 0 0 3px;}
+.btn-pwr   {right:-3px;top:170px;width:3px;height:72px;border-radius:0 3px 3px 0;}
+
+/* ---- Screen glass ---- */
+.screen-glass{
+  position:absolute;inset:8px;
+  border-radius:44px;
+  background:var(--bg);
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04),inset 0 2px 6px rgba(0,0,0,0.3);
+}
+.screen-glass::after{
+  content:'';position:absolute;inset:0;border-radius:44px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 40%,transparent 60%,rgba(255,255,255,0.02) 100%);
+  pointer-events:none;z-index:999;
+}
+
+/* ---- Punch-hole ---- */
+.punch-hole{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:11px;height:11px;border-radius:50%;
+  background:#000;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.06),inset 0 0 3px rgba(0,0,0,0.8);
+  z-index:100;
+}
+
+/* ---- Status bar ---- */
+.status-bar{
+  position:absolute;top:0;left:0;right:0;height:44px;
+  display:flex;align-items:flex-end;
+  padding:0 24px 6px;justify-content:space-between;z-index:50;
+}
+.sb-time{font-family:var(--fu);font-weight:600;font-size:13px;color:var(--tx);letter-spacing:0.2px;}
+.sb-icons{display:flex;align-items:center;gap:5px;}
+
+/* ---- Screens container ---- */
+.screens-wrap{position:absolute;inset:0;overflow:hidden;border-radius:44px;}
+
+/* ---- Screen transitions ---- */
+.screen{
+  position:absolute;inset:0;
+  transform:translateX(100%);
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  overflow:hidden;
+}
+.screen.active{transform:translateX(0);}
+.screen.prev  {transform:translateX(-30%);}
+
+/* ---- HOME SCREEN ---- */
+#scr-home{
+  background:linear-gradient(180deg,#0a1628 0%,#1a0a2e 40%,#0d1a3a 100%);
+  display:flex;flex-direction:column;
+}
+.home-wallpaper{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.85;}
+.home-clock-wrap{padding:64px 0 16px;text-align:center;position:relative;z-index:2;}
+.home-clock{
+  font-family:var(--fd);font-weight:100;font-size:76px;
+  color:#fff;letter-spacing:-2px;line-height:1;
+  text-shadow:0 2px 20px rgba(0,0,0,0.4);
+}
+.home-date{font-family:var(--fu);font-weight:300;font-size:15px;color:rgba(255,255,255,0.8);margin-top:6px;letter-spacing:0.3px;}
+.home-apps{
+  position:relative;z-index:2;flex:1;
+  padding:16px 24px 0;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:20px 12px;
+  align-content:center;
+}
+.app-icon{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.app-icon:active .app-icon-img{transform:scale(0.88);}
+.app-icon-img{
+  width:58px;height:58px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;transition:transform 0.1s;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+.app-icon-label{
+  font-family:var(--fu);font-size:11px;font-weight:400;
+  color:rgba(255,255,255,0.9);text-align:center;
+  text-shadow:0 1px 4px rgba(0,0,0,0.5);
+  max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ic-phone {background:linear-gradient(135deg,#30d158,#24a846);}
+.ic-msg   {background:linear-gradient(135deg,#30d158,#0a84ff);}
+.ic-chrome{background:linear-gradient(135deg,#4285f4,#34a853);}
+.ic-cam   {background:linear-gradient(135deg,#3c3c3e,#1c1c1e);}
+.ic-gal   {background:linear-gradient(135deg,#ff9f0a,#ff6b35);}
+.ic-set   {background:linear-gradient(135deg,#636366,#3c3c3e);}
+.ic-folder{background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.15);}
+.folder-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:6px;width:100%;height:100%;border-radius:14px;overflow:hidden;}
+.folder-app-dot{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+.home-dock{position:relative;z-index:2;padding:12px 24px 32px;display:flex;justify-content:center;}
+.dock-bar{
+  display:flex;gap:16px;
+  background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);
+  border-radius:28px;padding:12px 24px;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.dock-icon{
+  width:50px;height:50px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;cursor:pointer;transition:transform 0.1s;
+}
+.dock-icon:active{transform:scale(0.88);}
+
+/* ---- PHONE APP SCREEN ---- */
+#scr-phone{background:var(--bg);display:flex;flex-direction:column;}
+.phone-header{padding:52px 20px 0;display:flex;align-items:center;gap:12px;}
+.back-btn{
+  width:36px;height:36px;border-radius:50%;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+.phone-header-title{font-family:var(--fd);font-weight:300;font-size:26px;color:var(--tx);flex:1;}
+.phone-tabs{display:flex;margin:16px 20px 0;background:var(--s2);border-radius:12px;padding:3px;}
+.tab-btn{
+  flex:1;padding:9px 0;text-align:center;
+  font-family:var(--fu);font-size:13px;font-weight:500;color:var(--t2);
+  border-radius:10px;cursor:pointer;transition:background 0.2s,color 0.2s;
+}
+.tab-btn.on{background:var(--s3);color:var(--tx);}
+.tab-content{flex:1;overflow-y:auto;padding:12px 0;}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+.recents-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;}
+.recents-empty-icon{font-size:48px;opacity:0.3;}
+.recents-empty-txt{font-family:var(--fu);font-size:14px;color:var(--t3);}
+
+/* Keypad */
+.keypad-wrap{padding:20px 24px 8px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.keypad-display{font-family:var(--fd);font-weight:200;font-size:36px;color:var(--tx);letter-spacing:4px;height:50px;text-align:center;}
+.keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+.key-btn{height:60px;border-radius:50%;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s;}
+.key-btn:active{background:var(--s3);}
+.key-num{font-family:var(--fu);font-size:22px;font-weight:400;color:var(--tx);line-height:1;}
+.key-sub{font-family:var(--fu);font-size:8px;font-weight:500;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;}
+.keypad-call-btn{
+  width:64px;height:64px;border-radius:50%;background:var(--gn);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 4px 20px rgba(48,209,88,0.4);transition:transform 0.1s;
+}
+.keypad-call-btn:active{transform:scale(0.92);}
+
+/* ---- CONTACTS SCREEN ---- */
+#scr-contacts{background:var(--bg);display:flex;flex-direction:column;}
+.con-header{padding:52px 20px 8px;display:flex;align-items:center;gap:12px;}
+.con-header-title{font-family:var(--fd);font-weight:300;font-size:26px;color:var(--tx);flex:1;}
+.con-search-wrap{padding:0 20px 8px;display:flex;align-items:center;gap:12px;}
+.con-search{
+  flex:1;background:var(--s2);border:none;border-radius:12px;
+  padding:10px 14px 10px 36px;
+  font-family:var(--fu);font-size:14px;color:var(--tx);outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center;
+}
+.con-search::placeholder{color:var(--t3);}
+.tr-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 10px;border-bottom:1px solid var(--sep);}
+.tr-toggle-label{font-family:var(--fu);font-size:13px;color:var(--t2);}
+.toggle-sw{position:relative;width:44px;height:26px;cursor:pointer;}
+.toggle-sw input{display:none;}
+.toggle-track{position:absolute;inset:0;border-radius:13px;background:var(--s3);transition:background 0.2s;}
+.toggle-sw input:checked + .toggle-track{background:var(--ac);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.toggle-sw input:checked ~ .toggle-thumb{left:21px;}
+.con-list{flex:1;overflow-y:auto;padding:4px 0;}
+.con-item{
+  display:flex;align-items:center;gap:14px;padding:12px 20px;
+  cursor:pointer;transition:background 0.15s;border-bottom:1px solid var(--sep);
+}
+.con-item:active{background:var(--s1);}
+.con-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:17px;color:#fff;flex-shrink:0;overflow:hidden;}
+.con-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.con-name{font-family:var(--fu);font-size:15px;font-weight:400;color:var(--tx);flex:1;}
+.con-phone{font-family:var(--fu);font-size:12px;color:var(--t2);}
+.con-call-icon{width:34px;height:34px;border-radius:50%;background:rgba(48,209,88,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.con-empty{text-align:center;padding:60px 20px;color:var(--t3);font-size:14px;}
+
+/* ---- CALLING SCREEN ---- */
+#scr-calling{
+  background:linear-gradient(180deg,#060d1a 0%,#0a1628 60%,#060d1a 100%);
+  display:flex;flex-direction:column;align-items:center;
+}
+.calling-label{font-family:var(--fu);font-size:14px;font-weight:400;color:var(--t2);letter-spacing:1px;margin-top:52px;text-transform:uppercase;}
+.calling-name{font-family:var(--fd);font-weight:200;font-size:34px;color:var(--tx);margin-top:8px;text-align:center;padding:0 32px;}
+.calling-number{font-family:var(--fu);font-size:14px;color:var(--t2);margin-top:4px;}
+.calling-avatar-wrap{position:relative;margin:32px 0;display:flex;align-items:center;justify-content:center;}
+.pulse-ring{
+  position:absolute;border-radius:50%;
+  border:2px solid rgba(66,133,244,0.35);
+  animation:pulse-ring 2s ease-out infinite;
+}
+.pulse-ring:nth-child(1){width:120px;height:120px;animation-delay:0s;}
+.pulse-ring:nth-child(2){width:160px;height:160px;animation-delay:0.4s;}
+.pulse-ring:nth-child(3){width:200px;height:200px;animation-delay:0.8s;}
+@keyframes pulse-ring{
+  0%  {transform:scale(0.85);opacity:0.8;}
+  100%{transform:scale(1.15);opacity:0;}
+}
+.calling-avatar{
+  width:96px;height:96px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fu);font-weight:600;font-size:36px;color:#fff;
+  overflow:hidden;position:relative;z-index:2;
+  box-shadow:0 0 0 3px rgba(66,133,244,0.3);
+}
+.calling-avatar img{width:100%;height:100%;object-fit:cover;}
+.calling-status{font-family:var(--fu);font-size:15px;color:var(--t2);}
+.calling-tr-row{display:flex;align-items:center;gap:8px;margin-top:16px;}
+.calling-tr-label{font-family:var(--fu);font-size:12px;color:var(--t3);}
+.calling-controls{margin-top:auto;margin-bottom:52px;display:flex;justify-content:center;}
+.call-end-btn{
+  width:70px;height:70px;border-radius:50%;background:var(--rd);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 4px 24px rgba(255,69,58,0.5);transition:transform 0.1s;
+}
+.call-end-btn:active{transform:scale(0.92);}
+
+/* ---- IN-CALL SCREEN ---- */
+#scr-incall{
+  background:linear-gradient(180deg,#060d1a 0%,#0a1628 100%);
+  display:flex;flex-direction:column;
+}
+.incall-header{padding:48px 20px 12px;display:flex;align-items:center;gap:14px;}
+.incall-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:18px;color:#fff;overflow:hidden;flex-shrink:0;}
+.incall-avatar img{width:100%;height:100%;object-fit:cover;}
+.incall-info{flex:1;}
+.incall-name{font-family:var(--fd);font-weight:300;font-size:20px;color:var(--tx);}
+.incall-timer{font-family:var(--fu);font-size:12px;color:var(--gn);margin-top:2px;}
+.incall-badge{display:flex;align-items:center;gap:5px;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.25);border-radius:12px;padding:4px 10px;}
+.incall-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);animation:blink-dot 1.5s ease-in-out infinite;}
+@keyframes blink-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.incall-badge-lbl{font-family:var(--fu);font-size:11px;color:var(--gn);font-weight:500;}
+.transcript-panel{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;}
+.transcript-panel.hidden{display:none;}
+.tr-bubble{max-width:80%;padding:10px 14px;border-radius:18px;font-family:var(--fu);font-size:13px;line-height:1.45;animation:bubble-in 0.25s ease-out;}
+@keyframes bubble-in{from{opacity:0;transform:translateY(8px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+.tr-bubble.customer{align-self:flex-start;background:var(--s2);color:var(--tx);border-bottom-left-radius:4px;}
+.tr-bubble.agent   {align-self:flex-end;background:var(--ac);color:#fff;border-bottom-right-radius:4px;}
+.tr-bubble-spk{font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;opacity:0.65;margin-bottom:4px;}
+.tr-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:0.35;}
+.tr-empty-icon{font-size:36px;}
+.tr-empty-txt{font-size:13px;color:var(--t2);}
+
+/* In-call controls */
+.incall-controls{padding:12px 20px 28px;display:flex;flex-direction:column;gap:12px;}
+.incall-ctrl-row{display:flex;justify-content:space-around;gap:12px;}
+.ctrl-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-width:64px;-webkit-tap-highlight-color:transparent;}
+.ctrl-btn-icon{width:52px;height:52px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;transition:background 0.2s,transform 0.1s;}
+.ctrl-btn:active .ctrl-btn-icon{transform:scale(0.9);}
+.ctrl-btn.on .ctrl-btn-icon{background:var(--tx);}
+.ctrl-btn.on .ctrl-btn-icon svg{color:var(--bg);}
+.ctrl-btn-lbl{font-family:var(--fu);font-size:11px;color:var(--t2);font-weight:400;}
+.ctrl-end .ctrl-btn-icon{background:var(--rd);box-shadow:0 4px 16px rgba(255,69,58,0.4);}
+.ctrl-end .ctrl-btn-icon svg{color:#fff;}
+.ctrl-end .ctrl-btn-lbl{color:var(--rd);}
+
+/* ---- DEMO PANEL ---- */
+.demo-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  z-index:200;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+  border-radius:44px;overflow:hidden;
+}
+.demo-overlay.open{opacity:1;pointer-events:all;}
+.demo-sheet{
+  background:var(--s1);border-radius:20px 20px 0 0;width:100%;
+  padding:16px 20px 32px;
+  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.demo-overlay.open .demo-sheet{transform:translateY(0);}
+.demo-handle{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px;}
+.demo-title{font-family:var(--fd);font-weight:400;font-size:18px;color:var(--tx);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.demo-close{width:28px;height:28px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--t2);}
+.demo-section{margin-bottom:14px;}
+.demo-lbl{font-family:var(--fu);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.demo-select{
+  width:100%;background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;
+  padding:10px 14px;font-family:var(--fu);font-size:14px;color:var(--tx);outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+}
+.demo-select option{background:#1c1c1e;color:#fff;}
+.demo-row{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:10px;padding:10px 14px;margin-bottom:8px;}
+.demo-row-lbl{font-family:var(--fu);font-size:14px;color:var(--tx);}
+.demo-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.demo-btn{flex:1;min-width:80px;padding:10px 8px;border-radius:10px;font-family:var(--fu);font-size:13px;font-weight:500;text-align:center;cursor:pointer;border:none;transition:transform 0.1s,opacity 0.1s;}
+.demo-btn:active{transform:scale(0.96);opacity:0.85;}
+.demo-btn-call{background:var(--gn);color:#000;}
+.demo-btn-end {background:var(--rd);color:#fff;}
+.demo-btn-skip{background:var(--s3);color:var(--tx);}
+
+/* ---- Nav indicator ---- */
+.nav-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);z-index:90;}
+
+/* ---- Scrollbars ---- */
+.transcript-panel::-webkit-scrollbar,.con-list::-webkit-scrollbar,.tab-content::-webkit-scrollbar{width:3px;}
+.transcript-panel::-webkit-scrollbar-track,.con-list::-webkit-scrollbar-track,.tab-content::-webkit-scrollbar-track{background:transparent;}
+.transcript-panel::-webkit-scrollbar-thumb,.con-list::-webkit-scrollbar-thumb,.tab-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- PHONE CHASSIS -->
+<div class="chassis">
+
+  <div class="btn-vol-up"></div>
+  <div class="btn-vol-dn"></div>
+  <div class="btn-pwr"></div>
+
+  <div class="screen-glass">
+    <div class="punch-hole"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="sb-time" id="sbTime">9:41</div>
+      <div class="sb-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="white" opacity="0.9">
+          <rect x="0" y="6" width="3" height="6" rx="0.5"/>
+          <rect x="4" y="4" width="3" height="8" rx="0.5"/>
+          <rect x="8" y="2" width="3" height="10" rx="0.5"/>
+          <rect x="12" y="0" width="3" height="12" rx="0.5" opacity="0.4"/>
+        </svg>
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="white" stroke-width="1.5" opacity="0.9">
+          <path d="M7.5 8.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" fill="white" stroke="none"/>
+          <path d="M3.5 6C4.8 4.8 6.1 4 7.5 4s2.7.8 4 2" stroke-linecap="round"/>
+          <path d="M1 3C3 1.3 5.2 0 7.5 0S12 1.3 14 3" stroke-linecap="round"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity="0.9">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="white" stroke-opacity="0.5"/>
+          <rect x="2" y="2" width="16" height="8" rx="2" fill="white"/>
+          <path d="M22.5 4v4c.8-.4 1.5-1.1 1.5-2s-.7-1.6-1.5-2z" fill="white" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="screens-wrap">
+
+      <!-- HOME SCREEN -->
+      <div class="screen" id="scr-home">
+        <div class="home-wallpaper" id="homeWallpaper"></div>
+        <div class="home-clock-wrap">
+          <div class="home-clock" id="homeClock">9:41</div>
+          <div class="home-date" id="homeDate">Thursday, March 5</div>
+        </div>
+        <div class="home-apps" id="homeApps"></div>
+        <div class="home-dock">
+          <div class="dock-bar">
+            <div class="dock-icon ic-phone" onclick="goPhone()">&#128222;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#0a84ff,#0066cc)">&#128172;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#4285f4,#1a73e8)">&#127760;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#636366,#3c3c3e)">&#128247;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHONE APP SCREEN -->
+      <div class="screen" id="scr-phone">
+        <div class="phone-header">
+          <div class="back-btn" onclick="goHome()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="phone-header-title">Phone</div>
+        </div>
+        <div class="phone-tabs">
+          <div class="tab-btn on" id="tab-recent"   onclick="switchTab('recent')">Recents</div>
+          <div class="tab-btn"   id="tab-contacts"  onclick="switchTab('contacts')">Contacts</div>
+          <div class="tab-btn"   id="tab-keypad"    onclick="switchTab('keypad')">Keypad</div>
+        </div>
+        <div class="tab-content">
+          <div class="tab-pane on" id="pane-recent">
+            <div class="recents-empty">
+              <div class="recents-empty-icon">&#128203;</div>
+              <div class="recents-empty-txt">No recent calls</div>
+            </div>
+          </div>
+          <div class="tab-pane" id="pane-contacts">
+            <div style="padding:12px 20px 0;">
+              <input type="text" class="con-search" placeholder="Search contacts" id="phoneConSearch" oninput="filterPhoneCons(this.value)" style="width:100%;">
+            </div>
+            <div class="con-list" id="phoneConList"><div class="con-empty">Loading&#8230;</div></div>
+          </div>
+          <div class="tab-pane" id="pane-keypad">
+            <div class="keypad-wrap">
+              <div class="keypad-display" id="keypadDisplay"></div>
+              <div class="keypad-grid" id="keypadGrid"></div>
+              <div class="keypad-call-btn" onclick="keypadCall()">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTACTS SCREEN -->
+      <div class="screen" id="scr-contacts">
+        <div class="con-header">
+          <div class="back-btn" onclick="navTo('phone',true)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="con-header-title">Contacts</div>
+        </div>
+        <div class="con-search-wrap">
+          <input type="text" class="con-search" placeholder="Search contacts" id="conSearch" oninput="filterCons(this.value)">
+        </div>
+        <div class="tr-toggle-row">
+          <div class="tr-toggle-label">Transcript simulation</div>
+          <label class="toggle-sw">
+            <input type="checkbox" id="trToggle" onchange="S.trOn=this.checked;syncToggles()">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="con-list" id="conList"><div class="con-empty">Loading contacts&#8230;</div></div>
+      </div>
+
+      <!-- CALLING SCREEN -->
+      <div class="screen" id="scr-calling">
+        <div class="calling-label">Calling&#8230;</div>
+        <div class="calling-name" id="callingName">&#8211;</div>
+        <div class="calling-number" id="callingNumber"></div>
+        <div class="calling-avatar-wrap">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring"></div>
+          <div class="calling-avatar" id="callingAvatar"></div>
+        </div>
+        <div class="calling-status">Ringing&#8230;</div>
+        <div class="calling-tr-row">
+          <div class="calling-tr-label">Transcript</div>
+          <label class="toggle-sw" style="transform:scale(0.85)">
+            <input type="checkbox" id="callingTrToggle" onchange="S.trOn=this.checked;syncToggles()">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="calling-controls">
+          <div class="call-end-btn" onclick="endCall()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-CALL SCREEN -->
+      <div class="screen" id="scr-incall">
+        <div class="incall-header">
+          <div class="incall-avatar" id="incallAvatar"></div>
+          <div class="incall-info">
+            <div class="incall-name" id="incallName">&#8211;</div>
+            <div class="incall-timer" id="incallTimer">00:00</div>
+          </div>
+          <div class="incall-badge">
+            <div class="incall-badge-dot"></div>
+            <div class="incall-badge-lbl">Connected</div>
+          </div>
+        </div>
+        <div class="transcript-panel" id="transcriptPanel">
+          <div class="tr-empty" id="trEmpty">
+            <div class="tr-empty-icon">&#128172;</div>
+            <div class="tr-empty-txt">Transcript will appear here</div>
+          </div>
+        </div>
+        <div class="incall-controls">
+          <div class="incall-ctrl-row">
+            <div class="ctrl-btn" id="ctrlMute" onclick="toggleMute()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Mute</div>
+            </div>
+            <div class="ctrl-btn" id="ctrlTr" onclick="toggleTrPanel()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Transcript</div>
+            </div>
+            <div class="ctrl-btn" id="ctrlSkip" onclick="skipTr()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <polygon points="5 4 15 12 5 20 5 4"/>
+                  <line x1="19" y1="5" x2="19" y2="19"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Skip</div>
+            </div>
+          </div>
+          <div class="incall-ctrl-row">
+            <div class="ctrl-btn" id="ctrlSpk" onclick="toggleSpeaker()">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Speaker</div>
+            </div>
+            <div class="ctrl-btn ctrl-end" onclick="endCall()">
+              <div class="ctrl-btn-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" transform="rotate(135 12 12)"/></svg>
+              </div>
+              <div class="ctrl-btn-lbl">End</div>
+            </div>
+            <div class="ctrl-btn">
+              <div class="ctrl-btn-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div class="ctrl-btn-lbl">Keypad</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /screens-wrap -->
+
+    <!-- DEMO CONTROL PANEL -->
+    <div class="demo-overlay" id="demoOverlay">
+      <div class="demo-sheet">
+        <div class="demo-handle"></div>
+        <div class="demo-title">
+          Demo Control Panel
+          <div class="demo-close" onclick="clsD()">&#x2715;</div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Demo Profile</div>
+          <select class="demo-select" id="demoProfileSel" onchange="applyProfile(this.value)">
+            <option value="">&#8212; Select profile &#8212;</option>
+          </select>
+        </div>
+        <div class="demo-section">
+          <div class="demo-row">
+            <div class="demo-row-lbl">Transcript</div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="dpTrToggle" onchange="S.trOn=this.checked;syncToggles()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Actions</div>
+          <div class="demo-actions">
+            <div class="demo-btn demo-btn-call" onclick="demoStartCall()">&#9654; Start Call</div>
+            <div class="demo-btn demo-btn-end"  onclick="endCall()">&#9646; End Call</div>
+            <div class="demo-btn demo-btn-skip" onclick="skipTr()">&#9197; Skip Transcript</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-bar"></div>
+  </div><!-- /screen-glass -->
+</div><!-- /chassis -->
+
+<script>
+(function(){
+'use strict';
+
+var STORAGE_KEY = 'genericSimCall';
+
+/* ---- Fallback data (standalone mode) ---- */
+var FALLBACK_CONFIG = {
+  id:null, queueName:'Support', ringtoneUrl:'', muteRingtone:false,
+  popMode:null, defaultCaseTitle:'Customer Inquiry',
+  transcriptEnabled:true, transcriptText:'', transcriptIntervalSeconds:3, wallpaperUrl:''
+};
+
+var FALLBACK_CONTACTS = [
+  { contactid:'demo-1', fullname:'Jamie Carter',    telephone1:'(555) 201-4832', entityimage_thumbnail:null },
+  { contactid:'demo-2', fullname:'Robert Martinez', telephone1:'(555) 376-9154', entityimage_thumbnail:null },
+  { contactid:'demo-3', fullname:'Sarah Johnson',   telephone1:'(555) 448-2267', entityimage_thumbnail:null }
+];
+
+var FALLBACK_PROFILES = [
+  {
+    gensoft_name:'FDA Safety Recall',
+    gensoft_contactname:'Sarah Johnson',
+    gensoft_queuename:'Safety Recall',
+    gensoft_defaultcasetitle:'Product Safety Recall',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: Hi, I heard about a product recall and need to know if my medication is affected.\n\nAgent: Thank you for calling the FDA Safety Information line. I can help with that. Can you provide the medication name and lot number?\n\nCustomer: Yes, Metformin lot number 4521-B.\n\nAgent: Lot 4521-B is included in the voluntary recall. Please stop using it immediately. I\'ll arrange a replacement at no cost.',
+    gensoft_transcriptplaybackintervalseconds:3
+  },
+  {
+    gensoft_name:'Veteran Benefits',
+    gensoft_contactname:'Robert Martinez',
+    gensoft_queuename:'Benefits',
+    gensoft_defaultcasetitle:'Veterans Benefits Inquiry',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: Hello, I\'m a veteran trying to understand my healthcare benefits after transitioning out of service.\n\nAgent: Welcome, and thank you for your service. Could you share your discharge date and branch?\n\nCustomer: Army, separated November 2023.\n\nAgent: You should be eligible for VA healthcare. Since it\'s been less than 2 years since separation, you have enhanced eligibility. I\'ll walk you through enrollment.',
+    gensoft_transcriptplaybackintervalseconds:3
+  },
+  {
+    gensoft_name:'Insurance Inquiry',
+    gensoft_contactname:'Jamie Carter',
+    gensoft_queuename:'Insurance',
+    gensoft_defaultcasetitle:'Insurance Coverage Question',
+    gensoft_transcriptenabled:true,
+    gensoft_transcripttext:'Customer: I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: Let me pull up your account. The $1,200 is your deductible portion for this plan year.\n\nCustomer: Is there anything I can do?\n\nAgent: You can set up a payment plan with the hospital. Once your deductible is met, coinsurance kicks in and you\'ll pay 20% going forward.',
+    gensoft_transcriptplaybackintervalseconds:3
+  }
+];
+
+/* ---- State ---- */
+var S = {
+  scr:'home', prev:null, con:null, cfg:null, dp:null,
+  trOn:true, active:false, muted:false, spk:false,
+  trLines:[], trIdx:0, trTimer:null, callTimer:null, connectTimer:null,
+  ringAudio:null, contacts:[], profiles:[]
+};
+
+/* ---- Xrm detection ---- */
+var isD365 = false;
+function ensureXrm() {
+  if (typeof Xrm !== 'undefined' && Xrm) return;
+  var w = window;
+  for (var i = 0; i < 10 && w; i++) {
+    try { if (w.Xrm) { window.Xrm = w.Xrm; return; } } catch(e) {}
+    if (!w.parent || w.parent === w) break;
+    w = w.parent;
+  }
+  try { if (window.top && window.top.Xrm) window.Xrm = window.top.Xrm; } catch(e) {}
+}
+function detectMode() { ensureXrm(); isD365 = (typeof Xrm !== 'undefined') && !!Xrm && !!Xrm.WebApi; }
+
+/* ---- Avatar helpers ---- */
+var AV_COLORS = ['#4285f4','#ea4335','#fbbc04','#34a853','#bf5af2','#ff9f0a','#30d158','#ff453a','#64d2ff','#ff6b6b'];
+function avColor(n) { var h=0; for(var i=0;i<n.length;i++) h=((h<<5)-h)+n.charCodeAt(i); return AV_COLORS[Math.abs(h)%AV_COLORS.length]; }
+function avInit(n)  { var p=(n||'?').trim().split(/\s+/); return p.length>1?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0].substring(0,2).toUpperCase(); }
+function avHtml(c,sz) {
+  sz=sz||46;
+  var thumb=c&&c.entityimage_thumbnail;
+  if (thumb) return '<img src="data:image/jpeg;base64,'+thumb+'" style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;object-fit:cover;" alt="">';
+  var nm=(c&&c.fullname)||'?', col=avColor(nm), ini=avInit(nm);
+  return '<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:'+Math.round(sz*0.37)+'px;color:#fff;">'+ini+'</div>';
+}
+
+/* ---- Clock ---- */
+var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function updC() {
+  var now=new Date(), h=now.getHours(), m=now.getMinutes();
+  h=h%12||12;
+  var t=h+':'+(m<10?'0':'')+m;
+  var el=document.getElementById('sbTime'), cl=document.getElementById('homeClock');
+  if(el) el.textContent=t;
+  if(cl) cl.textContent=t;
+  var de=document.getElementById('homeDate');
+  if(de) de.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
+}
+
+/* ---- Screen navigation ---- */
+function navTo(key,back) {
+  var prev=S.scr; S.prev=prev; S.scr=key;
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var tEl=document.getElementById('scr-'+key), pEl=document.getElementById('scr-'+prev);
+  if (back) {
+    if(pEl) pEl.classList.add('active');
+    if(tEl) tEl.classList.add('prev');
+    setTimeout(function(){ if(pEl) pEl.classList.remove('active'); if(tEl){tEl.classList.remove('prev');tEl.classList.add('active');} },20);
+  } else {
+    if(tEl) tEl.classList.add('active');
+    if(pEl) pEl.classList.add('prev');
+  }
+}
+function goHome() {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var h=document.getElementById('scr-home'); if(h) h.classList.add('active');
+  S.scr='home';
+}
+function goPhone() { navTo('phone'); }
+window.goHome=goHome; window.goPhone=goPhone; window.navTo=navTo;
+
+/* ---- Tabs ---- */
+function switchTab(n) {
+  ['recent','contacts','keypad'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('on',t===n);
+    document.getElementById('pane-'+t).classList.toggle('on',t===n);
+  });
+  if(n==='contacts'&&S.contacts.length) renderPhoneCons(S.contacts);
+}
+window.switchTab=switchTab;
+
+/* ---- Keypad ---- */
+function buildKeypad() {
+  var keys=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
+  var g=document.getElementById('keypadGrid'); if(!g) return; g.innerHTML='';
+  keys.forEach(function(k){
+    var b=document.createElement('div'); b.className='key-btn';
+    b.innerHTML='<div class="key-num">'+k[0]+'</div>'+(k[1]?'<div class="key-sub">'+k[1]+'</div>':'');
+    b.onclick=function(){ var d=document.getElementById('keypadDisplay'); if(d) d.textContent=(d.textContent||'')+k[0]; };
+    g.appendChild(b);
+  });
+}
+function keypadCall() {
+  var n=(document.getElementById('keypadDisplay')||{}).textContent||''; if(!n) return;
+  doCall({contactid:null,fullname:n,telephone1:n,entityimage_thumbnail:null});
+}
+window.keypadCall=keypadCall;
+
+/* ---- Home apps ---- */
+function buildHomeApps() {
+  var apps=[
+    {label:'Phone',   cls:'ic-phone', icon:'&#128222;',fn:'goPhone()'},
+    {label:'Messages',cls:'ic-msg',   icon:'&#128172;',fn:''},
+    {label:'Chrome',  cls:'ic-chrome',icon:'&#127760;',fn:''},
+    {label:'Camera',  cls:'ic-cam',   icon:'&#128247;',fn:''},
+    {label:'Gallery', cls:'ic-gal',   icon:'&#128444;',fn:''},
+    {label:'Settings',cls:'ic-set',   icon:'&#9881;',  fn:''},
+    {label:'Microsoft',cls:'ic-folder',icon:'',fn:'',folder:true}
+  ];
+  var el=document.getElementById('homeApps'); if(!el) return;
+  el.innerHTML=apps.map(function(a){
+    var ic=a.folder?buildMsFolder():'<span style="font-size:28px;line-height:58px;">'+a.icon+'</span>';
+    return '<div class="app-icon"'+(a.fn?' onclick="'+a.fn+'"':'')+'>'+
+      '<div class="app-icon-img '+a.cls+'">'+ic+'</div>'+
+      '<div class="app-icon-label">'+a.label+'</div></div>';
+  }).join('');
+}
+function buildMsFolder() {
+  var a=[{c:'#2564CF',i:'T'},{c:'#0078D4',i:'O'},{c:'#0078D4',i:'&#9711;'},{c:'#185ABD',i:'W'},{c:'#107C41',i:'X'},{c:'#C43E1C',i:'P'}];
+  return '<div class="folder-grid">'+a.map(function(x){ return '<div class="folder-app-dot" style="background:'+x.c+';color:#fff;">'+x.i+'</div>'; }).join('')+'</div>';
+}
+
+/* ---- Load config ---- */
+function ldCfg(cb) {
+  if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); return; }
+  var cols='gensoft_genericsoftphoneid,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl';
+  var q='?$select='+cols+'&$filter=gensoft_defaultsoftphoneconfig eq true&$orderby=createdon desc&$top=1';
+  Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone',q).then(function(res){
+    var rec=(res.entities&&res.entities[0])||null;
+    if(!rec) return Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone','?$select='+cols+'&$orderby=createdon desc&$top=1').then(function(r2){ parseCfg((r2.entities&&r2.entities[0])||{}); cb&&cb(); });
+    parseCfg(rec); cb&&cb();
+  }).catch(function(){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); });
+}
+function parseCfg(r) {
+  S.cfg={
+    id:r.gensoft_genericsoftphoneid||null,
+    queueName:r.gensoft_queuename||'Support',
+    ringtoneUrl:r.gensoft_outgoingringtoneurl||r.gensoft_ringtoneurl||'',
+    muteRingtone:r.gensoft_muteringtone===true,
+    popMode:r.gensoft_popmode||null,
+    defaultCaseTitle:r.gensoft_defaultcasetitle||'',
+    transcriptEnabled:r.gensoft_transcriptenabled!==false,
+    transcriptText:r.gensoft_transcripttext||'',
+    transcriptIntervalSeconds:r.gensoft_transcriptplaybackintervalseconds||3,
+    wallpaperUrl:r.gensoft_phonewallpaperurl||''
+  };
+  S.trOn=S.cfg.transcriptEnabled; syncToggles();
+  if(S.cfg.wallpaperUrl){ var wp=document.getElementById('homeWallpaper'); if(wp) wp.style.backgroundImage='url('+S.cfg.wallpaperUrl+')'; }
+}
+
+/* ---- Load contacts ---- */
+function ldCon() {
+  if(!isD365){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); return; }
+  Xrm.WebApi.retrieveMultipleRecords('contact','?$select=fullname,telephone1,contactid,entityimage_thumbnail&$orderby=fullname asc&$top=50')
+    .then(function(res){ S.contacts=res.entities||[]; renderCons(S.contacts); renderPhoneCons(S.contacts); })
+    .catch(function(){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); });
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function conRow(c){
+  return '<div class="con-avatar">'+avHtml(c,46)+'</div>'+
+    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div>'+
+    '<div class="con-call-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="#30d158"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>';
+}
+function renderCons(list) {
+  var el=document.getElementById('conList'); if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
+  el.innerHTML=list.map(function(c){ return '<div class="con-item">'+conRow(c)+'</div>'; }).join('');
+  el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
+}
+function renderPhoneCons(list) {
+  var el=document.getElementById('phoneConList'); if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
+  el.innerHTML=list.map(function(c){ return '<div class="con-item"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>'; }).join('');
+  el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
+}
+function filterCons(q){
+  renderCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+}
+function filterPhoneCons(q){
+  renderPhoneCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+}
+window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
+
+/* ---- Call flow ---- */
+function doCall(c) {
+  S.con=c; S.active=false; clsD();
+  var nEl=document.getElementById('callingName'), nuEl=document.getElementById('callingNumber'), avEl=document.getElementById('callingAvatar');
+  if(nEl) nEl.textContent=c.fullname||'Unknown';
+  if(nuEl) nuEl.textContent=c.telephone1||'';
+  if(avEl) avEl.innerHTML=avHtml(c,96);
+  var ct=document.getElementById('callingTrToggle'); if(ct) ct.checked=S.trOn;
+  navTo('calling');
+  startRing();
+  S.connectTimer=setTimeout(function(){ connect(c); },3000);
+}
+function startRing() {
+  stopRing();
+  var url=(S.cfg&&S.cfg.ringtoneUrl)||'';
+  if(url){ try{ S.ringAudio=new Audio(url); S.ringAudio.loop=true; S.ringAudio.play().catch(function(){}); }catch(e){} }
+}
+function stopRing() {
+  if(S.ringAudio){ try{ S.ringAudio.pause(); S.ringAudio.src=''; }catch(e){} S.ringAudio=null; }
+}
+function connect(c) {
+  stopRing(); S.active=true;
+  var nEl=document.getElementById('incallName'), avEl=document.getElementById('incallAvatar');
+  if(nEl) nEl.textContent=c.fullname||'Unknown';
+  if(avEl) avEl.innerHTML=avHtml(c,48);
+  wrP(c);
+  navTo('incall');
+  var secs=0, tEl=document.getElementById('incallTimer');
+  S.callTimer=setInterval(function(){
+    secs++; var m=Math.floor(secs/60),s=secs%60;
+    if(tEl) tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  },1000);
+  initTr();
+}
+function wrP(c) {
+  var cfg=S.cfg||{}, dp=S.dp||{};
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      callerName:c.fullname||'Unknown',
+      queueName:dp.qN||cfg.queueName||'',
+      phoneNumber:c.telephone1||'',
+      contactId:c.contactid||null,
+      state:'CONNECTED',
+      startTime:new Date().toISOString(),
+      ringtoneUrl:'', muteRingtone:false,
+      popMode:cfg.popMode||null,
+      defaultCaseTitle:dp.ct||cfg.defaultCaseTitle||'',
+      transcriptEnabled:S.trOn,
+      transcriptText:dp.tr||cfg.transcriptText||'',
+      transcriptIntervalSeconds:cfg.transcriptIntervalSeconds||3,
+      softphoneConfigId:cfg.id||null
+    }));
+  }catch(e){}
+}
+
+/* ---- Transcript ---- */
+function parseTr(txt) {
+  if(!txt) return [];
+  return txt.split(/\n\n+/).map(function(blk){
+    blk=blk.trim(); if(!blk) return null;
+    var m=blk.match(/^(Customer|Agent|caller|agent):\s*/i);
+    if(m){ var t=(m[1].toLowerCase()==='customer'||m[1].toLowerCase()==='caller')?'customer':'agent'; return {type:t,spk:m[1],txt:blk.substring(m[0].length)}; }
+    return {type:'customer',spk:'Customer',txt:blk};
+  }).filter(Boolean);
+}
+function initTr() {
+  var p=document.getElementById('transcriptPanel'); if(!p) return;
+  var dp=S.dp||{}, cfg=S.cfg||{};
+  S.trLines=parseTr(dp.tr||cfg.transcriptText||''); S.trIdx=0; clearInterval(S.trTimer); p.innerHTML='';
+  if(!S.trLines.length||!S.trOn){
+    p.innerHTML='<div class="tr-empty"><div class="tr-empty-icon">&#128172;</div><div class="tr-empty-txt">'+(S.trOn?'No transcript available':'Transcript disabled')+'</div></div>';
+    return;
+  }
+  var iv=((dp.iv||(cfg.transcriptIntervalSeconds||3)))*1000;
+  nxtL();
+  if(S.trIdx<S.trLines.length) S.trTimer=setInterval(function(){ if(!S.trOn){clearInterval(S.trTimer);return;} nxtL(); if(S.trIdx>=S.trLines.length) clearInterval(S.trTimer); },iv);
+}
+function nxtL() {
+  var p=document.getElementById('transcriptPanel'); if(!p||S.trIdx>=S.trLines.length) return;
+  var ln=S.trLines[S.trIdx++];
+  var b=document.createElement('div'); b.className='tr-bubble '+ln.type;
+  b.innerHTML='<div class="tr-bubble-spk">'+esc(ln.spk)+'</div>'+esc(ln.txt);
+  p.appendChild(b); p.scrollTop=p.scrollHeight;
+}
+function skipTr() { clearInterval(S.trTimer); while(S.trIdx<S.trLines.length) nxtL(); }
+window.skipTr=skipTr;
+function toggleTrPanel() {
+  var p=document.getElementById('transcriptPanel'), b=document.getElementById('ctrlTr'); if(!p) return;
+  var h=p.classList.toggle('hidden'); if(b) b.classList.toggle('on',!h);
+  if(!h&&S.trOn&&!S.trTimer&&S.trIdx<S.trLines.length) initTr();
+}
+window.toggleTrPanel=toggleTrPanel;
+function syncToggles() {
+  ['trToggle','callingTrToggle','dpTrToggle'].forEach(function(id){ var el=document.getElementById(id); if(el) el.checked=S.trOn; });
+}
+window.syncToggles=syncToggles;
+
+/* ---- End call ---- */
+function endCall() {
+  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); stopRing();
+  S.active=false; S.con=null; S.dp=null; S.trLines=[]; S.trIdx=0;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  var tEl=document.getElementById('incallTimer'); if(tEl) tEl.textContent='00:00';
+  var p=document.getElementById('transcriptPanel'); if(p) p.innerHTML='';
+  clsD(); goHome();
+}
+window.endCall=endCall;
+
+/* ---- Controls ---- */
+function toggleMute()    { S.muted=!S.muted;   document.getElementById('ctrlMute').classList.toggle('on',S.muted); }
+function toggleSpeaker() { S.spk=!S.spk;       document.getElementById('ctrlSpk').classList.toggle('on',S.spk); }
+window.toggleMute=toggleMute; window.toggleSpeaker=toggleSpeaker;
+
+/* ---- Demo profiles ---- */
+function ldDP() {
+  if(!isD365){ S.profiles=FALLBACK_PROFILES; popDemoSel(); return; }
+  var q='?$select=gensoft_name,gensoft_contactname,gensoft_queuename,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds&$orderby=gensoft_name asc&$top=20';
+  Xrm.WebApi.retrieveMultipleRecords('gensoft_demo_profile',q)
+    .then(function(res){ S.profiles=res.entities||[]; popDemoSel(); })
+    .catch(function(){ S.profiles=FALLBACK_PROFILES; popDemoSel(); });
+}
+function popDemoSel() {
+  var s=document.getElementById('demoProfileSel'); if(!s) return;
+  s.innerHTML='<option value="">&#8212; Select profile &#8212;</option>'+
+    S.profiles.map(function(p,i){ return '<option value="'+i+'">'+esc(p.gensoft_name||('Profile '+(i+1)))+'</option>'; }).join('');
+}
+function applyProfile(idx) {
+  if(idx===''||idx===null) return;
+  var p=S.profiles[parseInt(idx)]; if(!p) return;
+  S.dp={ qN:p.gensoft_queuename||'', ct:p.gensoft_defaultcasetitle||'', tr:p.gensoft_transcripttext||'', iv:p.gensoft_transcriptplaybackintervalseconds||3, contactName:p.gensoft_contactname||'' };
+  S.trOn=p.gensoft_transcriptenabled!==false; syncToggles();
+  if(S.dp.contactName){ var m=S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; }); if(m.length) S.con=m[0]; }
+}
+window.applyProfile=applyProfile;
+function demoStartCall() {
+  var c=S.con||(S.contacts.length?S.contacts[0]:{contactid:null,fullname:'Demo Contact',telephone1:'',entityimage_thumbnail:null});
+  clsD(); doCall(c);
+}
+window.demoStartCall=demoStartCall;
+
+/* ---- Demo panel ---- */
+function opnD() { document.getElementById('demoOverlay').classList.add('open'); if(!S.profiles.length) ldDP(); }
+function clsD() { document.getElementById('demoOverlay').classList.remove('open'); }
+window.clsD=clsD;
+document.getElementById('demoOverlay').addEventListener('click',function(e){ if(e.target===this) clsD(); });
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.shiftKey&&(e.key==='D'||e.key==='d')){ e.preventDefault(); var o=document.getElementById('demoOverlay'); o.classList.contains('open')?clsD():opnD(); }
+});
+
+/* ---- Init ---- */
+document.addEventListener('DOMContentLoaded',function(){
+  detectMode();
+  updC(); setInterval(updC,15000);
+  buildKeypad(); buildHomeApps();
+  ldCfg(function(){ ldCon(); ldDP(); });
+  goHome();
+});
+
+})();
+</script>
+</body>
+</html>

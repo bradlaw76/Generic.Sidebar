@@ -1,10 +1,9 @@
-```jsonc
 {
   "system": {
     "name": "Generic.Sidebar",
-    "version": "1.0.5",
+    "version": "2.0.0",
     "status": "ACTIVE",
-    "type": "ux-demo"
+    "type": "hybrid"
   },
   "purpose": {
     "summary": "A flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps. Configure a single Dataverse table row to control instructions, embeds, icons, and theming — no custom HTML/JS per form."
@@ -15,7 +14,7 @@
   },
   "review": {
     "speckitEnabled": true,
-    "scope": ["code-standards"]
+    "scope": ["spec", "ux", "acceptance"]
   },
   "codeStandards": {
     "source": "SpeckKit-Project-Development",
@@ -40,4 +39,3 @@
     ]
   }
 }
-```

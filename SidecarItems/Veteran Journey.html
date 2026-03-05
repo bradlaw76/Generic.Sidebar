@@ -1,0 +1,383 @@
+<!--
+=============================================================================
+COMPONENT:    Veteran Journey
+FILE:         SidecarItems\Veteran Journey.html
+VERSION:      1.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-03-04
+ENVIRONMENT:  HTML | JavaScript
+PORTAL URL:   N/A
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+SpeckKit component header applied for governance and maintainability.
+
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source:      As implemented in file
+- Entity/Table:     N/A
+- Auth Model:       As implemented in host app
+- Rendering:        Client-side
+- API Pattern:      As implemented in file
+- OData:            N/A
+
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Search:           As implemented
+- Filtering:        As implemented
+- Sorting:          As implemented
+- Pagination:       As implemented
+- Create:           As implemented
+- Update:           As implemented
+- Delete:           As implemented
+- Validation:       As implemented
+- UX Notes:         See file content
+
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. Dependencies:    As required by this file and host page.
+
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF Token:      As implemented
+- Auth Scope:      As implemented
+- Data Exposure:   As implemented
+- Role Dependency: As implemented
+
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- Root Scope ID:   As implemented
+- Scoped styles where applicable
+
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- See project docs and inline implementation constraints.
+
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+✔ Load component without runtime errors
+✔ Core interactions behave as expected
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v1.0.0  2026-03-04  Added SpeckKit component header block
+
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- Do NOT remove scoped root container where applicable.
+- Do NOT bypass security or auth protections in host integrations.
+- Changes must be additive unless explicitly approved.
+=============================================================================
+-->
+<style>
+  /* --- CORE STYLES --- */
+  .vj-wrapper { font-family: "Segoe UI", sans-serif; display: flex; flex-direction: column; }
+  
+  /* Hide the actual radio buttons */
+  input[name="vj-filter"] { display: none; }
+
+  /* FILTER BAR */
+  .vj-filters { display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid #edebe9; overflow-x: auto; }
+  
+  /* Filter Labels (Look like buttons) */
+  .vj-lbl { 
+    font-size: 11px; font-weight: 600; color: #605e5c; background: #fff; 
+    border: 1px solid #edebe9; padding: 4px 12px; border-radius: 12px; cursor: pointer;
+    white-space: nowrap; user-select: none; transition: all 0.2s;
+  }
+  .vj-lbl:hover { background-color: #f3f2f1; }
+
+  /* FILTERING LOGIC (Pure CSS Magic) */
+  /* If 'Medical' is checked, hide items that are NOT medical */
+  #filter-med:checked ~ .vj-list .vj-item:not(.cat-med) { display: none; }
+  
+  /* If 'Benefits' is checked, hide items that are NOT benefits */
+  #filter-ben:checked ~ .vj-list .vj-item:not(.cat-ben) { display: none; }
+  
+  /* If 'No Phone' is checked, hide items that ARE phone calls */
+  #filter-nophone:checked ~ .vj-list .vj-item.cat-phone { display: none; }
+
+  /* Active State Styling for the Buttons */
+  #filter-all:checked ~ .vj-filters label[for="filter-all"],
+  #filter-med:checked ~ .vj-filters label[for="filter-med"],
+  #filter-ben:checked ~ .vj-filters label[for="filter-ben"],
+  #filter-nophone:checked ~ .vj-filters label[for="filter-nophone"] {
+    background: #eff6fc; color: #005a9e; border-color: #0078d4;
+  }
+
+  /* --- TIMELINE STYLES (Preserved) --- */
+  .vj-list { display: flex; flex-direction: column; }
+  .vj-item { border-bottom: 1px solid #edebe9; animation: fadeIn 0.3s ease-in; }
+  .vj-item:last-child { border-bottom: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  details { width: 100%; }
+  summary { 
+    list-style: none; display: flex; align-items: center; justify-content: space-between; 
+    padding: 12px 0; cursor: pointer; transition: background 0.1s; outline: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { background-color: #faf9f8; }
+
+  .vj-left { display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1; }
+  
+  /* Icons */
+  .vj-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .vj-icon.new { background: #dbeafe; color: #1d4ed8; }
+  .vj-icon.old { background: #f3f4f6; color: #6b7280; }
+  .vj-icon svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+
+  .vj-main { min-width: 0; flex: 1; }
+  .vj-meta-top { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .vj-date { font-size: 11px; font-weight: 600; color: #605e5c; min-width: 60px; }
+  .vj-title { font-size: 14px; font-weight: 600; color: #0078d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vj-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #1e40af; background: #dbeafe; padding: 1px 6px; border-radius: 4px; }
+
+  .vj-action { color: #a19f9d; margin-left: 8px; display: flex; align-items: center; font-size: 11px; font-weight: 600; gap:4px; }
+  .vj-chevron { width: 16px; height: 16px; transition: transform 0.2s; }
+  details[open] .vj-chevron { transform: rotate(180deg); }
+
+  .vj-content { padding: 0 16px 16px 56px; background: #faf9f8; font-size: 13px; color: #201f1e; line-height: 1.5; }
+  .vj-sub-meta { display: flex; gap: 16px; font-size: 11px; color: #605e5c; margin-top: 8px; align-items: center; }
+  .vj-sub-icon { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; margin-right: 4px; }
+</style>
+
+<div class="vj-wrapper">
+  <input type="radio" name="vj-filter" id="filter-all" checked>
+  <input type="radio" name="vj-filter" id="filter-med">
+  <input type="radio" name="vj-filter" id="filter-ben">
+  <input type="radio" name="vj-filter" id="filter-nophone">
+
+  <div class="vj-filters">
+    <label class="vj-lbl" for="filter-all">All Activity</label>
+    <label class="vj-lbl" for="filter-nophone">Hide Phone Calls</label>
+    <label class="vj-lbl" for="filter-med">Medical</label>
+    <label class="vj-lbl" for="filter-ben">Benefits</label>
+  </div>
+
+  <div class="vj-list">
+    <div class="vj-item cat-phone">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon new">
+              <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 16</span><span class="vj-badge">New</span></div>
+              <div class="vj-title">Incoming Call - Ted Bailey</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Tier 1 then moved to Tier 3 Vethome. Discussed PACT Act eligibility status update.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 11:20 AM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-other">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon new">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 16</span><span class="vj-badge">New</span></div>
+              <div class="vj-title">VSignals Survey Response</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Submission Received - Patient Feedback regarding recent interaction.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 09:45 AM</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-med">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 14</span></div>
+              <div class="vj-title">Medical Center Visit</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Walter Reed National Military Medical Center - Cardiology Dept</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 02:30 PM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-med">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 10</span></div>
+              <div class="vj-title">Prescription Renewal</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Lisinopril 10mg - 90 Day Supply. Status: Shipped.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 11:15 AM</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-med">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 08</span></div>
+              <div class="vj-title">Lab Results (CMP)</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Comprehensive Metabolic Panel (CMP). Results available in MyHealtheVet.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 04:20 PM</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-ben">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Dec 05</span></div>
+              <div class="vj-title">VA Home Loan COE</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Certificate of Eligibility Issued - Automated Determination.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 10:00 AM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-ben">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Nov 28</span></div>
+              <div class="vj-title">Claim Decision Letter</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Disability Compensation - Decision Notification Ready.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 02:15 PM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-med">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><path d="M4.8 2.3A.3.3 0 0 1 5 2h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1c-2.9 0-5.6 1.3-7.5 3.6"/><path d="M11.5 8.6a9 9 0 1 0 1 11.4"/><path d="m5 2 2 2"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Nov 15</span></div>
+              <div class="vj-title">Immunization (Flu Shot)</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Influenza Vaccine (Flu Shot) - Walk-in Clinic.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 10:30 AM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="vj-item cat-med">
+      <details>
+        <summary>
+          <div class="vj-left">
+            <div class="vj-icon old">
+              <svg viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div class="vj-main">
+              <div class="vj-meta-top"><span class="vj-date">Nov 10</span></div>
+              <div class="vj-title">Secure Message</div>
+            </div>
+          </div>
+          <div class="vj-action"><span>Details</span><svg class="vj-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </summary>
+        <div class="vj-content">
+          <div>Reply from Dr. Smith - Dermatology Team regarding skin condition.</div>
+          <div class="vj-sub-meta">
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 09:00 AM</span>
+             <span><svg class="vj-sub-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private Record</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+  </div>
+</div>

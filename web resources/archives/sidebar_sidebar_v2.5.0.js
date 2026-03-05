@@ -1,7 +1,7 @@
 /*
 =============================================================================
-COMPONENT:    sidebar_sidebar
-FILE:         web resources\sidebar_sidebar.js
+COMPONENT:    sidebar_sidebar_v2.5.0
+FILE:         web resources\archives\sidebar_sidebar_v2.5.0.js
 VERSION:      1.0.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-04

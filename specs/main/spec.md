@@ -24,15 +24,48 @@ Admins create or update a `sidebar_genericsidebar` record to control title, inst
 
 ### User Story 2 — User Switches Panels and Toggles Zoom (Priority: P2)
 
-Users switch among up to four configured panels via tabs. For phone or Genesys embeds, the user can toggle zoom to fit the content.
+Users switch among up to four configured panels via tabs. For phone or Genesys embeds, the user can toggle zoom to fit the content. **Chat state and other iframe content is preserved when switching tabs.**
 
 **Why this priority**: Improves usability and supports varied embed types; secondary to core rendering.
 
-**Independent Test**: Configure two panels with different embeds; verify tab switching and zoom toggle behavior.
+**Independent Test**: Configure two panels with different embeds; verify tab switching and zoom toggle behavior. Verify chat messages persist when switching away and back.
 
 **Acceptance Scenarios**:
 1. Given 2+ panels have embed content, When tabs are clicked, Then the active panel contents and instructions update accordingly.
 2. Given a panel title includes "phone" or "genesys", When the zoom toggle is clicked, Then `force-zoom` applies and resets on second click.
+3. Given a chat conversation is in progress in panel 1, When the user switches to panel 2 and back to panel 1, Then the chat messages are still visible.
+
+---
+
+### User Story 2a — Sidebar Persists Across Record Navigation (Priority: P2)
+
+When navigating between records in D365 (e.g., moving from one case to another), the sidebar should remain open with its embedded content intact. The chat window and other iframe content should not reload unless the configuration changes.
+
+**Why this priority**: Agents frequently navigate between records; losing chat context forces re-engagement with Copilot, wasting time.
+
+**Independent Test**: Open a case with sidebar → Start a chat conversation → Navigate to another case → Verify sidebar content is preserved.
+
+**Acceptance Scenarios**:
+1. Given the sidebar is open with chat in progress, When the user navigates to a different case record, Then the sidebar remains visible without reloading.
+2. Given the same configuration is used across entities, When `openSidebar` is called multiple times, Then the pane brings to front without calling `navigate()` again.
+3. Given the user closes the sidebar and reopens it, When the pane is recreated, Then the content loads fresh (tracking is reset).
+
+---
+
+### User Story 2b — Pop-out Window for External Pane Switches (Priority: P2)
+
+When the D365 platform switches to an OOB sidecar (e.g., Copilot Studio, Smart Assist), our custom sidebar pane is unloaded. Users can "pop out" the embedded content to a separate window to preserve their chat session across these platform pane switches.
+
+**Why this priority**: Platform limitation cannot be bypassed; pop-out provides a workaround that preserves user context during OOB pane activations.
+
+**Independent Test**: Open sidebar → Start chat → Click pop-out button → D365 opens OOB pane → Verify chat continues in pop-out window → Click "Bring to Front" in sidebar placeholder.
+
+**Acceptance Scenarios**:
+1. Given a URL or HTML-with-iframe panel is active, When the pop-out button is clicked, Then a new window opens at the right edge of the screen (split-screen ready).
+2. Given content is popped out, When the sidebar placeholder is visible, Then "Bring to Front" and "Restore Here" buttons are displayed.
+3. Given the user clicks "Bring to Front", When the pop-out window exists, Then it receives focus; if closed, the embedded iframe restores automatically.
+4. Given the user clicks "Restore Here", When the pop-out window is open, Then it closes and the embedded iframe reappears in the sidebar.
+5. Given the user closes the pop-out window externally, When the sidebar detects closure (polling), Then the embedded iframe restores automatically.
 
 ---
 
@@ -76,10 +109,25 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-014**: Public site styling MAY use external design libraries; sidebar runtime MUST avoid external dependencies to maintain reliability and predictable behavior.
 - **FR-015**: The zoom toggle MUST appear only when embedded content benefits from zoom (e.g., externally hosted pages), not for inline HTML or platform-hosted resources.
 - **FR-016**: The pane MUST set title from `sidebar_title` and bring to front when opened.
+- **FR-017**: Tab switching MUST hide/show iframes (not destroy/recreate) to preserve embedded content state including chat conversations.
+- **FR-018**: When `openSidebar` is called and the pane already displays the same `configId`, the system MUST skip `navigate()` to preserve iframe content.
+- **FR-019**: The system MUST track the loaded `configId` on `window` object to persist across form navigations within the same browser session.
+- **FR-020**: When the sidebar pane is closed and recreated, the tracking state MUST reset and content MUST reload normally.
+- **FR-021**: URL and HTML-with-iframe panels MUST display a pop-out button allowing the user to open content in a separate window.
+- **FR-022**: The pop-out window MUST use a named window (`SidebarPopout`) to prevent duplicate windows and enable focus management.
+- **FR-023**: The pop-out window MUST be positioned at the right edge of the screen for easy split-screen snapping.
+- **FR-024**: When content is popped out, the sidebar MUST display a placeholder with "Bring to Front" and "Restore Here" buttons.
+- **FR-025**: The sidebar MUST auto-detect when the pop-out window is closed externally and restore the embedded iframe.
+- **FR-026**: HTML content containing `<iframe src="...">` MUST have the URL extracted via regex for pop-out capability.
+- **FR-030**: Non-zoomed iframes MUST display with subtle visual framing (margin, border, border-radius) for visual separation.
+- **FR-031**: Zoomed iframes (Genesys/phone) MUST NOT have visual framing; zoom CSS MUST override framing styles.
+- **FR-032**: Raw HTML embeds (no iframe) MUST have `ensureFullHeightHtml()` applied for proper scrolling.
+- **FR-033**: Iframe widget embeds (Copilot, Canvas Apps) MUST NOT have `ensureFullHeightHtml()` applied; widgets control their own layout.
+- **FR-034**: Auto-zoom MUST be triggered by title keywords ("phone", "genesys") regardless of embed type.
 
-- **FR-017**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
-- **FR-018**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
-- **FR-019**: Admin-only banner visibility rules [NEEDS CLARIFICATION: which roles or security groups control visibility?].
+- **FR-027**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
+- **FR-028**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
+- **FR-029**: Admin-only banner visibility rules [NEEDS CLARIFICATION: which roles or security groups control visibility?].
 
 ### Key Entities
 
@@ -104,6 +152,15 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - Browser baseline is Microsoft Edge (Chromium) for D365; modern evergreen browsers for public site.
 
 ## Clarifications
+
+### Session 2026-02-19 (Visual Framing & Generic Embeds)
+- Q: Veteran Journey content butts against edges, Copilot not top-justified → A: Added visual framing (4px margin, border) for all non-zoomed iframes. Separated embed handling: raw HTML gets full-height styling, iframe widgets render natively. (FR-030 through FR-034)
+
+### Session 2026-02-19 (Pop-out Feature)
+- Q: OOB sidecars cause sidebar to unload, losing chat state → A: Implemented pop-out window with named window, split-screen positioning, "Bring to Front" / "Restore Here" buttons, and auto-restore on external close. (FR-021 through FR-026)
+
+### Session 2026-02-19
+- Q: Chat resets when switching tabs or navigating records → A: Implemented iframe preservation (hide/show vs destroy/recreate) and configId tracking to skip navigate when same config is already loaded. (FR-017 through FR-020)
 
 ### Session 2026-02-17
 - Q: Define performance targets for pane open and site interactions → A: Pane p50 ≤ 2s, p95 ≤ 4s; Site p50 ≤ 1s, p95 ≤ 2s.

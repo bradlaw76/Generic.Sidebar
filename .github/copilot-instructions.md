@@ -14,6 +14,12 @@ This project is governed by the SpeckKit registry.
 When creating or modifying component files, ALWAYS apply the component header
 comment block. Do NOT skip unless the user explicitly says to omit comments.
 
+### Standards
+
+| Standard | Default | Source |
+|----------|---------|--------|
+| Component Header Block | Auto-apply | [Template](https://raw.githubusercontent.com/bradlaw76/SpeckKit-Project-Development/main/code-standards/comments/component-header-block.md) |
+
 **Template:** https://raw.githubusercontent.com/bradlaw76/SpeckKit-Project-Development/main/code-standards/comments/component-header-block.md
 **Catalog:** https://raw.githubusercontent.com/bradlaw76/SpeckKit-Project-Development/main/code-standards/CODE_STANDARDS_CATALOG.json.md
 
