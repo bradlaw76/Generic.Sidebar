@@ -10,7 +10,7 @@
 
 - [ ] Spec reviewed and approved
 - [x] Sidebar core requirements implemented
-- [x] Android Cell Phone Simulator implemented (v2.4.0)
+- [x] Android Cell Phone Simulator implemented (v2.5.0)
 - [x] Dataverse schema deployed (GenericSoftphone v1.0.0.11)
 - [ ] All requirements implemented
 - [ ] Test acceptance criteria met
@@ -31,3 +31,11 @@
 - Camera screen with live webcam viewfinder (getUserMedia), shutter flash, front/rear flip, graceful fallback
 - Comprehensive DOCUMENTATION.md created at `Generic.AndroidCellPhone/DOCUMENTATION.md`
 - All spec files updated to reflect v2.4.0 features
+
+### 2026-03-06 — v2.5.0 Settings Screen & Standalone Profile Editing
+- AndroidCellPhone.html upgraded to v2.5.0 (prior version archived as AndroidCellPhone_v2.4.0.html)
+- Replaced Demo Control Panel overlay with full Settings screen (accessible via gear icon or Ctrl+Shift+D)
+- Standalone profile & transcript editing: add, edit, delete profiles with localStorage persistence
+- D365 mode: profile list is read-only (managed in Dataverse)
+- Removed call control buttons (Start Call, End Call, Skip Transcript) from settings
+- All spec files updated to reflect v2.5.0 features

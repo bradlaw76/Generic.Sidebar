@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.5.0
+VERSION:      2.4.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-06
+LAST UPDATED: 2026-03-05
 ENVIRONMENT:  HTML | Vanilla JavaScript
 
 -----------------------------------------------------------------------------
@@ -34,16 +34,10 @@ LOCK -> HOME -> PHONE_APP -> CONTACTS -> CALLING -> IN_CALL -> ENDED -> HOME
 HOME -> INCOMING -> IN_CALL -> ENDED -> HOME  (incoming call path)
 HOME -> BROWSER -> HOME  (embedded browser via Chrome icon)
 HOME -> CAMERA -> HOME  (live webcam viewfinder via Camera icon)
-HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-2.5.0  Redesigned Demo Panel → Settings screen. Standalone-only profile &
-       transcript editing. Removed call-control buttons from settings.
-       Added inline profile editor with transcript textarea. D365 mode
-       shows read-only profile list. Standalone profiles persist to
-       localStorage (genericSimProfiles). Settings icon on home grid.
 2.4.0  Lock Screen with swipe-to-unlock, Camera screen with live webcam
        (getUserMedia), graceful fallback viewfinder, shutter flash
 2.3.0  Simplified browser: removed shortcut grid & tab bar, fixed toolbar
@@ -56,7 +50,7 @@ CHANGELOG
 -----------------------------------------------------------------------------
 KEYBOARD SHORTCUTS
 -----------------------------------------------------------------------------
-CTRL+SHIFT+D    Open/close settings screen
+CTRL+SHIFT+D    Open/close demo control panel
 =============================================================================
 -->
 <!DOCTYPE html>
@@ -373,109 +367,49 @@ html,body{
 .ctrl-end .ctrl-btn-icon svg{color:#fff;}
 .ctrl-end .ctrl-btn-lbl{color:var(--rd);}
 
-/* ---- SETTINGS SCREEN ---- */
-#scr-settings{background:var(--bg);display:flex;flex-direction:column;}
-.settings-header{padding:52px 20px 0;display:flex;align-items:center;gap:12px;}
-.settings-header-title{font-family:var(--fd);font-weight:300;font-size:26px;color:var(--tx);flex:1;}
-.settings-mode-badge{
-  font-family:var(--fu);font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
-  padding:4px 10px;border-radius:8px;
+/* ---- DEMO PANEL ---- */
+.demo-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  z-index:200;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+  border-radius:44px;overflow:hidden;
 }
-.settings-mode-badge.standalone{background:rgba(255,159,10,0.15);color:var(--or);border:1px solid rgba(255,159,10,0.25);}
-.settings-mode-badge.d365{background:rgba(66,133,244,0.15);color:var(--ac);border:1px solid rgba(66,133,244,0.25);}
-.settings-scroll{flex:1;overflow-y:auto;padding:16px 0 32px;}
-.settings-section{padding:0 20px;margin-bottom:20px;}
-.settings-section-title{
-  font-family:var(--fu);font-size:11px;font-weight:600;color:var(--t3);
-  text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;padding:0 2px;
+.demo-overlay.open{opacity:1;pointer-events:all;}
+.demo-sheet{
+  background:var(--s1);border-radius:20px 20px 0 0;width:100%;
+  padding:16px 20px 32px;
+  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  border-top:1px solid rgba(255,255,255,0.08);
 }
-.settings-card{background:var(--s1);border-radius:14px;overflow:hidden;border:1px solid var(--sep);}
-.settings-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:13px 16px;border-bottom:1px solid var(--sep);
-}
-.settings-row:last-child{border-bottom:none;}
-.settings-row-label{font-family:var(--fu);font-size:14px;color:var(--tx);flex:1;}
-.settings-row-value{font-family:var(--fu);font-size:13px;color:var(--t2);max-width:55%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.settings-row-hint{font-family:var(--fu);font-size:11px;color:var(--t3);padding:6px 16px 10px;line-height:1.4;}
-.settings-input{
+.demo-overlay.open .demo-sheet{transform:translateY(0);}
+.demo-handle{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px;}
+.demo-title{font-family:var(--fd);font-weight:400;font-size:18px;color:var(--tx);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.demo-close{width:28px;height:28px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--t2);}
+.demo-section{margin-bottom:14px;}
+.demo-lbl{font-family:var(--fu);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.demo-select{
   width:100%;background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;
-  padding:10px 14px;font-family:var(--fu);font-size:13px;color:var(--tx);outline:none;
+  padding:10px 14px;font-family:var(--fu);font-size:14px;color:var(--tx);outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
 }
-.settings-input:focus{border-color:var(--ac);}
-.settings-input::placeholder{color:var(--t3);}
-.settings-textarea{
-  width:100%;min-height:100px;max-height:200px;resize:vertical;
-  background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;
-  padding:10px 14px;font-family:var(--fu);font-size:12px;color:var(--tx);outline:none;
-  line-height:1.5;
-}
-.settings-textarea:focus{border-color:var(--ac);}
-.settings-textarea::placeholder{color:var(--t3);}
-.settings-d365-notice{
-  display:flex;align-items:center;gap:10px;padding:12px 16px;
-  background:rgba(66,133,244,0.08);border-radius:12px;margin:0 20px 16px;
-  border:1px solid rgba(66,133,244,0.15);
-}
-.settings-d365-notice-icon{font-size:20px;flex-shrink:0;}
-.settings-d365-notice-text{font-family:var(--fu);font-size:12px;color:var(--t2);line-height:1.4;}
-
-/* Profile list in settings */
-.settings-profile-item{
-  display:flex;align-items:center;gap:12px;padding:12px 16px;
-  border-bottom:1px solid var(--sep);cursor:pointer;transition:background 0.15s;
-}
-.settings-profile-item:last-child{border-bottom:none;}
-.settings-profile-item:active{background:var(--s2);}
-.settings-profile-item.selected{background:rgba(66,133,244,0.1);}
-.settings-profile-dot{width:8px;height:8px;border-radius:50%;background:var(--s3);flex-shrink:0;}
-.settings-profile-item.selected .settings-profile-dot{background:var(--ac);}
-.settings-profile-name{font-family:var(--fu);font-size:14px;color:var(--tx);flex:1;}
-.settings-profile-queue{font-family:var(--fu);font-size:11px;color:var(--t3);}
-.settings-profile-edit{
-  width:28px;height:28px;border-radius:50%;background:var(--s2);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
-  font-size:12px;color:var(--t2);transition:background 0.15s;
-}
-.settings-profile-edit:active{background:var(--s3);}
-.settings-profile-add{
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:12px 16px;cursor:pointer;transition:background 0.15s;
-  border-top:1px solid var(--sep);
-}
-.settings-profile-add:active{background:var(--s2);}
-.settings-profile-add-icon{font-size:16px;color:var(--ac);}
-.settings-profile-add-label{font-family:var(--fu);font-size:13px;color:var(--ac);font-weight:500;}
-
-/* Profile editor section (inline expand) */
-.settings-editor{display:none;padding:0 20px 16px;}
-.settings-editor.open{display:block;}
-.settings-editor-card{background:var(--s1);border-radius:14px;padding:16px;border:1px solid rgba(66,133,244,0.2);}
-.settings-editor-title{
-  font-family:var(--fu);font-size:13px;font-weight:600;color:var(--ac);margin-bottom:12px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.settings-editor-close{font-size:14px;color:var(--t3);cursor:pointer;padding:2px 6px;}
-.settings-editor-field{margin-bottom:12px;}
-.settings-editor-field:last-child{margin-bottom:0;}
-.settings-editor-label{font-family:var(--fu);font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
-.settings-editor-actions{display:flex;gap:8px;margin-top:14px;}
-.settings-editor-btn{
-  flex:1;padding:10px;border-radius:10px;font-family:var(--fu);font-size:13px;font-weight:500;
-  text-align:center;cursor:pointer;border:none;transition:transform 0.1s;
-}
-.settings-editor-btn:active{transform:scale(0.96);}
-.settings-editor-btn-save{background:var(--ac);color:#fff;}
-.settings-editor-btn-delete{background:rgba(255,69,58,0.15);color:var(--rd);}
-.settings-editor-btn-cancel{background:var(--s3);color:var(--tx);}
+.demo-select option{background:#1c1c1e;color:#fff;}
+.demo-row{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-radius:10px;padding:10px 14px;margin-bottom:8px;}
+.demo-row-lbl{font-family:var(--fu);font-size:14px;color:var(--tx);}
+.demo-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.demo-btn{flex:1;min-width:80px;padding:10px 8px;border-radius:10px;font-family:var(--fu);font-size:13px;font-weight:500;text-align:center;cursor:pointer;border:none;transition:transform 0.1s,opacity 0.1s;}
+.demo-btn:active{transform:scale(0.96);opacity:0.85;}
+.demo-btn-call{background:var(--gn);color:#000;}
+.demo-btn-end {background:var(--rd);color:#fff;}
+.demo-btn-skip{background:var(--s3);color:var(--tx);}
 
 /* ---- Nav indicator ---- */
 .nav-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);z-index:90;}
 
 /* ---- Scrollbars ---- */
-.transcript-panel::-webkit-scrollbar,.con-list::-webkit-scrollbar,.tab-content::-webkit-scrollbar,.settings-scroll::-webkit-scrollbar{width:3px;}
-.transcript-panel::-webkit-scrollbar-track,.con-list::-webkit-scrollbar-track,.tab-content::-webkit-scrollbar-track,.settings-scroll::-webkit-scrollbar-track{background:transparent;}
-.transcript-panel::-webkit-scrollbar-thumb,.con-list::-webkit-scrollbar-thumb,.tab-content::-webkit-scrollbar-thumb,.settings-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px;}
+.transcript-panel::-webkit-scrollbar,.con-list::-webkit-scrollbar,.tab-content::-webkit-scrollbar{width:3px;}
+.transcript-panel::-webkit-scrollbar-track,.con-list::-webkit-scrollbar-track,.tab-content::-webkit-scrollbar-track{background:transparent;}
+.transcript-panel::-webkit-scrollbar-thumb,.con-list::-webkit-scrollbar-thumb,.tab-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px;}
 
 /* ---- INCOMING SCREEN ---- */
 #scr-incoming{
@@ -522,6 +456,12 @@ html,body{
 #scr-browser .browser-open-ext{background:#4285f4;color:#fff;border:none;border-radius:20px;padding:10px 24px;font-family:var(--fu);font-size:13px;font-weight:500;cursor:pointer;transition:transform 0.1s;}
 #scr-browser .browser-open-ext:active{transform:scale(0.95);}
 @keyframes browser-load{0%{width:0;}50%{width:70%;}100%{width:100%;opacity:0;}}
+
+/* ---- Demo panel URL input ---- */
+.demo-url-input{width:100%;background:var(--s2);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-family:var(--fu);font-size:13px;color:var(--tx);outline:none;}
+.demo-url-input::placeholder{color:var(--t3);}
+.demo-url-input:focus{border-color:var(--ac);}
+.demo-url-hint{font-family:var(--fu);font-size:10px;color:var(--t3);margin-top:4px;opacity:0.7;}
 
 /* ---- Lock Screen ---- */
 #scr-lock{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:relative;overflow:hidden;}
@@ -795,6 +735,7 @@ html,body{
         </div>
       </div>
 
+
       <!-- INCOMING SCREEN -->
       <div class="screen" id="scr-incoming">
         <div class="incoming-label">Incoming Call</div>
@@ -834,7 +775,7 @@ html,body{
         <div class="browser-content">
           <div class="browser-newtab" id="browserNewTab">
             <div class="browser-newtab-logo">&#127760;</div>
-            <div class="browser-newtab-hint">Type a URL above or set one in<br>Settings (Ctrl+Shift+D)</div>
+            <div class="browser-newtab-hint">Type a URL above or set one in<br>Demo Panel (Ctrl+Shift+D)</div>
           </div>
           <iframe class="browser-iframe" id="browserFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
           <div class="browser-blocked" id="browserBlocked">
@@ -868,112 +809,47 @@ html,body{
         </div>
       </div>
 
-      <!-- SETTINGS SCREEN -->
-      <div class="screen" id="scr-settings">
-        <div class="settings-header">
-          <div class="back-btn" onclick="goHome()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </div>
-          <div class="settings-header-title">Settings</div>
-          <div class="settings-mode-badge" id="settingsModeBadge">Standalone</div>
+    </div><!-- /screens-wrap -->
+
+    <!-- DEMO CONTROL PANEL -->
+    <div class="demo-overlay" id="demoOverlay">
+      <div class="demo-sheet">
+        <div class="demo-handle"></div>
+        <div class="demo-title">
+          Demo Control Panel
+          <div class="demo-close" onclick="clsD()">&#x2715;</div>
         </div>
-        <div class="settings-scroll" id="settingsScroll">
-          <!-- D365 notice (hidden in standalone) -->
-          <div class="settings-d365-notice" id="settingsD365Notice" style="display:none;margin-top:16px;">
-            <div class="settings-d365-notice-icon">&#9729;&#65039;</div>
-            <div class="settings-d365-notice-text">Connected to Dataverse. Profiles and transcripts are managed in D365. Browser URL and transcript toggle can still be configured here.</div>
+        <div class="demo-section">
+          <div class="demo-lbl">Demo Profile</div>
+          <select class="demo-select" id="demoProfileSel" onchange="applyProfile(this.value)">
+            <option value="">&#8212; Select profile &#8212;</option>
+          </select>
+        </div>
+        <div class="demo-section">
+          <div class="demo-row">
+            <div class="demo-row-lbl">Transcript</div>
+            <label class="toggle-sw">
+              <input type="checkbox" id="dpTrToggle" onchange="S.trOn=this.checked;syncToggles()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
           </div>
-
-          <!-- General section -->
-          <div class="settings-section" style="margin-top:16px;">
-            <div class="settings-section-title">General</div>
-            <div class="settings-card">
-              <div class="settings-row">
-                <div class="settings-row-label">Transcript</div>
-                <label class="toggle-sw">
-                  <input type="checkbox" id="settingsTrToggle" onchange="S.trOn=this.checked;syncToggles()">
-                  <div class="toggle-track"></div>
-                  <div class="toggle-thumb"></div>
-                </label>
-              </div>
-              <div class="settings-row">
-                <div class="settings-row-label">Browser URL</div>
-              </div>
-              <div style="padding:0 16px 12px;">
-                <input class="settings-input" id="settingsBrowserUrl" type="text" placeholder="https://example.com" onchange="setBrowserUrl(this.value)">
-              </div>
-              <div class="settings-row-hint">Set a default URL for the Chrome icon. Leave blank for DuckDuckGo search.</div>
-            </div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Browser URL</div>
+          <input class="demo-url-input" id="demoBrowserUrl" type="text" placeholder="https://example.com" onchange="setBrowserUrl(this.value)">
+          <div class="demo-url-hint">Set a URL for the Chrome icon. Leave blank for DuckDuckGo search.</div>
+        </div>
+        <div class="demo-section">
+          <div class="demo-lbl">Actions</div>
+          <div class="demo-actions">
+            <div class="demo-btn demo-btn-call" onclick="demoStartCall()">&#9654; Start Call</div>
+            <div class="demo-btn demo-btn-end"  onclick="endCall()">&#9646; End Call</div>
+            <div class="demo-btn demo-btn-skip" onclick="skipTr()">&#9197; Skip Transcript</div>
           </div>
-
-          <!-- Active Profile section -->
-          <div class="settings-section">
-            <div class="settings-section-title">Active Profile</div>
-            <div class="settings-card" id="settingsActiveProfile">
-              <div class="settings-row">
-                <div class="settings-row-label" style="color:var(--t3);font-style:italic;">No profile selected</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Profiles section -->
-          <div class="settings-section">
-            <div class="settings-section-title" id="settingsProfilesTitle">Demo Profiles</div>
-            <div class="settings-card" id="settingsProfileList">
-              <!-- Populated dynamically -->
-            </div>
-          </div>
-
-          <!-- Profile Editor (inline, expands below profiles) -->
-          <div class="settings-editor" id="settingsEditor">
-            <div class="settings-editor-card">
-              <div class="settings-editor-title">
-                <span id="settingsEditorTitle">Edit Profile</span>
-                <div class="settings-editor-close" onclick="closeProfileEditor()">&#x2715;</div>
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Profile Name</div>
-                <input class="settings-input" id="editorName" type="text" placeholder="e.g. FDA Safety Recall">
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Contact Name</div>
-                <input class="settings-input" id="editorContact" type="text" placeholder="e.g. Sarah Johnson">
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Queue Name</div>
-                <input class="settings-input" id="editorQueue" type="text" placeholder="e.g. Support">
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Default Case Title</div>
-                <input class="settings-input" id="editorCaseTitle" type="text" placeholder="e.g. Customer Inquiry">
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Transcript Enabled</div>
-                <label class="toggle-sw" style="margin-top:4px;">
-                  <input type="checkbox" id="editorTrEnabled" checked>
-                  <div class="toggle-track"></div>
-                  <div class="toggle-thumb"></div>
-                </label>
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Playback Interval (seconds)</div>
-                <input class="settings-input" id="editorInterval" type="number" min="1" max="30" value="3" style="width:80px;">
-              </div>
-              <div class="settings-editor-field">
-                <div class="settings-editor-label">Transcript Text</div>
-                <textarea class="settings-textarea" id="editorTranscript" placeholder="Customer: Hello, I need help...&#10;&#10;Agent: Of course, let me look into that."></textarea>
-              </div>
-              <div class="settings-editor-actions" id="editorActions">
-                <div class="settings-editor-btn settings-editor-btn-save" onclick="saveProfile()">Save</div>
-                <div class="settings-editor-btn settings-editor-btn-cancel" onclick="closeProfileEditor()">Cancel</div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
-
-    </div><!-- /screens-wrap -->
+    </div>
 
     <div class="nav-bar"></div>
   </div><!-- /screen-glass -->
@@ -984,7 +860,6 @@ html,body{
 'use strict';
 
 var STORAGE_KEY = 'genericSimCall';
-var PROFILES_STORAGE_KEY = 'genericSimProfiles';
 
 /* ---- Fallback data (standalone mode) ---- */
 var FALLBACK_CONFIG = {
@@ -993,7 +868,7 @@ var FALLBACK_CONFIG = {
   muteRingtone:false,
   popMode:null, defaultCaseTitle:'Customer Inquiry',
   transcriptEnabled:true,
-  transcriptText:'Customer: Hi, I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: I\'m sorry to hear that. Let me pull up your account and take a look.\n\nCustomer: Sure, my member ID is HCB-449821.\n\nAgent: Thank you. I can see the $1,200 charge is your annual deductible portion for this plan year.\n\nCustomer: Oh, I didn\'t realize I hadn\'t met my deductible yet. Is there anything I can do?\n\nAgent: Absolutely. You can set up a payment plan directly with the hospital. And once your deductible is met, your coinsurance kicks in \u2014 you\'ll only pay 20% going forward.\n\nCustomer: That\'s helpful, thank you.\n\nAgent: You\'re welcome. Is there anything else I can help with today?',
+  transcriptText:'Customer: Hi, I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: I\'m sorry to hear that. Let me pull up your account and take a look.\n\nCustomer: Sure, my member ID is HCB-449821.\n\nAgent: Thank you. I can see the $1,200 charge is your annual deductible portion for this plan year.\n\nCustomer: Oh, I didn\'t realize I hadn\'t met my deductible yet. Is there anything I can do?\n\nAgent: Absolutely. You can set up a payment plan directly with the hospital. And once your deductible is met, your coinsurance kicks in — you\'ll only pay 20% going forward.\n\nCustomer: That\'s helpful, thank you.\n\nAgent: You\'re welcome. Is there anything else I can help with today?',
   transcriptIntervalSeconds:3,
   wallpaperUrl:'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=400&h=800&fit=crop&q=80'
 };
@@ -1039,8 +914,7 @@ var S = {
   scr:'home', prev:null, con:null, cfg:null, dp:null,
   trOn:true, active:false, muted:false, spk:false,
   trLines:[], trIdx:0, trTimer:null, callTimer:null, connectTimer:null,
-  ringAudio:null, contacts:[], profiles:[],
-  editIdx:-1 /* -1=new, >=0 = editing existing profile */
+  ringAudio:null, contacts:[], profiles:[]
 };
 
 /* ---- Xrm detection ---- */
@@ -1081,6 +955,7 @@ function updC() {
   if(cl) cl.textContent=t;
   var de=document.getElementById('homeDate');
   if(de) de.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
+  /* Lock screen clock */
   var lt=document.getElementById('lockTime'), ld=document.getElementById('lockDate');
   if(lt) lt.textContent=t;
   if(ld) ld.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
@@ -1105,11 +980,11 @@ function lockPhone() {
   _phoneLocked=true;
   if(S.scr==='camera') stopCameraStream();
   if(S.scr==='browser') resetBrowser();
-  if(S.scr==='settings') closeProfileEditor();
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev','unlocking'); });
   var lock=document.getElementById('scr-lock'); if(lock) lock.classList.add('active');
   S.scr='lock';
   updC();
+  /* Re-apply lock wallpaper */
   var wp=document.getElementById('lockWallpaper');
   var hwp=document.getElementById('homeWallpaper');
   if(wp && hwp) wp.style.backgroundImage=hwp.style.backgroundImage;
@@ -1135,23 +1010,19 @@ function goHome() {
   var h=document.getElementById('scr-home'); if(h) h.classList.add('active');
   if(S.scr==='browser') resetBrowser();
   if(S.scr==='camera') stopCameraStream();
-  if(S.scr==='settings') closeProfileEditor();
   S.scr='home';
 }
 function goPhone() { navTo('phone'); }
-function goSettings() {
-  renderSettingsScreen();
-  navTo('settings');
-}
-window.goHome=goHome; window.goPhone=goPhone; window.goSettings=goSettings; window.navTo=navTo;
+window.goHome=goHome; window.goPhone=goPhone; window.navTo=navTo;
 
 /* ---- Browser ---- */
 var _browserCurrentUrl='';
-var _browserConfigUrl='';
+var _browserConfigUrl=''; /* set via Demo Panel */
 function goBrowser() {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
   var b=document.getElementById('scr-browser'); if(b) b.classList.add('active');
   S.scr='browser';
+  /* Auto-load configured URL if set and iframe is currently empty */
   if(_browserConfigUrl && !_browserCurrentUrl) {
     loadBrowserUrl(_browserConfigUrl);
   }
@@ -1159,6 +1030,7 @@ function goBrowser() {
 function loadBrowserUrl(v) {
   if(!v) return;
   var url=v.trim();
+  // Smart detect: if it looks like a URL, use it; otherwise search DuckDuckGo (iframe-friendly)
   if(!/^https?:\/\//i.test(url)) {
     if(/^www\./i.test(url)) { url='https://'+url; }
     else if(/\.[a-z]{2,}$/i.test(url) && url.indexOf(' ')===-1) { url='https://'+url; }
@@ -1175,6 +1047,7 @@ function loadBrowserUrl(v) {
   if(blocked) blocked.style.display='none';
   if(frame){ frame.style.display='block'; frame.src=url; }
   if(loading){ loading.style.display='block'; }
+  /* Listen for load completion */
   if(frame){
     frame.onload=function(){ if(loading) loading.style.display='none'; };
     frame.onerror=function(){ if(loading) loading.style.display='none'; showBrowserBlocked(url); };
@@ -1194,8 +1067,6 @@ function openBrowserExternal() {
 }
 function setBrowserUrl(v) {
   _browserConfigUrl=(v||'').trim();
-  var si=document.getElementById('settingsBrowserUrl');
-  if(si && si.value!==_browserConfigUrl) si.value=_browserConfigUrl;
 }
 function resetBrowser() {
   var frame=document.getElementById('browserFrame');
@@ -1307,7 +1178,7 @@ function buildHomeApps() {
     {label:'Chrome',  cls:'ic-chrome',icon:'&#127760;',fn:'goBrowser()'},
     {label:'Camera',  cls:'ic-cam',   icon:'&#128247;',fn:'goCamera()'},
     {label:'Gallery', cls:'ic-gal',   icon:'&#128444;',fn:''},
-    {label:'Settings',cls:'ic-set',   icon:'&#9881;',  fn:'goSettings()'},
+    {label:'Settings',cls:'ic-set',   icon:'&#9881;',  fn:''},
     {label:'Microsoft',cls:'ic-folder',icon:'',fn:'',folder:true}
   ];
   var el=document.getElementById('homeApps'); if(!el) return;
@@ -1388,7 +1259,7 @@ window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
 
 /* ---- Call flow ---- */
 function doCall(c) {
-  S.con=c; S.active=false;
+  S.con=c; S.active=false; clsD();
   var nEl=document.getElementById('callingName'), nuEl=document.getElementById('callingNumber'), avEl=document.getElementById('callingAvatar');
   if(nEl) nEl.textContent=c.fullname||'Unknown';
   if(nuEl) nuEl.textContent=c.telephone1||'';
@@ -1402,6 +1273,9 @@ function startRing() {
   stopRing();
   var url=(S.cfg&&S.cfg.ringtoneUrl)||'';
   if(url){ try{ S.ringAudio=new Audio(url); S.ringAudio.loop=true; S.ringAudio.play().catch(function(){}); }catch(e){} return; }
+  /* ── Synthesised ringtone (Web Audio API) ──────────────────────────
+     Classic North-American phone ring: 440 Hz + 480 Hz dual-tone,
+     2 s ON / 4 s OFF cadence.  No external files required.          */
   try{
     var ac=new (window.AudioContext||window.webkitAudioContext)();
     var gain=ac.createGain(); gain.gain.value=0.18; gain.connect(ac.destination);
@@ -1503,7 +1377,7 @@ function toggleTrPanel() {
 }
 window.toggleTrPanel=toggleTrPanel;
 function syncToggles() {
-  ['trToggle','callingTrToggle','settingsTrToggle'].forEach(function(id){ var el=document.getElementById(id); if(el) el.checked=S.trOn; });
+  ['trToggle','callingTrToggle','dpTrToggle'].forEach(function(id){ var el=document.getElementById(id); if(el) el.checked=S.trOn; });
 }
 window.syncToggles=syncToggles;
 
@@ -1517,7 +1391,7 @@ function endCall() {
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   if(tEl) tEl.textContent='00:00';
   var p=document.getElementById('transcriptPanel'); if(p) p.innerHTML='';
-  showEnded('Call Ended', dur, c);
+  clsD(); showEnded('Call Ended', dur, c);
 }
 window.endCall=endCall;
 
@@ -1573,199 +1447,40 @@ function toggleMute()    { S.muted=!S.muted;   document.getElementById('ctrlMute
 function toggleSpeaker() { S.spk=!S.spk;       document.getElementById('ctrlSpk').classList.toggle('on',S.spk); }
 window.toggleMute=toggleMute; window.toggleSpeaker=toggleSpeaker;
 
-/* =============== SETTINGS / PROFILES =============== */
-
-/* ---- Load profiles ---- */
+/* ---- Demo profiles ---- */
 function ldDP() {
-  if(!isD365){
-    /* Try localStorage first, fall back to embedded defaults */
-    if(!loadStandaloneProfiles()) S.profiles=FALLBACK_PROFILES.slice();
-    return;
-  }
+  if(!isD365){ S.profiles=FALLBACK_PROFILES; popDemoSel(); return; }
   var q='?$select=gensoft_name,gensoft_contactname,gensoft_queuename,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds&$orderby=gensoft_name asc&$top=20';
   Xrm.WebApi.retrieveMultipleRecords('gensoft_demo_profile',q)
-    .then(function(res){ S.profiles=res.entities||[]; })
-    .catch(function(){ S.profiles=FALLBACK_PROFILES.slice(); });
+    .then(function(res){ S.profiles=res.entities||[]; popDemoSel(); })
+    .catch(function(){ S.profiles=FALLBACK_PROFILES; popDemoSel(); });
 }
-
-/* ---- Apply profile (select it as active) ---- */
-var _activeProfileIdx=-1;
+function popDemoSel() {
+  var s=document.getElementById('demoProfileSel'); if(!s) return;
+  s.innerHTML='<option value="">&#8212; Select profile &#8212;</option>'+
+    S.profiles.map(function(p,i){ return '<option value="'+i+'">'+esc(p.gensoft_name||('Profile '+(i+1)))+'</option>'; }).join('');
+}
 function applyProfile(idx) {
-  if(idx===''||idx===null||idx===undefined) return;
-  idx=parseInt(idx);
-  var p=S.profiles[idx]; if(!p) return;
-  _activeProfileIdx=idx;
+  if(idx===''||idx===null) return;
+  var p=S.profiles[parseInt(idx)]; if(!p) return;
   S.dp={ qN:p.gensoft_queuename||'', ct:p.gensoft_defaultcasetitle||'', tr:p.gensoft_transcripttext||'', iv:p.gensoft_transcriptplaybackintervalseconds||3, contactName:p.gensoft_contactname||'' };
   S.trOn=p.gensoft_transcriptenabled!==false; syncToggles();
   if(S.dp.contactName){ var m=S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; }); if(m.length) S.con=m[0]; }
-  renderSettingsScreen();
 }
 window.applyProfile=applyProfile;
-
-/* ---- Render settings screen ---- */
-function renderSettingsScreen() {
-  /* Mode badge */
-  var badge=document.getElementById('settingsModeBadge');
-  if(badge){
-    badge.textContent=isD365?'Dataverse':'Standalone';
-    badge.className='settings-mode-badge '+(isD365?'d365':'standalone');
-  }
-  /* D365 notice */
-  var notice=document.getElementById('settingsD365Notice');
-  if(notice) notice.style.display=isD365?'flex':'none';
-
-  /* Sync toggles */
-  var trTog=document.getElementById('settingsTrToggle'); if(trTog) trTog.checked=S.trOn;
-  var brUrl=document.getElementById('settingsBrowserUrl'); if(brUrl) brUrl.value=_browserConfigUrl;
-
-  /* Active profile summary */
-  var apEl=document.getElementById('settingsActiveProfile');
-  if(apEl){
-    if(_activeProfileIdx>=0&&S.profiles[_activeProfileIdx]){
-      var ap=S.profiles[_activeProfileIdx];
-      apEl.innerHTML=
-        '<div class="settings-row"><div class="settings-row-label">'+esc(ap.gensoft_name||'Untitled')+'</div><div class="settings-row-value">'+esc(ap.gensoft_queuename||'')+'</div></div>'+
-        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Contact: '+esc(ap.gensoft_contactname||'\u2014')+'</div><div class="settings-row-value" style="font-size:12px;">'+esc(ap.gensoft_defaultcasetitle||'')+'</div></div>';
-    } else {
-      apEl.innerHTML='<div class="settings-row"><div class="settings-row-label" style="color:var(--t3);font-style:italic;">No profile selected \u2014 tap a profile below</div></div>';
-    }
-  }
-
-  /* Profile list */
-  renderProfileList();
-
-  /* Profiles title */
-  var pt=document.getElementById('settingsProfilesTitle');
-  if(pt) pt.textContent=isD365?'Demo Profiles (Read-Only)':'Demo Profiles';
+function demoStartCall() {
+  var c=S.con||(S.contacts.length?S.contacts[0]:{contactid:null,fullname:'Demo Contact',telephone1:'',entityimage_thumbnail:null});
+  clsD(); doCall(c);
 }
+window.demoStartCall=demoStartCall;
 
-function renderProfileList() {
-  var el=document.getElementById('settingsProfileList'); if(!el) return;
-  if(!S.profiles.length){
-    el.innerHTML='<div class="settings-row"><div class="settings-row-label" style="color:var(--t3);font-style:italic;">No profiles available</div></div>';
-    return;
-  }
-  var html=S.profiles.map(function(p,i){
-    var sel=i===_activeProfileIdx;
-    var editBtn=isD365?'':'<div class="settings-profile-edit" onclick="event.stopPropagation();openProfileEditor('+i+')" title="Edit">&#9998;</div>';
-    return '<div class="settings-profile-item'+(sel?' selected':'')+'" onclick="applyProfile('+i+')">'+
-      '<div class="settings-profile-dot"></div>'+
-      '<div class="settings-profile-name">'+esc(p.gensoft_name||'Untitled')+'</div>'+
-      '<div class="settings-profile-queue">'+esc(p.gensoft_queuename||'')+'</div>'+
-      editBtn+'</div>';
-  }).join('');
-  /* Add button (standalone only) */
-  if(!isD365){
-    html+='<div class="settings-profile-add" onclick="openProfileEditor(-1)">'+
-      '<div class="settings-profile-add-icon">&#43;</div>'+
-      '<div class="settings-profile-add-label">Add Profile</div></div>';
-  }
-  el.innerHTML=html;
-}
-
-/* ---- Profile Editor ---- */
-function openProfileEditor(idx) {
-  S.editIdx=idx;
-  var ed=document.getElementById('settingsEditor');
-  var title=document.getElementById('settingsEditorTitle');
-  var actions=document.getElementById('editorActions');
-  if(!ed) return;
-
-  if(idx>=0){
-    /* Edit existing */
-    var p=S.profiles[idx];
-    document.getElementById('editorName').value=p.gensoft_name||'';
-    document.getElementById('editorContact').value=p.gensoft_contactname||'';
-    document.getElementById('editorQueue').value=p.gensoft_queuename||'';
-    document.getElementById('editorCaseTitle').value=p.gensoft_defaultcasetitle||'';
-    document.getElementById('editorTrEnabled').checked=p.gensoft_transcriptenabled!==false;
-    document.getElementById('editorInterval').value=p.gensoft_transcriptplaybackintervalseconds||3;
-    document.getElementById('editorTranscript').value=p.gensoft_transcripttext||'';
-    if(title) title.textContent='Edit Profile';
-    if(actions) actions.innerHTML=
-      '<div class="settings-editor-btn settings-editor-btn-save" onclick="saveProfile()">Save</div>'+
-      '<div class="settings-editor-btn settings-editor-btn-delete" onclick="deleteProfile()">Delete</div>'+
-      '<div class="settings-editor-btn settings-editor-btn-cancel" onclick="closeProfileEditor()">Cancel</div>';
-  } else {
-    /* New */
-    document.getElementById('editorName').value='';
-    document.getElementById('editorContact').value='';
-    document.getElementById('editorQueue').value='';
-    document.getElementById('editorCaseTitle').value='';
-    document.getElementById('editorTrEnabled').checked=true;
-    document.getElementById('editorInterval').value=3;
-    document.getElementById('editorTranscript').value='';
-    if(title) title.textContent='New Profile';
-    if(actions) actions.innerHTML=
-      '<div class="settings-editor-btn settings-editor-btn-save" onclick="saveProfile()">Create</div>'+
-      '<div class="settings-editor-btn settings-editor-btn-cancel" onclick="closeProfileEditor()">Cancel</div>';
-  }
-  ed.classList.add('open');
-  setTimeout(function(){ ed.scrollIntoView({behavior:'smooth',block:'start'}); },100);
-}
-function closeProfileEditor() {
-  var ed=document.getElementById('settingsEditor');
-  if(ed) ed.classList.remove('open');
-  S.editIdx=-1;
-}
-function saveProfile() {
-  var profile={
-    gensoft_name:(document.getElementById('editorName').value||'').trim()||'Untitled Profile',
-    gensoft_contactname:(document.getElementById('editorContact').value||'').trim(),
-    gensoft_queuename:(document.getElementById('editorQueue').value||'').trim(),
-    gensoft_defaultcasetitle:(document.getElementById('editorCaseTitle').value||'').trim(),
-    gensoft_transcriptenabled:document.getElementById('editorTrEnabled').checked,
-    gensoft_transcripttext:(document.getElementById('editorTranscript').value||'').trim(),
-    gensoft_transcriptplaybackintervalseconds:parseInt(document.getElementById('editorInterval').value)||3
-  };
-  if(S.editIdx>=0){
-    S.profiles[S.editIdx]=profile;
-    if(_activeProfileIdx===S.editIdx) applyProfile(S.editIdx);
-  } else {
-    S.profiles.push(profile);
-  }
-  closeProfileEditor();
-  renderProfileList();
-  persistStandaloneProfiles();
-}
-function deleteProfile() {
-  if(S.editIdx<0) return;
-  if(_activeProfileIdx===S.editIdx){ _activeProfileIdx=-1; S.dp=null; }
-  else if(_activeProfileIdx>S.editIdx) _activeProfileIdx--;
-  S.profiles.splice(S.editIdx,1);
-  closeProfileEditor();
-  renderSettingsScreen();
-  persistStandaloneProfiles();
-}
-window.openProfileEditor=openProfileEditor;
-window.closeProfileEditor=closeProfileEditor;
-window.saveProfile=saveProfile;
-window.deleteProfile=deleteProfile;
-
-/* ---- Persist standalone profiles to localStorage ---- */
-function persistStandaloneProfiles() {
-  if(isD365) return;
-  try{ localStorage.setItem(PROFILES_STORAGE_KEY,JSON.stringify(S.profiles)); }catch(e){}
-}
-function loadStandaloneProfiles() {
-  if(isD365) return false;
-  try{
-    var raw=localStorage.getItem(PROFILES_STORAGE_KEY);
-    if(raw){
-      var parsed=JSON.parse(raw);
-      if(Array.isArray(parsed)&&parsed.length){ S.profiles=parsed; return true; }
-    }
-  }catch(e){}
-  return false;
-}
-
-/* ---- Keyboard shortcut (Ctrl+Shift+D) ---- */
+/* ---- Demo panel ---- */
+function opnD() { document.getElementById('demoOverlay').classList.add('open'); if(!S.profiles.length) ldDP(); }
+function clsD() { document.getElementById('demoOverlay').classList.remove('open'); }
+window.clsD=clsD;
+document.getElementById('demoOverlay').addEventListener('click',function(e){ if(e.target===this) clsD(); });
 document.addEventListener('keydown',function(e){
-  if(e.ctrlKey&&e.shiftKey&&(e.key==='D'||e.key==='d')){
-    e.preventDefault();
-    if(S.scr==='settings') goHome();
-    else goSettings();
-  }
+  if(e.ctrlKey&&e.shiftKey&&(e.key==='D'||e.key==='d')){ e.preventDefault(); var o=document.getElementById('demoOverlay'); o.classList.contains('open')?clsD():opnD(); }
 });
 
 /* ---- Init ---- */
@@ -1773,24 +1488,22 @@ document.addEventListener('DOMContentLoaded',function(){
   detectMode();
   updC(); setInterval(updC,15000);
   buildKeypad(); buildHomeApps();
-  ldCfg(function(){
-    ldCon();
-    ldDP();
-  });
-  /* Start on lock screen */
+  ldCfg(function(){ ldCon(); ldDP(); });
+  /* Start on lock screen (already active in HTML) */
   S.scr='lock';
   _phoneLocked=true;
+  /* Copy wallpaper to lock screen once it's set */
   setTimeout(function(){
     var hw=document.getElementById('homeWallpaper');
     var lw=document.getElementById('lockWallpaper');
     if(hw && lw) lw.style.backgroundImage=hw.style.backgroundImage;
   },200);
-  /* Power button */
+  /* Power button → toggle lock */
   var pwr=document.querySelector('.btn-pwr');
   if(pwr) pwr.addEventListener('click',function(){
     if(_phoneLocked) unlockPhone(); else lockPhone();
   });
-  /* Listen for incoming calls */
+  // Listen for incoming calls from sidebar_generic_call_simulator.html
   window.addEventListener('storage',function(e){
     if(e.key!==STORAGE_KEY) return;
     if(!e.newValue){ if(S.active){ showEnded('Call Ended','',S.con||{}); } return; }

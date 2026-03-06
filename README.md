@@ -39,14 +39,15 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 
 A self-contained HTML phone simulator used as a sidecar embed for contact center demos.
 
-**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.4.0**
+**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.5.0**
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
 ### Features
 * Samsung S25 Ultra chassis with realistic home screen, dock, status bar
 * Outgoing + incoming call flows via `localStorage.genericSimCall`
 * Dual mode: **D365 Mode** (Xrm.WebApi reads from Dataverse) / **Standalone Mode** (embedded fallback JSON)
-* Demo Control Panel (Ctrl+Shift+D) — profile selector, transcript toggle, browser URL config
+* Settings screen (Ctrl+Shift+D or home grid icon) — profile selector, transcript toggle, browser URL config
+* Standalone profile & transcript editing with localStorage persistence (D365 mode: read-only profiles)
 * Embedded iframe browser (Chrome icon) with DuckDuckGo search, blocked-site detection, "Open in New Tab" fallback
 * Web Audio API synthesized ringtone (440+480 Hz dual-tone, 2s on / 4s off cadence)
 * Lock screen with swipe-to-unlock gesture, power button lock/unlock, real-time clock

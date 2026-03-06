@@ -176,19 +176,19 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ### User Story 4 — Android Cell Phone Simulator for Contact Center Demos (Priority: P2)
 
-A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.4.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
+A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.5.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
 
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
 **Why this priority**: Enables end-to-end demo flow with the Genesys Softphone without a real phone device.
 
-**Independent Test**: Open AndroidCellPhone.html locally → Use Demo Panel (Ctrl+Shift+D) → Select profile → Place and receive calls → Test browser.
+**Independent Test**: Open AndroidCellPhone.html locally → Use Settings (Ctrl+Shift+D or gear icon) → Select profile → Place and receive calls → Test browser.
 
 **Acceptance Scenarios**:
 1. Given standalone mode, When the simulator loads without Xrm, Then fallback config, contacts, and profiles are used.
 2. Given D365 mode, When Xrm.WebApi is available, Then config/contacts/profiles load from Dataverse tables.
 3. Given a demo profile is selected, When applied, Then queue name, caller info, transcript text, and wallpaper update.
-4. Given Chrome icon is tapped, When a URL is pre-configured in Demo Panel, Then the browser auto-loads that URL.
+4. Given Chrome icon is tapped, When a URL is pre-configured in Settings, Then the browser auto-loads that URL.
 5. Given a URL is typed in the browser bar, When the site blocks iframe embedding, Then a blocked message appears with "Open in New Tab" button.
 6. Given the phone loads, When the lock screen is displayed, Then swipe-to-unlock or power button dismisses it and reveals the home screen.
 7. Given the camera app is opened, When webcam access is granted, Then a live viewfinder renders; When denied, Then a graceful fallback viewfinder appears.
@@ -196,7 +196,9 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.4.0) i
 #### Functional Requirements (Sidecar)
 - **FR-S01**: The phone simulator MUST communicate via `localStorage.genericSimCall` with `state: CONNECTED` (outgoing) and `state: RINGING` (incoming).
 - **FR-S02**: The simulator MUST operate in dual mode — D365 (Xrm.WebApi) and Standalone (fallback JSON).
-- **FR-S03**: Demo Control Panel MUST be accessible via Ctrl+Shift+D.
+- **FR-S03**: Settings screen MUST be accessible via Ctrl+Shift+D keyboard shortcut and Settings gear icon on the home screen.
+- **FR-S03a**: In standalone mode, profiles and transcripts MUST be editable inline with changes persisted to localStorage (genericSimProfiles key).
+- **FR-S03b**: In D365 mode, profile editing MUST be disabled — profile list is read-only (managed in Dataverse).
 - **FR-S04**: Browser screen MUST use sandboxed iframe with DuckDuckGo as the search engine fallback.
 - **FR-S05**: Sites that refuse iframe embedding MUST show a blocked indicator with an "Open in New Tab" escape hatch.
 - **FR-S06**: The synthesized ringtone MUST use Web Audio API and MUST not leave orphaned audio resources when stopped.

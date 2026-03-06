@@ -54,7 +54,7 @@
 - ✔ Table headers use `scope="col"`
 - ✔ External links include `rel="noopener noreferrer"`
 
-### Android Cell Phone Simulator (AndroidCellPhone.html v2.4.0)
+### Android Cell Phone Simulator (AndroidCellPhone.html v2.5.0)
 
 #### Home Screen & Navigation
 - ✔ Home screen renders clock, date, wallpaper, app grid, and dock
@@ -74,13 +74,25 @@
 - ✔ Synthesized ringtone plays (440+480 Hz, 2s on / 4s off) when no ringtone URL and not muted
 - ✔ Accepting transitions to in-call screen; declining returns to home
 
-#### Demo Control Panel (Ctrl+Shift+D)
-- ✔ Panel opens/closes with Ctrl+Shift+D keyboard shortcut
-- ✔ Demo Profile dropdown populates from Dataverse (D365 mode) or FALLBACK_PROFILES (standalone)
-- ✔ Selecting a profile applies queue name, caller info, transcript, wallpaper
+#### Settings Screen (Ctrl+Shift+D or Home Grid Icon)
+- ✔ Settings screen opens/closes with Ctrl+Shift+D keyboard shortcut
+- ✔ Settings screen opens via Settings gear icon on home app grid
+- ✔ Mode badge displays "Standalone" or "Dataverse" based on Xrm detection
+- ✔ D365 notice banner shown in Dataverse mode; hidden in standalone
+- ✔ Profile list populates from Dataverse (D365 mode) or localStorage/FALLBACK_PROFILES (standalone)
+- ✔ Selecting a profile applies queue name, caller info, transcript and shows as Active Profile
 - ✔ Transcript toggle enables/disables transcript streaming during calls
 - ✔ Browser URL field pre-configures the Chrome browser target URL
-- ✔ Start Call / End Call / Skip Transcript action buttons function correctly
+
+#### Standalone Profile Editing (Settings Screen)
+- ✔ Edit pencil icon appears on each profile in standalone mode only (hidden in D365)
+- ✔ Add Profile button appears at bottom of profile list in standalone mode only
+- ✔ Inline profile editor opens with fields: name, contact, queue, case title, transcript enabled, interval, transcript text
+- ✔ Save persists profile changes to localStorage (genericSimProfiles key)
+- ✔ Delete removes profile from list and persists to localStorage
+- ✔ Cancel closes editor without saving changes
+- ✔ Profiles survive page reload via localStorage persistence
+- ✔ D365 mode: no edit/add/delete buttons visible — profiles are read-only
 
 #### Browser Screen
 - ✔ URL bar accepts typed URLs and Enter key triggers navigation
@@ -89,7 +101,7 @@
 - ✔ Domain-like inputs (e.g. `example.com`) auto-prepend `https://`
 - ✔ Blocked sites show lock icon with "Open in New Tab" button
 - ✔ "Open in New Tab" opens URL in real browser tab via `window.open`
-- ✔ Pre-configured URL from Demo Panel auto-loads on Chrome icon tap
+- ✔ Pre-configured URL from Settings auto-loads on Chrome icon tap
 - ✔ Navigating home resets browser (clears iframe and URL bar)
 
 #### Dual Mode (D365 / Standalone)

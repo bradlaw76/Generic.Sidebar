@@ -29,7 +29,9 @@ These UX behaviors must NEVER break across releases:
 - Outgoing calls must write `state: CONNECTED` to localStorage; incoming calls must listen for `state: RINGING`.
 - All Dataverse reads must use `Xrm.WebApi` — never bypass or hard-code URLs.
 - Standalone mode must always work with embedded fallback data (FALLBACK_CONFIG, FALLBACK_CONTACTS, FALLBACK_PROFILES) when Xrm is unavailable.
-- The Demo Control Panel must always be accessible via Ctrl+Shift+D.
+- The Settings screen must always be accessible via Ctrl+Shift+D or the Settings gear icon on the home screen.
+- In standalone mode, profiles and transcripts must be editable and persisted to localStorage (genericSimProfiles key).
+- In D365 mode, profile editing must be disabled — profiles are read-only (managed in Dataverse).
 - The browser screen must never navigate the parent page — all browsing must occur within the sandboxed iframe.
 - Browser URL bar input must handle plain text (search via DuckDuckGo), `www.` prefixed domains, and full URLs gracefully.
 - Sites that block iframe embedding must show a clear blocked message with an "Open in New Tab" escape hatch — never a blank screen.
