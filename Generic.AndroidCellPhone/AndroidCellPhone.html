@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.7.1
+VERSION:      2.7.2
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -1486,7 +1486,9 @@ function ldCfg(cb) {
     resolvePhoneOwner(defRow, function(){
       buildOrgList(rows, cb);
     });
-  }).catch(function(){
+  }).catch(function(err){
+    console.error('[Phone] ldCfg — FETCH FAILED:', err);
+    S._lastError = (err && (err.message || err.statusText || JSON.stringify(err))) || 'unknown error';
     S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); buildOrgListStandalone(); cb&&cb();
   });
 }
@@ -2045,13 +2047,13 @@ document.addEventListener('DOMContentLoaded',function(){
     d.style.cssText='position:fixed;bottom:8px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px 12px;border-radius:8px;pointer-events:none;white-space:pre-wrap;';
     d.textContent=msg;
     document.body.appendChild(d);
-    setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },8000);
+    setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v2.7.1 | mode='+(isD365?'D365':'STANDALONE')+' | loc='+window.location.href.substring(0,60));
+  showDebugToast('v2.7.2 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
   ldCfg(function(){
     ldCon();
     ldDP();
-    showDebugToast('owner='+S.phoneOwner+' | ownerId='+(S.phoneOwnerId||'null')+' | orgs='+S.orgList.length+' | cfg='+(S.cfg?S.cfg.name||S.cfg.queueName:'null'));
+    showDebugToast('owner='+S.phoneOwner+' | ownerId='+(S.phoneOwnerId||'null')+' | orgs='+S.orgList.length+' | cfg='+(S.cfg?S.cfg.name||S.cfg.queueName:'null')+(S._lastError?'\nERR: '+S._lastError:''));
   });
   /* Start on lock screen */
   S.scr='lock';
