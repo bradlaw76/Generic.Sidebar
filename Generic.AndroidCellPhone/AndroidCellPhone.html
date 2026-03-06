@@ -526,10 +526,10 @@ html,body{
 /* ---- Lock Screen ---- */
 #scr-lock{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:relative;overflow:hidden;}
 #scr-lock .lock-wallpaper{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.7);}
-#scr-lock .lock-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:100px;}
+#scr-lock .lock-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:140px;}
 #scr-lock .lock-time{font-family:var(--fd);font-weight:200;font-size:72px;color:rgba(255,255,255,0.95);letter-spacing:-2px;line-height:1;}
 #scr-lock .lock-date{font-family:var(--fu);font-size:15px;color:rgba(255,255,255,0.75);margin-top:6px;letter-spacing:0.5px;}
-#scr-lock .lock-hint{position:absolute;bottom:48px;left:0;right:0;text-align:center;z-index:2;}
+#scr-lock .lock-hint{position:relative;z-index:2;margin-top:auto;padding-bottom:48px;text-align:center;width:100%;}
 #scr-lock .lock-hint-icon{display:inline-block;width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);line-height:34px;font-size:14px;color:rgba(255,255,255,0.5);animation:lock-bounce 2s ease-in-out infinite;margin-bottom:6px;}
 #scr-lock .lock-hint-text{font-family:var(--fu);font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;}
 @keyframes lock-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
