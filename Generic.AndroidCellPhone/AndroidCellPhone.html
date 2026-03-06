@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.5.2
+VERSION:      2.6.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -39,6 +39,13 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.6.0  Integrated gensoft_genericsoftphone config caller contact into
+       contact list. Config caller (e.g. Ted O. Bailey) appears at top
+       with a star badge. Dialing the config caller uses all config
+       settings (queue, case title, transcript, pop mode, etc).
+       Reads _gensoft_callerid_value from config. Multiple config rows
+       supported. Config-aware wrP() passes full payload. Active Config
+       card shown in Settings screen for D365 mode.
 2.5.2  Enhanced D365 detection for standalone web resource URLs. Added 5
        Xrm strategies: parent-walk, top, opener, GetGlobalContext, and
        domain-based fetch fallback with cookie auth for .dynamics.com.
@@ -293,10 +300,13 @@ html,body{
   cursor:pointer;transition:background 0.15s;border-bottom:1px solid var(--sep);
 }
 .con-item:active{background:var(--s1);}
+.con-item.con-config{background:rgba(66,133,244,0.06);border-left:3px solid var(--ac);}
 .con-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fu);font-weight:600;font-size:17px;color:#fff;flex-shrink:0;overflow:hidden;}
 .con-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .con-name{font-family:var(--fu);font-size:15px;font-weight:400;color:var(--tx);flex:1;}
 .con-phone{font-family:var(--fu);font-size:12px;color:var(--t2);}
+.con-config-badge{font-family:var(--fu);font-size:9px;font-weight:600;color:var(--ac);background:rgba(66,133,244,0.15);padding:2px 6px;border-radius:6px;letter-spacing:0.3px;text-transform:uppercase;margin-left:4px;}
+.con-config-label{font-family:var(--fu);font-size:10px;color:var(--t3);margin-top:1px;}
 .con-call-icon{width:34px;height:34px;border-radius:50%;background:rgba(48,209,88,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .con-empty{text-align:center;padding:60px 20px;color:var(--t3);font-size:14px;}
 
@@ -912,6 +922,13 @@ html,body{
             </div>
           </div>
 
+          <!-- Active Config section (D365 only) -->
+          <div class="settings-section" id="settingsConfigSection" style="display:none;">
+            <div class="settings-section-title">Active Configuration</div>
+            <div class="settings-card" id="settingsConfigCard">
+            </div>
+          </div>
+
           <!-- Active Profile section -->
           <div class="settings-section">
             <div class="settings-section-title">Active Profile</div>
@@ -1001,7 +1018,9 @@ var FALLBACK_CONFIG = {
   transcriptEnabled:true,
   transcriptText:'Customer: Hi, I received a hospital bill for $1,200 that I thought my insurance would cover.\n\nAgent: I\'m sorry to hear that. Let me pull up your account and take a look.\n\nCustomer: Sure, my member ID is HCB-449821.\n\nAgent: Thank you. I can see the $1,200 charge is your annual deductible portion for this plan year.\n\nCustomer: Oh, I didn\'t realize I hadn\'t met my deductible yet. Is there anything I can do?\n\nAgent: Absolutely. You can set up a payment plan directly with the hospital. And once your deductible is met, your coinsurance kicks in \u2014 you\'ll only pay 20% going forward.\n\nCustomer: That\'s helpful, thank you.\n\nAgent: You\'re welcome. Is there anything else I can help with today?',
   transcriptIntervalSeconds:3,
-  wallpaperUrl:'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=400&h=800&fit=crop&q=80'
+  wallpaperUrl:'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=400&h=800&fit=crop&q=80',
+  callerContactId:null,
+  callerName:null
 };
 
 var FALLBACK_CONTACTS = [
@@ -1046,6 +1065,8 @@ var S = {
   trOn:true, active:false, muted:false, spk:false,
   trLines:[], trIdx:0, trTimer:null, callTimer:null, connectTimer:null,
   ringAudio:null, contacts:[], profiles:[],
+  configContacts:[], /* contacts injected from config rows */
+  allConfigs:[],     /* all loaded gensoft_genericsoftphone rows */
   editIdx:-1 /* -1=new, >=0 = editing existing profile */
 };
 
@@ -1337,7 +1358,7 @@ function switchTab(n) {
     document.getElementById('tab-'+t).classList.toggle('on',t===n);
     document.getElementById('pane-'+t).classList.toggle('on',t===n);
   });
-  if(n==='contacts'&&S.contacts.length) renderPhoneCons(S.contacts);
+  if(n==='contacts') renderPhoneCons(getMergedContacts());
 }
 window.switchTab=switchTab;
 
@@ -1382,20 +1403,43 @@ function buildMsFolder() {
   return '<div class="folder-grid">'+a.map(function(x){ return '<div class="folder-app-dot" style="background:'+x.c+';color:#fff;">'+x.i+'</div>'; }).join('')+'</div>';
 }
 
-/* ---- Load config ---- */
+/* ================================================================
+   CONFIG LOADING — reads ALL gensoft_genericsoftphone rows,
+   uses the default one for settings, and extracts caller contacts
+   from each config row so they appear in the phone's contact list.
+   ================================================================ */
+var CFG_COLS = 'gensoft_genericsoftphoneid,gensoft_name,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl,_gensoft_callerid_value';
+
 function ldCfg(cb) {
   if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); return; }
-  var cols='gensoft_genericsoftphoneid,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl';
-  var q='?$select='+cols+'&$filter=gensoft_defaultsoftphoneconfig eq true&$orderby=createdon desc&$top=1';
+
+  /* Load ALL config rows (not just default) so we can get caller contacts */
+  var q='?$select='+CFG_COLS+'&$orderby=gensoft_defaultsoftphoneconfig desc,createdon desc&$top=20';
   Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone',q).then(function(res){
-    var rec=(res.entities&&res.entities[0])||null;
-    if(!rec) return Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone','?$select='+cols+'&$orderby=createdon desc&$top=1').then(function(r2){ parseCfg((r2.entities&&r2.entities[0])||{}); cb&&cb(); });
-    parseCfg(rec); cb&&cb();
-  }).catch(function(){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); });
+    var rows=res.entities||[];
+    S.allConfigs=rows;
+
+    /* Find the default config row */
+    var defRow=null;
+    for(var i=0;i<rows.length;i++){
+      if(rows[i].gensoft_defaultsoftphoneconfig===true){ defRow=rows[i]; break; }
+    }
+    if(!defRow && rows.length) defRow=rows[0];
+
+    if(defRow) parseCfg(defRow);
+    else { S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); }
+
+    /* Resolve caller contacts from all config rows */
+    resolveConfigContacts(rows, cb);
+  }).catch(function(){
+    S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb();
+  });
 }
+
 function parseCfg(r) {
   S.cfg={
     id:r.gensoft_genericsoftphoneid||null,
+    name:r.gensoft_name||'',
     queueName:r.gensoft_queuename||'Support',
     ringtoneUrl:r.gensoft_outgoingringtoneurl||r.gensoft_ringtoneurl||'',
     muteRingtone:r.gensoft_muteringtone===true,
@@ -1404,50 +1448,134 @@ function parseCfg(r) {
     transcriptEnabled:r.gensoft_transcriptenabled!==false,
     transcriptText:r.gensoft_transcripttext||'',
     transcriptIntervalSeconds:r.gensoft_transcriptplaybackintervalseconds||3,
-    wallpaperUrl:r.gensoft_phonewallpaperurl||''
+    wallpaperUrl:r.gensoft_phonewallpaperurl||'',
+    callerContactId:r._gensoft_callerid_value||null,
+    callerName:r['_gensoft_callerid_value@OData.Community.Display.V1.FormattedValue']||null
   };
   S.trOn=S.cfg.transcriptEnabled; syncToggles();
   if(S.cfg.wallpaperUrl){ var wp=document.getElementById('homeWallpaper'); if(wp) wp.style.backgroundImage='url('+S.cfg.wallpaperUrl+')'; }
 }
 
+/* Resolve caller contact records from config rows */
+function resolveConfigContacts(configRows, cb) {
+  var callerIds=[];
+  var configByCallerId={};
+
+  configRows.forEach(function(row){
+    var cid=row._gensoft_callerid_value;
+    if(cid){
+      callerIds.push(cid);
+      if(!configByCallerId[cid]) configByCallerId[cid]=row;
+    }
+  });
+
+  if(!callerIds.length){ S.configContacts=[]; cb&&cb(); return; }
+
+  /* Deduplicate IDs */
+  var unique=[], seen={};
+  callerIds.forEach(function(id){ if(!seen[id]){ seen[id]=true; unique.push(id); } });
+
+  /* Build OData filter */
+  var filter=unique.map(function(id){ return "contactid eq "+id; }).join(' or ');
+  var cq='?$select=fullname,telephone1,contactid,entityimage_thumbnail&$filter='+filter;
+
+  Xrm.WebApi.retrieveMultipleRecords('contact',cq).then(function(res){
+    var contacts=res.entities||[];
+    S.configContacts=contacts.map(function(c){
+      var cc=Object.assign({},c);
+      cc._configRow=configByCallerId[c.contactid]||null;
+      cc._isConfigCaller=true;
+      return cc;
+    });
+    cb&&cb();
+  }).catch(function(){
+    /* Fallback: use name from OData annotation */
+    S.configContacts=unique.map(function(id){
+      var row=configByCallerId[id];
+      var name=row['_gensoft_callerid_value@OData.Community.Display.V1.FormattedValue']||row.gensoft_name||'Config Caller';
+      return { contactid:id, fullname:name, telephone1:'', entityimage_thumbnail:null, _configRow:row, _isConfigCaller:true };
+    });
+    cb&&cb();
+  });
+}
+
+/* ---- Merge config callers with regular contacts ---- */
+function getMergedContacts(filterQ) {
+  var configIds={}, merged=[];
+  S.configContacts.forEach(function(cc){
+    configIds[cc.contactid]=true;
+    if(!filterQ || matchFilter(cc,filterQ)) merged.push(cc);
+  });
+  S.contacts.forEach(function(c){
+    if(configIds[c.contactid]) return;
+    if(!filterQ || matchFilter(c,filterQ)) merged.push(c);
+  });
+  return merged;
+}
+function matchFilter(c,q) {
+  q=q.toLowerCase();
+  return (c.fullname||'').toLowerCase().indexOf(q)>=0 || (c.telephone1||'').indexOf(q)>=0;
+}
+
 /* ---- Load contacts ---- */
 function ldCon() {
-  if(!isD365){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); return; }
+  if(!isD365){ S.contacts=FALLBACK_CONTACTS; renderAll(); return; }
   Xrm.WebApi.retrieveMultipleRecords('contact','?$select=fullname,telephone1,contactid,entityimage_thumbnail&$orderby=fullname asc&$top=50')
-    .then(function(res){ S.contacts=res.entities||[]; renderCons(S.contacts); renderPhoneCons(S.contacts); })
-    .catch(function(){ S.contacts=FALLBACK_CONTACTS; renderCons(S.contacts); renderPhoneCons(S.contacts); });
+    .then(function(res){ S.contacts=res.entities||[]; renderAll(); })
+    .catch(function(){ S.contacts=FALLBACK_CONTACTS; renderAll(); });
+}
+
+function renderAll() {
+  var merged=getMergedContacts();
+  renderCons(merged);
+  renderPhoneCons(merged);
 }
 
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function conRow(c){
+  var badge=c._isConfigCaller?'<span class="con-config-badge">&#9733; Config</span>':'';
+  var configLabel='';
+  if(c._isConfigCaller && c._configRow){
+    var cfgName=c._configRow.gensoft_name||c._configRow.gensoft_queuename||'';
+    if(cfgName) configLabel='<div class="con-config-label">'+esc(cfgName)+'</div>';
+  }
   return '<div class="con-avatar">'+avHtml(c,46)+'</div>'+
-    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div>'+
+    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+configLabel+'</div></div>'+
     '<div class="con-call-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="#30d158"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>';
 }
 function renderCons(list) {
   var el=document.getElementById('conList'); if(!el) return;
   if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
-  el.innerHTML=list.map(function(c){ return '<div class="con-item">'+conRow(c)+'</div>'; }).join('');
+  el.innerHTML=list.map(function(c){ return '<div class="con-item'+(c._isConfigCaller?' con-config':'')+'">'+conRow(c)+'</div>'; }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
 function renderPhoneCons(list) {
   var el=document.getElementById('phoneConList'); if(!el) return;
   if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
-  el.innerHTML=list.map(function(c){ return '<div class="con-item"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>'; }).join('');
+  el.innerHTML=list.map(function(c){
+    var badge=c._isConfigCaller?'<span class="con-config-badge">&#9733; Config</span>':'';
+    return '<div class="con-item'+(c._isConfigCaller?' con-config':'')+'"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>';
+  }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
 function filterCons(q){
-  renderCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+  renderCons(getMergedContacts(q||''));
 }
 function filterPhoneCons(q){
-  renderPhoneCons(!q?S.contacts:S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(q.toLowerCase())>=0||(c.telephone1||'').indexOf(q)>=0; }));
+  renderPhoneCons(getMergedContacts(q||''));
 }
 window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
 
 /* ---- Call flow ---- */
 function doCall(c) {
   S.con=c; S.active=false;
+
+  /* If this contact has a config row attached, apply that config's settings */
+  if(c._isConfigCaller && c._configRow){
+    parseCfg(c._configRow);
+  }
+
   var nEl=document.getElementById('callingName'), nuEl=document.getElementById('callingNumber'), avEl=document.getElementById('callingAvatar');
   if(nEl) nEl.textContent=c.fullname||'Unknown';
   if(nuEl) nuEl.textContent=c.telephone1||'';
@@ -1657,7 +1785,11 @@ function applyProfile(idx) {
   _activeProfileIdx=idx;
   S.dp={ qN:p.gensoft_queuename||'', ct:p.gensoft_defaultcasetitle||'', tr:p.gensoft_transcripttext||'', iv:p.gensoft_transcriptplaybackintervalseconds||3, contactName:p.gensoft_contactname||'' };
   S.trOn=p.gensoft_transcriptenabled!==false; syncToggles();
-  if(S.dp.contactName){ var m=S.contacts.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; }); if(m.length) S.con=m[0]; }
+  if(S.dp.contactName){
+    var all=getMergedContacts();
+    var m=all.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; });
+    if(m.length) S.con=m[0];
+  }
   renderSettingsScreen();
 }
 window.applyProfile=applyProfile;
@@ -1677,6 +1809,21 @@ function renderSettingsScreen() {
   /* Sync toggles */
   var trTog=document.getElementById('settingsTrToggle'); if(trTog) trTog.checked=S.trOn;
   var brUrl=document.getElementById('settingsBrowserUrl'); if(brUrl) brUrl.value=_browserConfigUrl;
+
+  /* Active config summary (D365 only) */
+  var cfgSection=document.getElementById('settingsConfigSection');
+  var cfgCard=document.getElementById('settingsConfigCard');
+  if(cfgSection && cfgCard){
+    if(isD365 && S.cfg && S.cfg.id){
+      cfgSection.style.display='';
+      cfgCard.innerHTML=
+        '<div class="settings-row"><div class="settings-row-label">'+esc(S.cfg.name||'Config')+'</div><div class="settings-row-value">'+(S.cfg.callerName?'&#9733; '+esc(S.cfg.callerName):'No caller')+'</div></div>'+
+        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Queue: '+esc(S.cfg.queueName||'\u2014')+'</div><div class="settings-row-value" style="font-size:12px;">Case: '+esc(S.cfg.defaultCaseTitle||'\u2014')+'</div></div>'+
+        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Pop: '+esc(S.cfg.popMode||'Default')+'</div><div class="settings-row-value" style="font-size:12px;">Transcript: '+(S.cfg.transcriptEnabled?'On':'Off')+' ('+S.cfg.transcriptIntervalSeconds+'s)</div></div>';
+    } else {
+      cfgSection.style.display='none';
+    }
+  }
 
   /* Active profile summary */
   var apEl=document.getElementById('settingsActiveProfile');
