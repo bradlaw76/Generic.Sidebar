@@ -1167,7 +1167,11 @@ function _buildFetchWebApi(baseUrl) {
   };
 }
 
-function detectMode() { ensureXrm(); isD365 = (typeof Xrm !== 'undefined') && !!Xrm && !!Xrm.WebApi; }
+function detectMode() {
+  ensureXrm();
+  isD365 = (typeof Xrm !== 'undefined') && !!Xrm && !!Xrm.WebApi;
+  console.log('[Phone] detectMode — isD365:', isD365, '| Xrm exists:', typeof Xrm !== 'undefined', '| location:', window.location.href.substring(0, 80));
+}
 
 /* ---- Avatar helpers ---- */
 var AV_COLORS = ['#4285f4','#ea4335','#fbbc04','#34a853','#bf5af2','#ff9f0a','#30d158','#ff453a','#64d2ff','#ff6b6b'];
@@ -1444,7 +1448,11 @@ function buildMsFolder() {
 var CFG_COLS = 'gensoft_genericsoftphoneid,gensoft_name,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl,_gensoft_contact_value,gensoft_outboundorganizationname';
 
 function ldCfg(cb) {
-  if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); buildOrgListStandalone(); cb&&cb(); return; }
+  console.log('[Phone] ldCfg — isD365:', isD365);
+  if(!isD365){
+    console.log('[Phone] ldCfg — STANDALONE mode, using FALLBACK_CONFIG + FALLBACK_PROFILES');
+    S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); buildOrgListStandalone(); cb&&cb(); return;
+  }
 
   /* Load ALL config rows (not just default) so we can build org list */
   var q='?$select='+CFG_COLS+'&$orderby=gensoft_defaultsoftphoneconfig desc,createdon desc&$top=20';
