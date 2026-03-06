@@ -124,7 +124,7 @@ $expectedTable1Cols = @(
 )
 $newTable1Cols = @(
     # Columns the spec says to ADD to gensoft_genericsoftphone
-    'gensoft_outgoingringtoneurl', 'gensoft_phonewallpaperurl', 'gensoft_transcriptcompleted'
+    'gensoft_outgoingringtoneurl', 'gensoft_phonewallpaperurl', 'gensoft_transcriptcompleted', 'gensoft_outboundorganizationname'
 )
 $allTable1Cols = $expectedTable1Cols + $newTable1Cols
 
@@ -326,6 +326,22 @@ $body = @{
 $r = Invoke-Dv -Method POST -Uri "$api/EntityDefinitions(LogicalName='gensoft_genericsoftphone')/Attributes" -Body $body
 Write-Host $(if ($r) { " ✓" } else { " (skipped or exists)" })
 } else { Write-Host "  gensoft_transcriptcompleted — already exists, skipping." -ForegroundColor DarkGray }
+
+# Column: gensoft_outboundorganizationname  — Single line of text (200)
+if ($t1Missing -contains 'gensoft_outboundorganizationname') {
+Write-Host "  Adding gensoft_outboundorganizationname …" -NoNewline
+$body = @{
+    '@odata.type'          = 'Microsoft.Dynamics.CRM.StringAttributeMetadata'
+    SchemaName             = 'gensoft_outboundorganizationname'
+    DisplayName            = @{ '@odata.type' = 'Microsoft.Dynamics.CRM.Label'; LocalizedLabels = @(@{ '@odata.type' = 'Microsoft.Dynamics.CRM.LocalizedLabel'; Label = 'Outbound Organization Name'; LanguageCode = 1033 }) }
+    Description            = @{ '@odata.type' = 'Microsoft.Dynamics.CRM.Label'; LocalizedLabels = @(@{ '@odata.type' = 'Microsoft.Dynamics.CRM.LocalizedLabel'; Label = 'Display name of the organization the caller is dialing. Shown in the phone contact list. Falls back to Queue Name if blank.'; LanguageCode = 1033 }) }
+    RequiredLevel          = @{ Value = 'None' }
+    MaxLength              = 200
+    FormatName             = @{ Value = 'Text' }
+}
+$r = Invoke-Dv -Method POST -Uri "$api/EntityDefinitions(LogicalName='gensoft_genericsoftphone')/Attributes" -Body $body
+Write-Host $(if ($r) { " ✓" } else { " (skipped or exists)" })
+} else { Write-Host "  gensoft_outboundorganizationname — already exists, skipping." -ForegroundColor DarkGray }
 
 # Publish Table 1
 Write-Host "  Publishing gensoft_genericsoftphone …" -NoNewline

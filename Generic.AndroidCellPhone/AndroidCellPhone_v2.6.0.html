@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.7.0
+VERSION:      2.6.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -11,11 +11,8 @@ ENVIRONMENT:  HTML | Vanilla JavaScript
 OVERVIEW
 -----------------------------------------------------------------------------
 Samsung S25 Ultra Android phone simulator. Single self-contained HTML file.
-The phone IS the caller's device (e.g. Ted Bailey's phone). Contact list
-shows organizations from config rows. Tapping an org dials it; wrP()
-writes the caller's identity (from config) to localStorage.genericSimCall
-(state: RINGING). Genesys Softphone receives identical payload to the
-call simulator. Handles INCOMING calls by listening for genericSimCall.
+Places OUTGOING calls by writing localStorage.genericSimCall (state: RINGING).
+Handles INCOMING calls by listening for genericSimCall (state: RINGING).
 
 Works in two modes:
   D365 Mode:        Xrm.WebApi reads config + contacts from Dataverse
@@ -42,17 +39,6 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-2.7.0  Outbound-org model: phone is the caller's device. Contact list
-       shows organizations (gensoft_outboundorganizationname or fallback
-       gensoft_queuename). Tapping an org shows "Calling [org]..." but
-       wrP() writes callerName from the DEFAULT config's
-       _gensoft_contact_value annotation (e.g. Ted O. Bailey) — phone
-       owner identity is locked at load, never overwritten by org rows.
-       Identical RINGING payload to sidebar_generic_call_simulator.html.
-       All transcript, queue, case title, pop mode, ringtone fields
-       pass through from the tapped org's config row.
-       Standalone mode: FALLBACK_PROFILES serve as org entries.
-       No changes to Genesys Softphone, sidebar, or any other files.
 2.6.0  Integrated gensoft_genericsoftphone config caller contact into
        contact list. Config caller (e.g. Ted O. Bailey) appears at top
        with a star badge. Dialing the config caller uses all config
@@ -938,7 +924,7 @@ html,body{
 
           <!-- Active Config section (D365 only) -->
           <div class="settings-section" id="settingsConfigSection" style="display:none;">
-            <div class="settings-section-title">Phone &amp; Configuration</div>
+            <div class="settings-section-title">Active Configuration</div>
             <div class="settings-card" id="settingsConfigCard">
             </div>
           </div>
@@ -1037,9 +1023,14 @@ var FALLBACK_CONFIG = {
   callerName:null
 };
 
+var FALLBACK_CONTACTS = [
+  { contactid:'demo-1', fullname:'Jamie Carter',    telephone1:'(555) 201-4832', entityimage_thumbnail:null },
+  { contactid:'demo-2', fullname:'Robert Martinez', telephone1:'(555) 376-9154', entityimage_thumbnail:null },
+  { contactid:'demo-3', fullname:'Sarah Johnson',   telephone1:'(555) 448-2267', entityimage_thumbnail:null }
+];
+
 var FALLBACK_PROFILES = [
   {
-    gensoft_outboundorganizationname:'Food & Drug Administration',
     gensoft_name:'FDA Safety Recall',
     gensoft_contactname:'Sarah Johnson',
     gensoft_queuename:'Safety Recall',
@@ -1049,7 +1040,6 @@ var FALLBACK_PROFILES = [
     gensoft_transcriptplaybackintervalseconds:3
   },
   {
-    gensoft_outboundorganizationname:'Veterans Affairs',
     gensoft_name:'Veteran Benefits',
     gensoft_contactname:'Robert Martinez',
     gensoft_queuename:'Benefits',
@@ -1059,7 +1049,6 @@ var FALLBACK_PROFILES = [
     gensoft_transcriptplaybackintervalseconds:3
   },
   {
-    gensoft_outboundorganizationname:'BlueCross Insurance',
     gensoft_name:'Insurance Inquiry',
     gensoft_contactname:'Jamie Carter',
     gensoft_queuename:'Insurance',
@@ -1075,11 +1064,9 @@ var S = {
   scr:'home', prev:null, con:null, cfg:null, dp:null,
   trOn:true, active:false, muted:false, spk:false,
   trLines:[], trIdx:0, trTimer:null, callTimer:null, connectTimer:null,
-  ringAudio:null, profiles:[],
-  orgList:[],        /* organizations built from config rows */
+  ringAudio:null, contacts:[], profiles:[],
+  configContacts:[], /* contacts injected from config rows */
   allConfigs:[],     /* all loaded gensoft_genericsoftphone rows */
-  phoneOwner:'',     /* caller name from default config (never overwritten) */
-  phoneOwnerId:null, /* caller contactId from default config */
   editIdx:-1 /* -1=new, >=0 = editing existing profile */
 };
 
@@ -1147,21 +1134,6 @@ function _buildFetchWebApi(baseUrl) {
         return r.json();
       }).then(function(data) {
         return { entities: data.value || [] };
-      });
-    },
-    retrieveRecord: function(entity, id, query) {
-      var plural = entity + (entity.endsWith('s') ? 'es' : 's');
-      return fetch(baseUrl + plural + '(' + id + ')' + (query || ''), {
-        headers: {
-          'Accept': 'application/json',
-          'OData-MaxVersion': '4.0',
-          'OData-Version': '4.0',
-          'Prefer': 'odata.include-annotations="*"'
-        },
-        credentials: 'include'
-      }).then(function(r) {
-        if (!r.ok) throw new Error('WebApi fetch failed: ' + r.status);
-        return r.json();
       });
     }
   };
@@ -1390,7 +1362,7 @@ function switchTab(n) {
     document.getElementById('tab-'+t).classList.toggle('on',t===n);
     document.getElementById('pane-'+t).classList.toggle('on',t===n);
   });
-  if(n==='contacts') renderPhoneCons(getOrgList());
+  if(n==='contacts') renderPhoneCons(getMergedContacts());
 }
 window.switchTab=switchTab;
 
@@ -1407,7 +1379,7 @@ function buildKeypad() {
 }
 function keypadCall() {
   var n=(document.getElementById('keypadDisplay')||{}).textContent||''; if(!n) return;
-  doCall({contactid:null,fullname:n,telephone1:n,entityimage_thumbnail:null,_isOrg:false,_configRow:null});
+  doCall({contactid:null,fullname:n,telephone1:n,entityimage_thumbnail:null});
 }
 window.keypadCall=keypadCall;
 
@@ -1437,67 +1409,35 @@ function buildMsFolder() {
 
 /* ================================================================
    CONFIG LOADING — reads ALL gensoft_genericsoftphone rows,
-   uses the default one for settings, and builds an organization
-   list from each config row (using gensoft_outboundorganizationname
-   or gensoft_queuename as the org display name).
+   uses the default one for settings, and extracts caller contacts
+   from each config row so they appear in the phone's contact list.
    ================================================================ */
-var CFG_COLS = 'gensoft_genericsoftphoneid,gensoft_name,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl,_gensoft_contact_value,gensoft_outboundorganizationname';
+var CFG_COLS = 'gensoft_genericsoftphoneid,gensoft_name,gensoft_queuename,gensoft_ringtoneurl,gensoft_muteringtone,gensoft_popmode,gensoft_defaultcasetitle,gensoft_transcriptenabled,gensoft_transcripttext,gensoft_transcriptplaybackintervalseconds,gensoft_defaultsoftphoneconfig,gensoft_phonewallpaperurl,gensoft_outgoingringtoneurl,_gensoft_callerid_value';
 
 function ldCfg(cb) {
-  if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); buildOrgListStandalone(); cb&&cb(); return; }
+  if(!isD365){ S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb(); return; }
 
-  /* Load ALL config rows (not just default) so we can build org list */
+  /* Load ALL config rows (not just default) so we can get caller contacts */
   var q='?$select='+CFG_COLS+'&$orderby=gensoft_defaultsoftphoneconfig desc,createdon desc&$top=20';
-  console.log('[Phone] ldCfg — querying gensoft_genericsoftphone...');
   Xrm.WebApi.retrieveMultipleRecords('gensoft_genericsoftphone',q).then(function(res){
     var rows=res.entities||[];
     S.allConfigs=rows;
-    console.log('[Phone] ldCfg — loaded', rows.length, 'config rows');
-    if(rows.length) console.log('[Phone] ldCfg — first row keys:', Object.keys(rows[0]).join(', '));
 
-    /* Find the default config row (same logic as call simulator) */
+    /* Find the default config row */
     var defRow=null;
     for(var i=0;i<rows.length;i++){
       if(rows[i].gensoft_defaultsoftphoneconfig===true){ defRow=rows[i]; break; }
     }
     if(!defRow && rows.length) defRow=rows[0];
-    console.log('[Phone] ldCfg — default row _gensoft_contact_value:', defRow && defRow['_gensoft_contact_value']);
 
     if(defRow) parseCfg(defRow);
     else { S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); }
 
-    /* Resolve phone owner contact via retrieveRecord — identical to call simulator */
-    resolvePhoneOwner(defRow, function(){
-      buildOrgList(rows, cb);
-    });
+    /* Resolve caller contacts from all config rows */
+    resolveConfigContacts(rows, cb);
   }).catch(function(){
-    S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); buildOrgListStandalone(); cb&&cb();
+    S.cfg=FALLBACK_CONFIG; S.trOn=S.cfg.transcriptEnabled; syncToggles(); cb&&cb();
   });
-}
-
-/* Mirror sidebar_generic_call_simulator.html configureFromRecord():
-   resolve the default config's _gensoft_contact_value lookup via
-   Xrm.WebApi.retrieveRecord("contact", id, "?$select=fullname,telephone1") */
-function resolvePhoneOwner(cfgRow, cb) {
-  if(!cfgRow){ cb&&cb(); return; }
-  var contactId = cfgRow['_gensoft_contact_value'] || null;
-  console.log('[Phone] resolvePhoneOwner — contactId from config:', contactId);
-  if(!contactId){ S.phoneOwner='Unknown'; cb&&cb(); return; }
-
-  S.phoneOwnerId = contactId;
-
-  Xrm.WebApi.retrieveRecord('contact', contactId, '?$select=fullname,telephone1')
-    .then(function(contact){
-      S.phoneOwner = contact.fullname || '';
-      S.phoneOwnerPhone = contact.telephone1 || '';
-      console.log('[Phone] resolvePhoneOwner — resolved:', S.phoneOwner, S.phoneOwnerPhone);
-      cb&&cb();
-    })
-    .catch(function(e){
-      console.warn('[Phone] resolvePhoneOwner — retrieveRecord failed, falling back to annotation', e);
-      S.phoneOwner = cfgRow['_gensoft_contact_value@OData.Community.Display.V1.FormattedValue'] || 'Unknown';
-      cb&&cb();
-    });
 }
 
 function parseCfg(r) {
@@ -1513,72 +1453,96 @@ function parseCfg(r) {
     transcriptText:r.gensoft_transcripttext||'',
     transcriptIntervalSeconds:r.gensoft_transcriptplaybackintervalseconds||3,
     wallpaperUrl:r.gensoft_phonewallpaperurl||'',
-    callerContactId:r['_gensoft_contact_value']||null,
-    outboundOrgName:r.gensoft_outboundorganizationname||''
+    callerContactId:r._gensoft_callerid_value||null,
+    callerName:r['_gensoft_callerid_value@OData.Community.Display.V1.FormattedValue']||null
   };
   S.trOn=S.cfg.transcriptEnabled; syncToggles();
   if(S.cfg.wallpaperUrl){ var wp=document.getElementById('homeWallpaper'); if(wp) wp.style.backgroundImage='url('+S.cfg.wallpaperUrl+')'; }
 }
 
-/* ---- Build organization list from config rows (D365 mode) ---- */
-function buildOrgList(configRows, cb) {
-  S.orgList=configRows.map(function(row){
-    var orgName=row.gensoft_outboundorganizationname||row.gensoft_queuename||row.gensoft_name||'Unknown';
-    return {
-      fullname:orgName,
-      telephone1:row.gensoft_queuename||'',
-      contactid:null,
-      entityimage_thumbnail:null,
-      _isOrg:true,
-      _configRow:row
-    };
+/* Resolve caller contact records from config rows */
+function resolveConfigContacts(configRows, cb) {
+  var callerIds=[];
+  var configByCallerId={};
+
+  configRows.forEach(function(row){
+    var cid=row._gensoft_callerid_value;
+    if(cid){
+      callerIds.push(cid);
+      if(!configByCallerId[cid]) configByCallerId[cid]=row;
+    }
   });
-  cb&&cb();
+
+  if(!callerIds.length){ S.configContacts=[]; cb&&cb(); return; }
+
+  /* Deduplicate IDs */
+  var unique=[], seen={};
+  callerIds.forEach(function(id){ if(!seen[id]){ seen[id]=true; unique.push(id); } });
+
+  /* Build OData filter */
+  var filter=unique.map(function(id){ return "contactid eq "+id; }).join(' or ');
+  var cq='?$select=fullname,telephone1,contactid,entityimage_thumbnail&$filter='+filter;
+
+  Xrm.WebApi.retrieveMultipleRecords('contact',cq).then(function(res){
+    var contacts=res.entities||[];
+    S.configContacts=contacts.map(function(c){
+      var cc=Object.assign({},c);
+      cc._configRow=configByCallerId[c.contactid]||null;
+      cc._isConfigCaller=true;
+      return cc;
+    });
+    cb&&cb();
+  }).catch(function(){
+    /* Fallback: use name from OData annotation */
+    S.configContacts=unique.map(function(id){
+      var row=configByCallerId[id];
+      var name=row['_gensoft_callerid_value@OData.Community.Display.V1.FormattedValue']||row.gensoft_name||'Config Caller';
+      return { contactid:id, fullname:name, telephone1:'', entityimage_thumbnail:null, _configRow:row, _isConfigCaller:true };
+    });
+    cb&&cb();
+  });
 }
 
-/* ---- Build organization list from FALLBACK_PROFILES (standalone mode) ---- */
-function buildOrgListStandalone() {
-  S.orgList=FALLBACK_PROFILES.map(function(p){
-    return {
-      fullname:p.gensoft_outboundorganizationname||p.gensoft_queuename||p.gensoft_name||'Unknown',
-      telephone1:p.gensoft_queuename||'',
-      contactid:null,
-      entityimage_thumbnail:null,
-      _isOrg:true,
-      _configRow:p
-    };
+/* ---- Merge config callers with regular contacts ---- */
+function getMergedContacts(filterQ) {
+  var configIds={}, merged=[];
+  S.configContacts.forEach(function(cc){
+    configIds[cc.contactid]=true;
+    if(!filterQ || matchFilter(cc,filterQ)) merged.push(cc);
   });
-  if(!S.phoneOwner) S.phoneOwner='Demo User';
+  S.contacts.forEach(function(c){
+    if(configIds[c.contactid]) return;
+    if(!filterQ || matchFilter(c,filterQ)) merged.push(c);
+  });
+  return merged;
+}
+function matchFilter(c,q) {
+  q=q.toLowerCase();
+  return (c.fullname||'').toLowerCase().indexOf(q)>=0 || (c.telephone1||'').indexOf(q)>=0;
 }
 
-/* ---- Get filtered org list ---- */
-function getOrgList(filterQ) {
-  if(!filterQ) return S.orgList.slice();
-  var q=filterQ.toLowerCase();
-  return S.orgList.filter(function(o){
-    return (o.fullname||'').toLowerCase().indexOf(q)>=0 || (o.telephone1||'').toLowerCase().indexOf(q)>=0;
-  });
-}
-
-/* ---- Render org lists (no separate contact loading needed) ---- */
+/* ---- Load contacts ---- */
 function ldCon() {
-  renderAll();
+  if(!isD365){ S.contacts=FALLBACK_CONTACTS; renderAll(); return; }
+  Xrm.WebApi.retrieveMultipleRecords('contact','?$select=fullname,telephone1,contactid,entityimage_thumbnail&$orderby=fullname asc&$top=50')
+    .then(function(res){ S.contacts=res.entities||[]; renderAll(); })
+    .catch(function(){ S.contacts=FALLBACK_CONTACTS; renderAll(); });
 }
 
 function renderAll() {
-  var orgs=getOrgList();
-  renderCons(orgs);
-  renderPhoneCons(orgs);
+  var merged=getMergedContacts();
+  renderCons(merged);
+  renderPhoneCons(merged);
 }
 
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function conRow(c){
-  var badge='<span class="con-config-badge">&#127970;</span>';
+  var badge=c._isConfigCaller?'<span class="con-config-badge">&#9733; Config</span>':'';
   var configLabel='';
-  if(c._configRow){
-    var queue=c._configRow.gensoft_queuename||'';
-    if(queue && queue!==c.fullname) configLabel='<div class="con-config-label">'+esc(queue)+'</div>';
+  if(c._isConfigCaller && c._configRow){
+    var cfgName=c._configRow.gensoft_name||c._configRow.gensoft_queuename||'';
+    if(cfgName) configLabel='<div class="con-config-label">'+esc(cfgName)+'</div>';
   }
   return '<div class="con-avatar">'+avHtml(c,46)+'</div>'+
     '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+configLabel+'</div></div>'+
@@ -1586,24 +1550,24 @@ function conRow(c){
 }
 function renderCons(list) {
   var el=document.getElementById('conList'); if(!el) return;
-  if(!list.length){ el.innerHTML='<div class="con-empty">No organizations found</div>'; return; }
-  el.innerHTML=list.map(function(c){ return '<div class="con-item con-config">'+conRow(c)+'</div>'; }).join('');
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
+  el.innerHTML=list.map(function(c){ return '<div class="con-item'+(c._isConfigCaller?' con-config':'')+'">'+conRow(c)+'</div>'; }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
 function renderPhoneCons(list) {
   var el=document.getElementById('phoneConList'); if(!el) return;
-  if(!list.length){ el.innerHTML='<div class="con-empty">No organizations found</div>'; return; }
+  if(!list.length){ el.innerHTML='<div class="con-empty">No contacts found</div>'; return; }
   el.innerHTML=list.map(function(c){
-    var badge='<span class="con-config-badge">&#127970;</span>';
-    return '<div class="con-item con-config"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>';
+    var badge=c._isConfigCaller?'<span class="con-config-badge">&#9733; Config</span>':'';
+    return '<div class="con-item'+(c._isConfigCaller?' con-config':'')+'"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>';
   }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
 function filterCons(q){
-  renderCons(getOrgList(q||''));
+  renderCons(getMergedContacts(q||''));
 }
 function filterPhoneCons(q){
-  renderPhoneCons(getOrgList(q||''));
+  renderPhoneCons(getMergedContacts(q||''));
 }
 window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
 
@@ -1611,14 +1575,14 @@ window.filterCons=filterCons; window.filterPhoneCons=filterPhoneCons;
 function doCall(c) {
   S.con=c; S.active=false;
 
-  /* Apply the org's config row so S.cfg has all settings for this call */
-  if(c._configRow){
+  /* If this contact has a config row attached, apply that config's settings */
+  if(c._isConfigCaller && c._configRow){
     parseCfg(c._configRow);
   }
 
   var nEl=document.getElementById('callingName'), nuEl=document.getElementById('callingNumber'), avEl=document.getElementById('callingAvatar');
-  if(nEl) nEl.textContent=c.fullname||'Unknown';  /* org name on calling screen */
-  if(nuEl) nuEl.textContent='';  /* orgs don't have phone numbers */
+  if(nEl) nEl.textContent=c.fullname||'Unknown';
+  if(nuEl) nuEl.textContent=c.telephone1||'';
   if(avEl) avEl.innerHTML=avHtml(c,96);
   var ct=document.getElementById('callingTrToggle'); if(ct) ct.checked=S.trOn;
   navTo('calling');
@@ -1672,25 +1636,21 @@ function connect(c) {
   initTr();
 }
 function wrP(c) {
-  var cfg=S.cfg||{};
-  /* callerName ALWAYS comes from the phone owner (resolved from default config's
-     gensoft_contact lookup via retrieveRecord), NOT from the org being dialed */
-  var callerName=S.phoneOwner||'Unknown';
-  var contactId=S.phoneOwnerId||null;
+  var cfg=S.cfg||{}, dp=S.dp||{};
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify({
-      callerName:callerName,
-      queueName:cfg.queueName||'',
-      phoneNumber:'',
-      contactId:contactId,
+      callerName:c.fullname||'Unknown',
+      queueName:dp.qN||cfg.queueName||'',
+      phoneNumber:c.telephone1||'',
+      contactId:c.contactid||null,
       state:'RINGING',
       startTime:null,
       ringtoneUrl:cfg.ringtoneUrl||'',
       muteRingtone:cfg.muteRingtone===true,
       popMode:cfg.popMode||null,
-      defaultCaseTitle:cfg.defaultCaseTitle||'',
+      defaultCaseTitle:dp.ct||cfg.defaultCaseTitle||'',
       transcriptEnabled:S.trOn,
-      transcriptText:cfg.transcriptText||'',
+      transcriptText:dp.tr||cfg.transcriptText||'',
       transcriptIntervalSeconds:cfg.transcriptIntervalSeconds||3,
       softphoneConfigId:cfg.id||null
     }));
@@ -1709,13 +1669,13 @@ function parseTr(txt) {
 }
 function initTr() {
   var p=document.getElementById('transcriptPanel'); if(!p) return;
-  var cfg=S.cfg||{};
-  S.trLines=parseTr(cfg.transcriptText||''); S.trIdx=0; clearInterval(S.trTimer); p.innerHTML='';
+  var dp=S.dp||{}, cfg=S.cfg||{};
+  S.trLines=parseTr(dp.tr||cfg.transcriptText||''); S.trIdx=0; clearInterval(S.trTimer); p.innerHTML='';
   if(!S.trLines.length||!S.trOn){
     p.innerHTML='<div class="tr-empty"><div class="tr-empty-icon">&#128172;</div><div class="tr-empty-txt">'+(S.trOn?'No transcript available':'Transcript disabled')+'</div></div>';
     return;
   }
-  var iv=(cfg.transcriptIntervalSeconds||3)*1000;
+  var iv=((dp.iv||(cfg.transcriptIntervalSeconds||3)))*1000;
   nxtL();
   if(S.trIdx<S.trLines.length) S.trTimer=setInterval(function(){ if(!S.trOn){clearInterval(S.trTimer);return;} nxtL(); if(S.trIdx>=S.trLines.length) clearInterval(S.trTimer); },iv);
 }
@@ -1827,7 +1787,13 @@ function applyProfile(idx) {
   idx=parseInt(idx);
   var p=S.profiles[idx]; if(!p) return;
   _activeProfileIdx=idx;
+  S.dp={ qN:p.gensoft_queuename||'', ct:p.gensoft_defaultcasetitle||'', tr:p.gensoft_transcripttext||'', iv:p.gensoft_transcriptplaybackintervalseconds||3, contactName:p.gensoft_contactname||'' };
   S.trOn=p.gensoft_transcriptenabled!==false; syncToggles();
+  if(S.dp.contactName){
+    var all=getMergedContacts();
+    var m=all.filter(function(c){ return (c.fullname||'').toLowerCase().indexOf(S.dp.contactName.toLowerCase())>=0; });
+    if(m.length) S.con=m[0];
+  }
   renderSettingsScreen();
 }
 window.applyProfile=applyProfile;
@@ -1848,23 +1814,18 @@ function renderSettingsScreen() {
   var trTog=document.getElementById('settingsTrToggle'); if(trTog) trTog.checked=S.trOn;
   var brUrl=document.getElementById('settingsBrowserUrl'); if(brUrl) brUrl.value=_browserConfigUrl;
 
-  /* Active config summary */
+  /* Active config summary (D365 only) */
   var cfgSection=document.getElementById('settingsConfigSection');
   var cfgCard=document.getElementById('settingsConfigCard');
   if(cfgSection && cfgCard){
-    if(isD365){
+    if(isD365 && S.cfg && S.cfg.id){
       cfgSection.style.display='';
       cfgCard.innerHTML=
-        '<div class="settings-row"><div class="settings-row-label">Phone Owner</div><div class="settings-row-value">'+esc(S.phoneOwner||'Resolving\u2026')+'</div></div>'+
-        '<div class="settings-row"><div class="settings-row-label">Contact ID</div><div class="settings-row-value" style="font-size:10px;">'+esc(S.phoneOwnerId||'\u2014')+'</div></div>'+
-        (S.cfg&&S.cfg.name?'<div class="settings-row"><div class="settings-row-label">Config</div><div class="settings-row-value">'+esc(S.cfg.name)+'</div></div>':'')+
-        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Queue: '+esc((S.cfg&&S.cfg.queueName)||'\u2014')+'</div><div class="settings-row-value" style="font-size:12px;">Case: '+esc((S.cfg&&S.cfg.defaultCaseTitle)||'\u2014')+'</div></div>'+
-        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Organizations: '+S.orgList.length+'</div><div class="settings-row-value" style="font-size:12px;">Transcript: '+((S.cfg&&S.cfg.transcriptEnabled)?'On':'Off')+' ('+(S.cfg?S.cfg.transcriptIntervalSeconds:3)+'s)</div></div>';
+        '<div class="settings-row"><div class="settings-row-label">'+esc(S.cfg.name||'Config')+'</div><div class="settings-row-value">'+(S.cfg.callerName?'&#9733; '+esc(S.cfg.callerName):'No caller')+'</div></div>'+
+        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Queue: '+esc(S.cfg.queueName||'\u2014')+'</div><div class="settings-row-value" style="font-size:12px;">Case: '+esc(S.cfg.defaultCaseTitle||'\u2014')+'</div></div>'+
+        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Pop: '+esc(S.cfg.popMode||'Default')+'</div><div class="settings-row-value" style="font-size:12px;">Transcript: '+(S.cfg.transcriptEnabled?'On':'Off')+' ('+S.cfg.transcriptIntervalSeconds+'s)</div></div>';
     } else {
-      cfgSection.style.display='';
-      cfgCard.innerHTML=
-        '<div class="settings-row"><div class="settings-row-label">Phone Owner</div><div class="settings-row-value">'+esc(S.phoneOwner||'Demo User')+'</div></div>'+
-        '<div class="settings-row"><div class="settings-row-label" style="font-size:12px;color:var(--t3);">Organizations: '+S.orgList.length+' (from fallback profiles)</div></div>';
+      cfgSection.style.display='none';
     }
   }
 
