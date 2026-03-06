@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.7.3
+VERSION:      2.8.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -42,6 +42,13 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.8.0  Organization names editable in Settings. Each config row shows
+       an editable "Display As" field; values saved to localStorage.
+       Contact list shows clean org names (no queue names or badges).
+       Transcript parsing handles Dataverse line endings (R\n, single
+       newlines between speaker labels). Separate bubble per block.
+2.7.3  Removed gensoft_outboundorganizationname from $select (column
+       not yet in Dataverse; caused 0x80060888 fetch error).
 2.7.1  Fixed field name _gensoft_callerid_value → _gensoft_contact_value
        (matches Dataverse schema and sidebar_generic_call_simulator.html).
        Phone owner resolved via Xrm.WebApi.retrieveRecord (same pattern
@@ -944,11 +951,20 @@ html,body{
             </div>
           </div>
 
-          <!-- Active Config section (D365 only) -->
+          <!-- Active Config section -->
           <div class="settings-section" id="settingsConfigSection" style="display:none;">
             <div class="settings-section-title">Phone &amp; Configuration</div>
             <div class="settings-card" id="settingsConfigCard">
             </div>
+          </div>
+
+          <!-- Organization Names section -->
+          <div class="settings-section">
+            <div class="settings-section-title">Organization Names</div>
+            <div class="settings-card" id="settingsOrgNames">
+              <!-- Populated dynamically -->
+            </div>
+            <div class="settings-row-hint" style="padding:6px 2px 0;">Set the display name for each contact list entry. These are cosmetic labels stored locally.</div>
           </div>
 
           <!-- Active Profile section -->
@@ -1030,6 +1046,7 @@ html,body{
 
 var STORAGE_KEY = 'genericSimCall';
 var PROFILES_STORAGE_KEY = 'genericSimProfiles';
+var ORG_NAMES_STORAGE_KEY = 'genericSimOrgNames';
 
 /* ---- Fallback data (standalone mode) ---- */
 var FALLBACK_CONFIG = {
@@ -1540,15 +1557,18 @@ function parseCfg(r) {
 
 /* ---- Build organization list from config rows (D365 mode) ---- */
 function buildOrgList(configRows, cb) {
-  S.orgList=configRows.map(function(row){
-    var orgName=row.gensoft_outboundorganizationname||row.gensoft_queuename||row.gensoft_name||'Unknown';
+  var overrides = loadOrgNames();
+  S.orgList=configRows.map(function(row, idx){
+    var key = row.gensoft_genericsoftphoneid || ('idx-'+idx);
+    var orgName = overrides[key] || row.gensoft_outboundorganizationname || row.gensoft_queuename || row.gensoft_name || 'Organization '+(idx+1);
     return {
       fullname:orgName,
-      telephone1:row.gensoft_queuename||'',
+      telephone1:'',
       contactid:null,
       entityimage_thumbnail:null,
       _isOrg:true,
-      _configRow:row
+      _configRow:row,
+      _orgKey:key
     };
   });
   cb&&cb();
@@ -1556,18 +1576,40 @@ function buildOrgList(configRows, cb) {
 
 /* ---- Build organization list from FALLBACK_PROFILES (standalone mode) ---- */
 function buildOrgListStandalone() {
-  S.orgList=FALLBACK_PROFILES.map(function(p){
+  var overrides = loadOrgNames();
+  S.orgList=FALLBACK_PROFILES.map(function(p, idx){
+    var key = 'fb-'+idx;
+    var orgName = overrides[key] || p.gensoft_outboundorganizationname || p.gensoft_queuename || p.gensoft_name || 'Organization '+(idx+1);
     return {
-      fullname:p.gensoft_outboundorganizationname||p.gensoft_queuename||p.gensoft_name||'Unknown',
-      telephone1:p.gensoft_queuename||'',
+      fullname:orgName,
+      telephone1:'',
       contactid:null,
       entityimage_thumbnail:null,
       _isOrg:true,
-      _configRow:p
+      _configRow:p,
+      _orgKey:key
     };
   });
   if(!S.phoneOwner) S.phoneOwner='Demo User';
 }
+
+/* ---- Org name overrides (localStorage) ---- */
+function loadOrgNames() {
+  try { var raw=localStorage.getItem(ORG_NAMES_STORAGE_KEY); return raw?JSON.parse(raw):{}; } catch(e){ return {}; }
+}
+function saveOrgNames(map) {
+  try { localStorage.setItem(ORG_NAMES_STORAGE_KEY, JSON.stringify(map)); } catch(e){}
+}
+function setOrgName(key, name) {
+  var map = loadOrgNames();
+  if(name && name.trim()) map[key] = name.trim();
+  else delete map[key];
+  saveOrgNames(map);
+  /* Rebuild org list and re-render contacts */
+  if(isD365 && S.allConfigs.length) buildOrgList(S.allConfigs, function(){ renderAll(); });
+  else { buildOrgListStandalone(); renderAll(); }
+}
+window.setOrgName=setOrgName;
 
 /* ---- Get filtered org list ---- */
 function getOrgList(filterQ) {
@@ -1592,28 +1634,21 @@ function renderAll() {
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function conRow(c){
-  var badge='<span class="con-config-badge">&#127970;</span>';
-  var configLabel='';
-  if(c._configRow){
-    var queue=c._configRow.gensoft_queuename||'';
-    if(queue && queue!==c.fullname) configLabel='<div class="con-config-label">'+esc(queue)+'</div>';
-  }
   return '<div class="con-avatar">'+avHtml(c,46)+'</div>'+
-    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+configLabel+'</div></div>'+
+    '<div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div></div>'+
     '<div class="con-call-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="#30d158"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>';
 }
 function renderCons(list) {
   var el=document.getElementById('conList'); if(!el) return;
   if(!list.length){ el.innerHTML='<div class="con-empty">No organizations found</div>'; return; }
-  el.innerHTML=list.map(function(c){ return '<div class="con-item con-config">'+conRow(c)+'</div>'; }).join('');
+  el.innerHTML=list.map(function(c){ return '<div class="con-item">'+conRow(c)+'</div>'; }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
 function renderPhoneCons(list) {
   var el=document.getElementById('phoneConList'); if(!el) return;
   if(!list.length){ el.innerHTML='<div class="con-empty">No organizations found</div>'; return; }
   el.innerHTML=list.map(function(c){
-    var badge='<span class="con-config-badge">&#127970;</span>';
-    return '<div class="con-item con-config"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+badge+'</div><div class="con-phone">'+esc(c.telephone1||'')+'</div></div></div>';
+    return '<div class="con-item"><div class="con-avatar">'+avHtml(c,46)+'</div><div style="flex:1;min-width:0;"><div class="con-name">'+esc(c.fullname)+'</div></div></div>';
   }).join('');
   el.querySelectorAll('.con-item').forEach(function(item,i){ item.onclick=function(){ doCall(list[i]); }; });
 }
@@ -1718,7 +1753,16 @@ function wrP(c) {
 /* ---- Transcript ---- */
 function parseTr(txt) {
   if(!txt) return [];
-  return txt.split(/\n\n+/).map(function(blk){
+  /* Normalize line endings: \r\n → \n, then split on double-newline OR on
+     single newline followed by a speaker label (Customer:/Agent:/Caller:).
+     This handles Dataverse multiline text which may use single line breaks. */
+  txt = txt.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  var blocks = txt.split(/\n\s*\n+/);
+  /* If only one block but contains multiple speaker labels, split on them */
+  if(blocks.length <= 1){
+    blocks = txt.split(/\n(?=(?:Customer|Agent|Caller):\s)/i);
+  }
+  return blocks.map(function(blk){
     blk=blk.trim(); if(!blk) return null;
     var m=blk.match(/^(Customer|Agent|caller|agent):\s*/i);
     if(m){ var t=(m[1].toLowerCase()==='customer'||m[1].toLowerCase()==='caller')?'customer':'agent'; return {type:t,spk:m[1],txt:blk.substring(m[0].length)}; }
@@ -1886,6 +1930,9 @@ function renderSettingsScreen() {
     }
   }
 
+  /* Organization names editor */
+  renderOrgNamesEditor();
+
   /* Active profile summary */
   var apEl=document.getElementById('settingsActiveProfile');
   if(apEl){
@@ -1929,6 +1976,25 @@ function renderProfileList() {
       '<div class="settings-profile-add-label">Add Profile</div></div>';
   }
   el.innerHTML=html;
+}
+
+/* ---- Organization Names Editor ---- */
+function renderOrgNamesEditor() {
+  var el=document.getElementById('settingsOrgNames'); if(!el) return;
+  if(!S.orgList.length){
+    el.innerHTML='<div class="settings-row"><div class="settings-row-label" style="color:var(--t3);font-style:italic;">No organizations loaded</div></div>';
+    return;
+  }
+  el.innerHTML=S.orgList.map(function(org, i){
+    var key=org._orgKey||('org-'+i);
+    var srcLabel=org._configRow?(org._configRow.gensoft_name||org._configRow.gensoft_queuename||'Row '+(i+1)):'Fallback '+(i+1);
+    return '<div style="padding:10px 16px;border-bottom:1px solid var(--sep);">'+
+      '<div style="font-family:var(--fu);font-size:11px;color:var(--t3);margin-bottom:4px;">'+esc(srcLabel)+'</div>'+
+      '<input class="settings-input" type="text" value="'+esc(org.fullname)+'" placeholder="e.g. Veterans Affairs" '+
+        'onchange="setOrgName(\''+esc(key)+'\',this.value)" '+
+        'style="font-size:13px;">'+
+      '</div>';
+  }).join('');
 }
 
 /* ---- Profile Editor ---- */
@@ -2049,7 +2115,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v2.7.2 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
+  showDebugToast('v2.8.0 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
   ldCfg(function(){
     ldCon();
     ldDP();
