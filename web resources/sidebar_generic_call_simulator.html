@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Call Simulator</title>
+  <!-- Generic Softphone Call Simulator – Version 1.2.2 -->
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 16px;
+      background: #f3f2f1;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 4px;
+      padding: 16px;
+      max-width: 440px;
+      border: 1px solid #e1dfdd;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h2 { margin-top: 0; font-size: 18px; }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-top: 8px;
+      margin-bottom: 2px;
+      color: #605e5c;
+    }
+    input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 13px;
+      border-radius: 3px;
+      border: 1px solid #c8c6c4;
+      box-sizing: border-box;
+    }
+    .buttons {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 3px;
+      border: 1px solid #605e5c;
+      background: #ffffff;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #0078d4;
+      color: #ffffff;
+      border-color: #0078d4;
+    }
+    button.danger {
+      background: #d13438;
+      color: #ffffff;
+      border-color: #a80000;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #605e5c;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #605e5c;
+    }
+    .status span.em { font-weight: 600; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h2>Simulate Incoming Call</h2>
+
+    <div class="status" id="statusMessage">
+      Loading Generic Softphone configuration…
+    </div>
+
+    <label for="callerName">Caller name</label>
+    <input id="callerName" type="text" value="" />
+
+    <label for="queueName">Queue name</label>
+    <input id="queueName" type="text" value="" />
+
+    <label for="phoneNumber">Phone number (optional)</label>
+    <input id="phoneNumber" type="text" value="" />
+
+    <label for="contactId">Contact GUID (optional override)</label>
+    <input id="contactId" type="text" placeholder="00000000-0000-0000-0000-000000000000" />
+
+    <div class="buttons">
+      <button id="ringBtn" class="primary">📞 Ring Softphone (RINGING)</button>
+      <button id="endBtn" class="danger">⏹ End Simulated Call</button>
+    </div>
+
+    <div class="hint">
+      This page reads configuration from the <strong>Generic Softphone</strong> table.
+      It selects the record where <strong>Default Softphone Config = Yes</strong> if one exists,
+      otherwise it falls back to the most recently created record.
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "genericSimCall";
+  let softphoneConfig = null;
+
+  const els = {
+    status: document.getElementById("statusMessage"),
+    callerName: document.getElementById("callerName"),
+    queueName: document.getElementById("queueName"),
+    phoneNumber: document.getElementById("phoneNumber"),
+    contactId: document.getElementById("contactId"),
+    ringBtn: document.getElementById("ringBtn"),
+    endBtn: document.getElementById("endBtn")
+  };
+
+  function ensureXrm() {
+    if (typeof Xrm !== "undefined" && Xrm) return;
+    let w = window;
+    for (let i = 0; i < 10 && w; i++) {
+      try {
+        if (w.Xrm) { window.Xrm = w.Xrm; return; }
+      } catch {}
+      if (!w.parent || w.parent === w) break;
+      w = w.parent;
+    }
+    try { if (window.top && window.top.Xrm) window.Xrm = window.top.Xrm; }
+    catch {}
+  }
+
+  function loadSoftphoneConfig() {
+    ensureXrm();
+    if (!window.Xrm || !Xrm.WebApi) {
+      els.status.textContent = "Xrm.WebApi is not available. Run this simulator inside Dynamics 365.";
+      return;
+    }
+
+    const selectColumns =
+      "gensoft_genericsoftphoneid," +
+      "_gensoft_contact_value," +
+      "gensoft_queuename," +
+      "gensoft_ringtoneurl," +
+      "gensoft_muteringtone," +
+      "gensoft_simulatorurl," +
+      "gensoft_popmode," +
+      "gensoft_defaultcasetitle," +
+      "gensoft_transcriptenabled," +
+      "gensoft_transcripttext," +
+      "gensoft_transcriptplaybackintervalseconds," +
+      "gensoft_defaultsoftphoneconfig";
+
+    const defaultFilterQuery =
+      "?$select=" + selectColumns +
+      "&$filter=gensoft_defaultsoftphoneconfig eq true" +
+      "&$orderby=createdon desc&$top=1";
+
+    Xrm.WebApi.retrieveMultipleRecords("gensoft_genericsoftphone", defaultFilterQuery)
+      .then(result => {
+        if (result.entities?.length > 0) return configureFromRecord(result.entities[0], true);
+
+        const fallbackQuery =
+          "?$select=" + selectColumns +
+          "&$orderby=createdon desc&$top=1";
+
+        return Xrm.WebApi.retrieveMultipleRecords("gensoft_genericsoftphone", fallbackQuery)
+          .then(fallback => {
+            if (!fallback.entities?.length) {
+              els.status.textContent = "No Generic Softphone configuration records were found.";
+              return;
+            }
+            configureFromRecord(fallback.entities[0], false);
+          });
+      })
+      .catch(err => {
+        console.error("Failed to load Generic Softphone config", err);
+        els.status.textContent = "Error loading Generic Softphone configuration. See console for details.";
+      });
+  }
+
+  function configureFromRecord(cfg, isDefault) {
+    softphoneConfig = {
+      id: cfg.gensoft_genericsoftphoneid,
+      callerId: cfg["_gensoft_contact_value"] || null,
+      queueName: cfg.gensoft_queuename || "",
+      ringtoneUrl: cfg.gensoft_ringtoneurl || "",
+      muteRingtone: cfg.gensoft_muteringtone === true,
+      simulatorUrl: cfg.gensoft_simulatorurl || "",
+      popMode: cfg.gensoft_popmode,
+      defaultCaseTitle: cfg.gensoft_defaultcasetitle || "",
+      transcriptEnabled: cfg.gensoft_transcriptenabled === true,
+      transcriptText: cfg.gensoft_transcripttext || "",
+      transcriptIntervalSeconds: cfg.gensoft_transcriptplaybackintervalseconds || 0,
+      isDefault: cfg.gensoft_defaultsoftphoneconfig === true
+    };
+
+    els.queueName.value = softphoneConfig.queueName;
+
+    els.status.innerHTML = isDefault
+      ? "Loaded <span class='em'>default Generic Softphone</span> configuration."
+      : "Loaded the <span class='em'>most recent Generic Softphone</span> configuration.";
+
+    if (softphoneConfig.callerId && Xrm?.WebApi) {
+      Xrm.WebApi.retrieveRecord("contact", softphoneConfig.callerId, "?$select=fullname,telephone1")
+        .then(contact => {
+          els.callerName.value = contact.fullname || "";
+          els.phoneNumber.value = contact.telephone1 || "";
+          els.contactId.value = softphoneConfig.callerId;
+        })
+        .catch(e => console.warn("Failed to load contact details", e));
+    }
+  }
+
+  function simulateRingingCall() {
+    const cfg = softphoneConfig || {};
+    const call = {
+      callerName: els.callerName.value || "Unknown Caller",
+      queueName: els.queueName.value || "",
+      phoneNumber: els.phoneNumber.value || "",
+      contactId: cfg.callerId || els.contactId.value || null,
+      state: "RINGING",
+      startTime: null,
+      ringtoneUrl: cfg.ringtoneUrl || "",
+      muteRingtone: cfg.muteRingtone === true,
+      popMode: cfg.popMode,
+      defaultCaseTitle: cfg.defaultCaseTitle,
+      transcriptEnabled: cfg.transcriptEnabled,
+      transcriptText: cfg.transcriptText,
+      transcriptIntervalSeconds: cfg.transcriptIntervalSeconds,
+      softphoneConfigId: cfg.id
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(call));
+    alert("Simulated RINGING call for: " + call.callerName);
+  }
+
+  function endCall() {
+    localStorage.removeItem(STORAGE_KEY);
+    alert("Simulated call cleared.");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    els.ringBtn.addEventListener("click", simulateRingingCall);
+    els.endBtn.addEventListener("click", endCall);
+    loadSoftphoneConfig();
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.5.0
+VERSION:      2.5.1
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -11,7 +11,7 @@ ENVIRONMENT:  HTML | Vanilla JavaScript
 OVERVIEW
 -----------------------------------------------------------------------------
 Samsung S25 Ultra Android phone simulator. Single self-contained HTML file.
-Places OUTGOING calls by writing localStorage.genericSimCall (state: CONNECTED).
+Places OUTGOING calls by writing localStorage.genericSimCall (state: RINGING).
 Handles INCOMING calls by listening for genericSimCall (state: RINGING).
 
 Works in two modes:
@@ -22,7 +22,7 @@ Works in two modes:
 ARCHITECTURE CONTRACT (NON-NEGOTIABLES)
 -----------------------------------------------------------------------------
 - localStorage key: genericSimCall — must not change
-- Payload state:    CONNECTED (outgoing call)
+- Payload state:    RINGING (outgoing call → Genesys answers → CONNECTED)
 - Auth:             all Dataverse reads via Xrm.WebApi — never bypassed
 - Do NOT modify:    Genesys Softphone.html
 - All changes:      additive only
@@ -39,6 +39,9 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.5.1  Outgoing calls now write state:RINGING (matching call simulator)
+       so Genesys Softphone shows Answer/Decline before connecting.
+       Pass ringtoneUrl and muteRingtone from config. startTime=null.
 2.5.0  Redesigned Demo Panel → Settings screen. Standalone-only profile &
        transcript editing. Removed call-control buttons from settings.
        Added inline profile editor with transcript textarea. D365 mode
@@ -1452,9 +1455,10 @@ function wrP(c) {
       queueName:dp.qN||cfg.queueName||'',
       phoneNumber:c.telephone1||'',
       contactId:c.contactid||null,
-      state:'CONNECTED',
-      startTime:new Date().toISOString(),
-      ringtoneUrl:'', muteRingtone:false,
+      state:'RINGING',
+      startTime:null,
+      ringtoneUrl:cfg.ringtoneUrl||'',
+      muteRingtone:cfg.muteRingtone===true,
       popMode:cfg.popMode||null,
       defaultCaseTitle:dp.ct||cfg.defaultCaseTitle||'',
       transcriptEnabled:S.trOn,
