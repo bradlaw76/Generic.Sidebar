@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.5.1
+VERSION:      2.5.2
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -39,6 +39,9 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.5.2  Enhanced D365 detection for standalone web resource URLs. Added 5
+       Xrm strategies: parent-walk, top, opener, GetGlobalContext, and
+       domain-based fetch fallback with cookie auth for .dynamics.com.
 2.5.1  Outgoing calls now write state:RINGING (matching call simulator)
        so Genesys Softphone shows Answer/Decline before connecting.
        Pass ringtoneUrl and muteRingtone from config. startTime=null.
@@ -1049,15 +1052,68 @@ var S = {
 /* ---- Xrm detection ---- */
 var isD365 = false;
 function ensureXrm() {
-  if (typeof Xrm !== 'undefined' && Xrm) return;
+  /* Already found */
+  if (typeof Xrm !== 'undefined' && Xrm && Xrm.WebApi) return;
+
+  /* Strategy 1: Walk parent chain (works when embedded in form/sidecar) */
   var w = window;
   for (var i = 0; i < 10 && w; i++) {
-    try { if (w.Xrm) { window.Xrm = w.Xrm; return; } } catch(e) {}
+    try { if (w.Xrm && w.Xrm.WebApi) { window.Xrm = w.Xrm; return; } } catch(e) {}
     if (!w.parent || w.parent === w) break;
     w = w.parent;
   }
-  try { if (window.top && window.top.Xrm) window.Xrm = window.top.Xrm; } catch(e) {}
+
+  /* Strategy 2: Direct top access (works in UCI web resource pages) */
+  try { if (window.top && window.top.Xrm && window.top.Xrm.WebApi) { window.Xrm = window.top.Xrm; return; } } catch(e) {}
+
+  /* Strategy 3: opener (if opened via window.open from D365) */
+  try { if (window.opener && window.opener.Xrm && window.opener.Xrm.WebApi) { window.Xrm = window.opener.Xrm; return; } } catch(e) {}
+
+  /* Strategy 4: GetGlobalContext (web resources with ClientGlobalContext.js.aspx) */
+  try {
+    if (typeof GetGlobalContext !== 'undefined') {
+      var ctx = GetGlobalContext();
+      if (ctx && ctx.getClientUrl) {
+        _buildFetchWebApi(ctx.getClientUrl() + '/api/data/v9.2/');
+        return;
+      }
+    }
+  } catch(e) {}
+
+  /* Strategy 5: Domain-based fetch — standalone /WebResources/ URL on D365 domain.
+     Uses existing auth cookies so Xrm.WebApi calls work via REST. */
+  try {
+    var loc = window.location.href || '';
+    if (loc.indexOf('.dynamics.com') > -1) {
+      _buildFetchWebApi(window.location.origin + '/api/data/v9.2/');
+      return;
+    }
+  } catch(e) {}
 }
+
+/* Build a minimal Xrm.WebApi shim using fetch + cookie auth */
+function _buildFetchWebApi(baseUrl) {
+  window.Xrm = window.Xrm || {};
+  window.Xrm.WebApi = window.Xrm.WebApi || {
+    retrieveMultipleRecords: function(entity, query) {
+      return fetch(baseUrl + entity + (query || ''), {
+        headers: {
+          'Accept': 'application/json',
+          'OData-MaxVersion': '4.0',
+          'OData-Version': '4.0',
+          'Prefer': 'odata.include-annotations="*"'
+        },
+        credentials: 'include'
+      }).then(function(r) {
+        if (!r.ok) throw new Error('WebApi fetch failed: ' + r.status);
+        return r.json();
+      }).then(function(data) {
+        return { entities: data.value || [] };
+      });
+    }
+  };
+}
+
 function detectMode() { ensureXrm(); isD365 = (typeof Xrm !== 'undefined') && !!Xrm && !!Xrm.WebApi; }
 
 /* ---- Avatar helpers ---- */
