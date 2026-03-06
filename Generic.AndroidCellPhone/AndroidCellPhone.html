@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.3.0
+VERSION:      2.4.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-05
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -30,13 +30,16 @@ ARCHITECTURE CONTRACT (NON-NEGOTIABLES)
 -----------------------------------------------------------------------------
 SCREENS
 -----------------------------------------------------------------------------
-HOME -> PHONE_APP -> CONTACTS -> CALLING -> IN_CALL -> ENDED -> HOME
+LOCK -> HOME -> PHONE_APP -> CONTACTS -> CALLING -> IN_CALL -> ENDED -> HOME
 HOME -> INCOMING -> IN_CALL -> ENDED -> HOME  (incoming call path)
 HOME -> BROWSER -> HOME  (embedded browser via Chrome icon)
+HOME -> CAMERA -> HOME  (live webcam viewfinder via Camera icon)
 
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.4.0  Lock Screen with swipe-to-unlock, Camera screen with live webcam
+       (getUserMedia), graceful fallback viewfinder, shutter flash
 2.3.0  Simplified browser: removed shortcut grid & tab bar, fixed toolbar
        below status bar, added Browser URL config to Demo Panel
        (Ctrl+Shift+D), DuckDuckGo search, blocked-site detection with
@@ -111,7 +114,7 @@ html,body{
 }
 .btn-vol-up{left:-3px;top:140px;width:3px;height:56px;border-radius:3px 0 0 3px;}
 .btn-vol-dn{left:-3px;top:210px;width:3px;height:56px;border-radius:3px 0 0 3px;}
-.btn-pwr   {right:-3px;top:170px;width:3px;height:72px;border-radius:0 3px 3px 0;}
+.btn-pwr   {right:-3px;top:170px;width:3px;height:72px;border-radius:0 3px 3px 0;cursor:pointer;z-index:10;}
 
 /* ---- Screen glass ---- */
 .screen-glass{
@@ -459,6 +462,42 @@ html,body{
 .demo-url-input::placeholder{color:var(--t3);}
 .demo-url-input:focus{border-color:var(--ac);}
 .demo-url-hint{font-family:var(--fu);font-size:10px;color:var(--t3);margin-top:4px;opacity:0.7;}
+
+/* ---- Lock Screen ---- */
+#scr-lock{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:relative;overflow:hidden;}
+#scr-lock .lock-wallpaper{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.7);}
+#scr-lock .lock-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%;padding-top:100px;}
+#scr-lock .lock-time{font-family:var(--fd);font-weight:200;font-size:72px;color:rgba(255,255,255,0.95);letter-spacing:-2px;line-height:1;}
+#scr-lock .lock-date{font-family:var(--fu);font-size:15px;color:rgba(255,255,255,0.75);margin-top:6px;letter-spacing:0.5px;}
+#scr-lock .lock-hint{position:absolute;bottom:48px;left:0;right:0;text-align:center;z-index:2;}
+#scr-lock .lock-hint-icon{display:inline-block;width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);line-height:34px;font-size:14px;color:rgba(255,255,255,0.5);animation:lock-bounce 2s ease-in-out infinite;margin-bottom:6px;}
+#scr-lock .lock-hint-text{font-family:var(--fu);font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;}
+@keyframes lock-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+#scr-lock.unlocking{animation:lock-slide-up 0.35s ease-in forwards;}
+@keyframes lock-slide-up{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-100%);opacity:0;}}
+
+/* ---- Camera Screen ---- */
+#scr-camera{background:#000;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+#scr-camera .camera-viewfinder{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+#scr-camera .camera-viewfinder video{width:100%;height:100%;object-fit:cover;}
+#scr-camera .camera-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:rgba(255,255,255,0.5);}
+#scr-camera .camera-fallback-icon{font-size:64px;opacity:0.3;}
+#scr-camera .camera-fallback-text{font-family:var(--fu);font-size:14px;text-align:center;padding:0 32px;line-height:1.5;}
+#scr-camera .camera-grid{position:absolute;inset:0;pointer-events:none;}
+#scr-camera .camera-grid::before,#scr-camera .camera-grid::after{content:'';position:absolute;background:rgba(255,255,255,0.12);}
+#scr-camera .camera-grid::before{left:33.33%;top:0;width:1px;height:100%;box-shadow:calc(100vw / 3) 0 0 0 rgba(255,255,255,0.12);}
+#scr-camera .camera-grid::after{top:33.33%;left:0;height:1px;width:100%;box-shadow:0 calc(100vh / 3) 0 0 rgba(255,255,255,0.12);}
+#scr-camera .camera-close{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;}
+#scr-camera .camera-close svg{width:20px;height:20px;}
+#scr-camera .camera-controls{height:120px;display:flex;align-items:center;justify-content:center;gap:48px;background:rgba(0,0,0,0.7);position:relative;z-index:3;}
+#scr-camera .camera-shutter{width:68px;height:68px;border-radius:50%;border:4px solid rgba(255,255,255,0.9);background:transparent;cursor:pointer;position:relative;transition:transform 0.1s;}
+#scr-camera .camera-shutter::after{content:'';position:absolute;inset:4px;border-radius:50%;background:rgba(255,255,255,0.9);transition:background 0.15s;}
+#scr-camera .camera-shutter:active{transform:scale(0.92);}
+#scr-camera .camera-shutter:active::after{background:rgba(255,255,255,0.6);}
+#scr-camera .camera-flip{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.8);transition:transform 0.3s;}
+#scr-camera .camera-flip:active{transform:rotate(180deg);}
+#scr-camera .camera-flash-fx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:10;transition:opacity 0.05s;}
+#scr-camera .camera-flash-fx.flash{opacity:1;}
 </style>
 </head>
 <body>
@@ -498,6 +537,19 @@ html,body{
 
     <div class="screens-wrap">
 
+      <!-- LOCK SCREEN -->
+      <div class="screen active" id="scr-lock" onclick="unlockPhone()">
+        <div class="lock-wallpaper" id="lockWallpaper"></div>
+        <div class="lock-content">
+          <div class="lock-time" id="lockTime">9:41</div>
+          <div class="lock-date" id="lockDate">Thursday, March 5</div>
+        </div>
+        <div class="lock-hint">
+          <div class="lock-hint-icon">&#8593;</div>
+          <div class="lock-hint-text">Tap to unlock</div>
+        </div>
+      </div>
+
       <!-- HOME SCREEN -->
       <div class="screen" id="scr-home">
         <div class="home-wallpaper" id="homeWallpaper"></div>
@@ -511,7 +563,7 @@ html,body{
             <div class="dock-icon ic-phone" onclick="goPhone()">&#128222;</div>
             <div class="dock-icon" style="background:linear-gradient(135deg,#0a84ff,#0066cc)">&#128172;</div>
             <div class="dock-icon" style="background:linear-gradient(135deg,#4285f4,#1a73e8)" onclick="goBrowser()">&#127760;</div>
-            <div class="dock-icon" style="background:linear-gradient(135deg,#636366,#3c3c3e)">&#128247;</div>
+            <div class="dock-icon" style="background:linear-gradient(135deg,#636366,#3c3c3e)" onclick="goCamera()">&#128247;</div>
           </div>
         </div>
       </div>
@@ -736,6 +788,27 @@ html,body{
         </div>
       </div>
 
+      <!-- CAMERA SCREEN -->
+      <div class="screen" id="scr-camera">
+        <div class="camera-viewfinder" id="cameraViewfinder">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <div class="camera-fallback" id="cameraFallback" style="display:none;">
+            <div class="camera-fallback-icon">&#128247;</div>
+            <div class="camera-fallback-text" id="cameraFallbackMsg">Initializing camera&#8230;</div>
+          </div>
+          <div class="camera-grid"></div>
+        </div>
+        <div class="camera-close" onclick="closeCamera()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="camera-flash-fx" id="cameraFlash"></div>
+        <div class="camera-controls">
+          <div class="camera-flip" onclick="flipCamera()">&#8635;</div>
+          <div class="camera-shutter" onclick="takePhoto()"></div>
+          <div style="width:40px;"></div>
+        </div>
+      </div>
+
     </div><!-- /screens-wrap -->
 
     <!-- DEMO CONTROL PANEL -->
@@ -882,7 +955,41 @@ function updC() {
   if(cl) cl.textContent=t;
   var de=document.getElementById('homeDate');
   if(de) de.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
+  /* Lock screen clock */
+  var lt=document.getElementById('lockTime'), ld=document.getElementById('lockDate');
+  if(lt) lt.textContent=t;
+  if(ld) ld.textContent=DAYS[now.getDay()]+', '+MONTHS[now.getMonth()]+' '+now.getDate();
 }
+
+/* ---- Lock Screen ---- */
+var _phoneLocked=true;
+function unlockPhone() {
+  if(!_phoneLocked) return;
+  _phoneLocked=false;
+  var lock=document.getElementById('scr-lock');
+  if(lock){
+    lock.classList.add('unlocking');
+    setTimeout(function(){
+      lock.classList.remove('active','unlocking');
+      var home=document.getElementById('scr-home'); if(home) home.classList.add('active');
+      S.scr='home';
+    },350);
+  }
+}
+function lockPhone() {
+  _phoneLocked=true;
+  if(S.scr==='camera') stopCameraStream();
+  if(S.scr==='browser') resetBrowser();
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev','unlocking'); });
+  var lock=document.getElementById('scr-lock'); if(lock) lock.classList.add('active');
+  S.scr='lock';
+  updC();
+  /* Re-apply lock wallpaper */
+  var wp=document.getElementById('lockWallpaper');
+  var hwp=document.getElementById('homeWallpaper');
+  if(wp && hwp) wp.style.backgroundImage=hwp.style.backgroundImage;
+}
+window.unlockPhone=unlockPhone; window.lockPhone=lockPhone;
 
 /* ---- Screen navigation ---- */
 function navTo(key,back) {
@@ -902,6 +1009,7 @@ function goHome() {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
   var h=document.getElementById('scr-home'); if(h) h.classList.add('active');
   if(S.scr==='browser') resetBrowser();
+  if(S.scr==='camera') stopCameraStream();
   S.scr='home';
 }
 function goPhone() { navTo('phone'); }
@@ -974,6 +1082,67 @@ function resetBrowser() {
 window.goBrowser=goBrowser; window.loadBrowserUrl=loadBrowserUrl;
 window.setBrowserUrl=setBrowserUrl; window.openBrowserExternal=openBrowserExternal;
 
+/* ---- Camera ---- */
+var _cameraStream=null;
+var _cameraFacingBack=true;
+function goCamera() {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+  var c=document.getElementById('scr-camera'); if(c) c.classList.add('active');
+  S.scr='camera';
+  startCameraStream();
+}
+function startCameraStream() {
+  var video=document.getElementById('cameraVideo');
+  var fb=document.getElementById('cameraFallback');
+  var fbMsg=document.getElementById('cameraFallbackMsg');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if(video) video.style.display='none';
+    if(fb){ fb.style.display='flex'; }
+    if(fbMsg) fbMsg.textContent='Camera not available in this browser.';
+    return;
+  }
+  var constraints={video:{facingMode:_cameraFacingBack?'environment':'user',width:{ideal:1280},height:{ideal:720}}};
+  navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
+    _cameraStream=stream;
+    if(video){ video.style.display='block'; video.srcObject=stream; }
+    if(fb) fb.style.display='none';
+  }).catch(function(err){
+    if(video) video.style.display='none';
+    if(fb) fb.style.display='flex';
+    if(fbMsg){
+      if(err.name==='NotAllowedError') fbMsg.textContent='Camera permission denied.\nGrant access in browser settings.';
+      else if(err.name==='NotFoundError') fbMsg.textContent='No camera detected on this device.';
+      else fbMsg.textContent='Camera unavailable:\n'+err.message;
+    }
+  });
+}
+function stopCameraStream() {
+  if(_cameraStream){
+    _cameraStream.getTracks().forEach(function(t){ t.stop(); });
+    _cameraStream=null;
+  }
+  var video=document.getElementById('cameraVideo');
+  if(video){ video.srcObject=null; }
+}
+function closeCamera() {
+  stopCameraStream();
+  goHome();
+}
+function flipCamera() {
+  _cameraFacingBack=!_cameraFacingBack;
+  stopCameraStream();
+  startCameraStream();
+}
+function takePhoto() {
+  var flash=document.getElementById('cameraFlash');
+  if(flash){
+    flash.classList.add('flash');
+    setTimeout(function(){ flash.classList.remove('flash'); },120);
+  }
+}
+window.goCamera=goCamera; window.closeCamera=closeCamera;
+window.flipCamera=flipCamera; window.takePhoto=takePhoto;
+
 /* ---- Tabs ---- */
 function switchTab(n) {
   ['recent','contacts','keypad'].forEach(function(t){
@@ -1007,7 +1176,7 @@ function buildHomeApps() {
     {label:'Phone',   cls:'ic-phone', icon:'&#128222;',fn:'goPhone()'},
     {label:'Messages',cls:'ic-msg',   icon:'&#128172;',fn:''},
     {label:'Chrome',  cls:'ic-chrome',icon:'&#127760;',fn:'goBrowser()'},
-    {label:'Camera',  cls:'ic-cam',   icon:'&#128247;',fn:''},
+    {label:'Camera',  cls:'ic-cam',   icon:'&#128247;',fn:'goCamera()'},
     {label:'Gallery', cls:'ic-gal',   icon:'&#128444;',fn:''},
     {label:'Settings',cls:'ic-set',   icon:'&#9881;',  fn:''},
     {label:'Microsoft',cls:'ic-folder',icon:'',fn:'',folder:true}
@@ -1320,7 +1489,20 @@ document.addEventListener('DOMContentLoaded',function(){
   updC(); setInterval(updC,15000);
   buildKeypad(); buildHomeApps();
   ldCfg(function(){ ldCon(); ldDP(); });
-  goHome();
+  /* Start on lock screen (already active in HTML) */
+  S.scr='lock';
+  _phoneLocked=true;
+  /* Copy wallpaper to lock screen once it's set */
+  setTimeout(function(){
+    var hw=document.getElementById('homeWallpaper');
+    var lw=document.getElementById('lockWallpaper');
+    if(hw && lw) lw.style.backgroundImage=hw.style.backgroundImage;
+  },200);
+  /* Power button → toggle lock */
+  var pwr=document.querySelector('.btn-pwr');
+  if(pwr) pwr.addEventListener('click',function(){
+    if(_phoneLocked) unlockPhone(); else lockPhone();
+  });
   // Listen for incoming calls from sidebar_generic_call_simulator.html
   window.addEventListener('storage',function(e){
     if(e.key!==STORAGE_KEY) return;
