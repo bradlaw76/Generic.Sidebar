@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.7.0
+VERSION:      2.7.1
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -42,6 +42,14 @@ HOME -> SETTINGS -> HOME (Ctrl+Shift+D or Settings icon)
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+2.7.1  Fixed field name _gensoft_callerid_value → _gensoft_contact_value
+       (matches Dataverse schema and sidebar_generic_call_simulator.html).
+       Phone owner resolved via Xrm.WebApi.retrieveRecord (same pattern
+       as call simulator configureFromRecord). Removed OData annotation
+       dependency from parseCfg. Added retrieveRecord to fetch shim for
+       standalone D365 URLs. Added console diagnostics ([Phone] prefix)
+       for detectMode, ldCfg, and resolvePhoneOwner. Settings section
+       always visible in D365 mode (no S.cfg.id guard).
 2.7.0  Outbound-org model: phone is the caller's device. Contact list
        shows organizations (gensoft_outboundorganizationname or fallback
        gensoft_queuename). Tapping an org shows "Calling [org]..." but
