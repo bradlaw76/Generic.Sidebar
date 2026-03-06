@@ -10,7 +10,7 @@
 
 - [ ] Spec reviewed and approved
 - [x] Sidebar core requirements implemented
-- [x] Android Cell Phone Simulator implemented (v2.3.0)
+- [x] Android Cell Phone Simulator implemented (v2.4.0)
 - [x] Dataverse schema deployed (GenericSoftphone v1.0.0.11)
 - [ ] All requirements implemented
 - [ ] Test acceptance criteria met
@@ -24,3 +24,10 @@
 - AndroidCellPhone.html v2.3.0: browser, fallback wallpaper/ringtone/transcript, Demo Panel URL config
 - Dataverse schema: 13 cols on Table 1, 7 cols on Table 2, 3 demo profiles inserted
 - Deployment script: `specs/main/scripts/create-dataverse-schema.ps1` tested and verified
+
+### 2026-03-06 — v2.4.0 Lock Screen, Camera & Documentation
+- AndroidCellPhone.html upgraded to v2.4.0
+- Lock screen with swipe-to-unlock gesture, power button lock/unlock, configurable wallpaper
+- Camera screen with live webcam viewfinder (getUserMedia), shutter flash, front/rear flip, graceful fallback
+- Comprehensive DOCUMENTATION.md created at `Generic.AndroidCellPhone/DOCUMENTATION.md`
+- All spec files updated to reflect v2.4.0 features

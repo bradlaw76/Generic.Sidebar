@@ -35,3 +35,8 @@ These UX behaviors must NEVER break across releases:
 - Sites that block iframe embedding must show a clear blocked message with an "Open in New Tab" escape hatch — never a blank screen.
 - Genesys Softphone.html must NOT be modified — all changes must be additive to other files only.
 - The synthesized ringtone must use Web Audio API (440+480 Hz) and must stop cleanly when the call is answered or declined (no orphaned oscillators/timeouts).
+- The lock screen must display on initial load and must be dismissable via swipe-to-unlock gesture or power button — never auto-skip.
+- The power button must toggle the lock screen on/off from any screen (except active calls).
+- The camera screen must request webcam access only when the user explicitly opens the camera app — never on page load.
+- The camera must provide a graceful fallback viewfinder when `getUserMedia` is denied or unavailable — never a blank/broken screen.
+- All camera media streams must be stopped when navigating away from the camera screen — no orphaned streams or active camera indicators.

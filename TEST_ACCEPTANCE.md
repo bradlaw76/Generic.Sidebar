@@ -54,7 +54,7 @@
 - ✔ Table headers use `scope="col"`
 - ✔ External links include `rel="noopener noreferrer"`
 
-### Android Cell Phone Simulator (AndroidCellPhone.html v2.3.0)
+### Android Cell Phone Simulator (AndroidCellPhone.html v2.4.0)
 
 #### Home Screen & Navigation
 - ✔ Home screen renders clock, date, wallpaper, app grid, and dock
@@ -103,3 +103,20 @@
 - ✔ Table `gensoft_demo_profile` has 7 columns matching schema spec
 - ✔ 3 sample demo profiles inserted (Insurance Inquiry, Billing Dispute, Prescription Refill)
 - ✔ Both tables added as solution components to GenericSoftphone solution
+
+#### Lock Screen
+- ✔ Lock screen displays on initial load with wallpaper background and swipe hint
+- ✔ Swipe-to-unlock gesture (drag up) dismisses lock screen and reveals home screen
+- ✔ Power button (right side) toggles lock screen on/off
+- ✔ Lock screen clock and date update in real time
+- ✔ Wallpaper from config/fallback renders as lock screen background
+
+#### Camera Screen
+- ✔ Camera app opens from home screen app grid
+- ✔ getUserMedia requests webcam access on camera open
+- ✔ Live viewfinder renders when webcam permission granted
+- ✔ Graceful fallback viewfinder displays when permission denied or unavailable
+- ✔ Shutter button triggers flash animation
+- ✔ Front/rear camera flip toggle switches camera facing mode
+- ✔ Media streams stop cleanly when navigating away from camera (no orphaned streams)
+- ✔ Camera does not request permissions until explicitly opened

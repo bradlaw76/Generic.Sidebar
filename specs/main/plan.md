@@ -83,7 +83,8 @@ specs/main/
     └── requirements.md
 
 Generic.AndroidCellPhone/
-├── AndroidCellPhone.html          # Samsung S25 Ultra phone simulator (v2.3.0)
+├── AndroidCellPhone.html          # Samsung S25 Ultra phone simulator (v2.4.0)
+├── DOCUMENTATION.md               # Comprehensive technical documentation
 ├── plans/
 │   ├── 2026-03-05-android-phone-simulator.md
 │   └── 2026-03-05-android-phone-simulator-design.md

@@ -32,12 +32,15 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 
 ### Android Cell Phone Simulator (Samsung S25 Ultra)
 
-- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (v2.3.0)
+- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (v2.4.0)
+- **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 - Embeddable phone simulator for contact center demos
 - Outgoing/incoming call flows via `localStorage.genericSimCall`
 - Dual mode: D365 (Xrm.WebApi) and Standalone (fallback JSON)
 - Demo Control Panel (Ctrl+Shift+D) for profile selection, transcript toggle, browser URL config
 - Embedded iframe browser with DuckDuckGo search and blocked-site fallback
+- Lock screen with swipe-to-unlock gesture, power button lock/unlock, and configurable wallpaper
+- Camera screen with live webcam viewfinder (getUserMedia), shutter flash animation, front/rear flip, and graceful fallback
 - Web Audio API synthesized ringtone, fallback wallpaper, default transcript
 
 ### Genesys Softphone Simulator

@@ -176,7 +176,9 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ### User Story 4 — Android Cell Phone Simulator for Contact Center Demos (Priority: P2)
 
-A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.3.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
+A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.4.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
+
+**Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
 **Why this priority**: Enables end-to-end demo flow with the Genesys Softphone without a real phone device.
 
@@ -188,6 +190,8 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.3.0) i
 3. Given a demo profile is selected, When applied, Then queue name, caller info, transcript text, and wallpaper update.
 4. Given Chrome icon is tapped, When a URL is pre-configured in Demo Panel, Then the browser auto-loads that URL.
 5. Given a URL is typed in the browser bar, When the site blocks iframe embedding, Then a blocked message appears with "Open in New Tab" button.
+6. Given the phone loads, When the lock screen is displayed, Then swipe-to-unlock or power button dismisses it and reveals the home screen.
+7. Given the camera app is opened, When webcam access is granted, Then a live viewfinder renders; When denied, Then a graceful fallback viewfinder appears.
 
 #### Functional Requirements (Sidecar)
 - **FR-S01**: The phone simulator MUST communicate via `localStorage.genericSimCall` with `state: CONNECTED` (outgoing) and `state: RINGING` (incoming).
@@ -197,6 +201,10 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.3.0) i
 - **FR-S05**: Sites that refuse iframe embedding MUST show a blocked indicator with an "Open in New Tab" escape hatch.
 - **FR-S06**: The synthesized ringtone MUST use Web Audio API and MUST not leave orphaned audio resources when stopped.
 - **FR-S07**: Genesys Softphone.html MUST NOT be modified — all integration is via localStorage contract.
+- **FR-S08**: The phone MUST display a lock screen on initial load with swipe-to-unlock gesture and power button lock/unlock.
+- **FR-S09**: The camera screen MUST request webcam access via `getUserMedia`, render a live viewfinder, and provide a graceful fallback when permissions are denied.
+- **FR-S10**: The camera MUST include shutter flash animation and front/rear camera flip toggle.
+- **FR-S11**: The camera MUST stop all media streams when navigating away from the camera screen (no orphaned streams).
 
 ### Dataverse Schema — GenericSoftphone Solution (v1.0.0.11)
 
