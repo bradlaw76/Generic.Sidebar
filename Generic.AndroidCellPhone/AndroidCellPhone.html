@@ -1112,12 +1112,16 @@ function ensureXrm() {
   } catch(e) {}
 }
 
-/* Build a minimal Xrm.WebApi shim using fetch + cookie auth */
+/* Build a minimal Xrm.WebApi shim using fetch + cookie auth.
+   Xrm.WebApi uses logical names (singular) but the REST endpoint
+   requires entity set names (plural). Simple 's' suffix covers
+   contact→contacts, gensoft_genericsoftphone→gensoft_genericsoftphones, etc. */
 function _buildFetchWebApi(baseUrl) {
   window.Xrm = window.Xrm || {};
   window.Xrm.WebApi = window.Xrm.WebApi || {
     retrieveMultipleRecords: function(entity, query) {
-      return fetch(baseUrl + entity + (query || ''), {
+      var plural = entity + (entity.endsWith('s') ? 'es' : 's');
+      return fetch(baseUrl + plural + (query || ''), {
         headers: {
           'Accept': 'application/json',
           'OData-MaxVersion': '4.0',
