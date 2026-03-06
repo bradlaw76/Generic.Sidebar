@@ -1,8 +1,9 @@
 # Generic.Sidebar — Specification
 
 **Status:** DRAFT
-**Version:** 0.1.0
+**Version:** 0.2.0
 **Created:** 2026-03-04
+**Updated:** 2026-03-05
 
 ---
 
@@ -26,6 +27,32 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - Changes to external embedded systems (for example, Genesys)
 - Dataverse schema evolution beyond fields consumed by the sidebar runtime
 - Non-Dynamics host application integrations
+
+## Sidecar Components
+
+### Android Cell Phone Simulator (Samsung S25 Ultra)
+
+- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (v2.3.0)
+- Embeddable phone simulator for contact center demos
+- Outgoing/incoming call flows via `localStorage.genericSimCall`
+- Dual mode: D365 (Xrm.WebApi) and Standalone (fallback JSON)
+- Demo Control Panel (Ctrl+Shift+D) for profile selection, transcript toggle, browser URL config
+- Embedded iframe browser with DuckDuckGo search and blocked-site fallback
+- Web Audio API synthesized ringtone, fallback wallpaper, default transcript
+
+### Genesys Softphone Simulator
+
+- **File:** `SidecarItems/Genesys Softphone/Genesys Softphone.html`
+- Call handling, transcript streaming, CRM writeback via Xrm.WebApi
+- Writes `gensoft_transcriptcompleted = true` on transcript completion
+
+### Dataverse Schema (GenericSoftphone Solution)
+
+- **Solution:** GenericSoftphone v1.0.0.11, Unmanaged, Publisher prefix `gensoft_`
+- **Table 1:** `gensoft_genericsoftphone` — 13 columns (ringtone, transcript, pop mode, wallpaper, etc.)
+- **Table 2:** `gensoft_demo_profile` — 7 columns (queue, caller, scenario presets)
+- **Deployment:** `specs/main/scripts/create-dataverse-schema.ps1` (3-phase: review, apply, sample data)
+- **Schema spec:** `specs/main/dataverse-schema.md`
 
 ## Requirements
 

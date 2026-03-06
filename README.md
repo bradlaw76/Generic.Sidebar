@@ -33,6 +33,31 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 * Full iframe customization (allow, style, width, height).
 * Safe defaults (auto-applied allow attributes, strict referrer policy).
 
+---
+
+## 📱 Android Cell Phone Simulator (Samsung S25 Ultra)
+
+A self-contained HTML phone simulator used as a sidecar embed for contact center demos.
+
+**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.3.0**
+
+### Features
+* Samsung S25 Ultra chassis with realistic home screen, dock, status bar
+* Outgoing + incoming call flows via `localStorage.genericSimCall`
+* Dual mode: **D365 Mode** (Xrm.WebApi reads from Dataverse) / **Standalone Mode** (embedded fallback JSON)
+* Demo Control Panel (Ctrl+Shift+D) — profile selector, transcript toggle, browser URL config
+* Embedded iframe browser (Chrome icon) with DuckDuckGo search, blocked-site detection, "Open in New Tab" fallback
+* Web Audio API synthesized ringtone (440+480 Hz dual-tone, 2s on / 4s off cadence)
+* Fallback wallpaper, default Insurance Inquiry transcript
+
+### Dataverse Schema
+* **Table 1:** `gensoft_genericsoftphone` — softphone configuration (ringtone, transcript, pop mode, wallpaper)
+* **Table 2:** `gensoft_demo_profile` — pre-built demo profiles (queue/caller/scenario presets)
+* **Solution:** GenericSoftphone v1.0.0.11 (Unmanaged)
+* **Deployment script:** `specs/main/scripts/create-dataverse-schema.ps1`
+
+---
+
 
 ⚡ Usage Instructions
 1. Import the Solution

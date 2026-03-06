@@ -1,12 +1,12 @@
 {
   "system": {
     "name": "Generic.Sidebar",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "status": "ACTIVE",
     "type": "hybrid"
   },
   "purpose": {
-    "summary": "A flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps. Configure a single Dataverse table row to control instructions, embeds, icons, and theming — no custom HTML/JS per form."
+    "summary": "A flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps. Configure a single Dataverse table row to control instructions, embeds, icons, and theming — no custom HTML/JS per form. Includes sidecar components: Android Cell Phone Simulator (Samsung S25 Ultra) and Genesys Softphone for contact center demos."
   },
   "registry": {
     "indexUrl": "https://github.com/bradlaw76/SpeckKit-Project-Development/blob/main/system-manifests/MANIFEST_INDEX.json.md",

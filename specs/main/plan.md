@@ -75,8 +75,30 @@ pages/
 
 specs/main/
 ├── plan.md
-├── (spec.md — to be created)
-└── (Phase 0/1 outputs: research.md, data-model.md, quickstart.md, contracts/)
+├── spec.md
+├── dataverse-schema.md
+├── scripts/
+│   └── create-dataverse-schema.ps1
+└── checklists/
+    └── requirements.md
+
+Generic.AndroidCellPhone/
+├── AndroidCellPhone.html          # Samsung S25 Ultra phone simulator (v2.3.0)
+├── plans/
+│   ├── 2026-03-05-android-phone-simulator.md
+│   └── 2026-03-05-android-phone-simulator-design.md
+└── Requirmeents.md/               # (sic — legacy folder name)
+    ├── s25-ultra-phone-simulator-spec.md
+    ├── s25-ultra-phone-simulator-build.md
+    └── android_phone_simulator_demo_profiles.md
+
+SidecarItems/
+├── Copilot.html
+├── Veteran Journey.html
+└── Genesys Softphone/
+    ├── Genesys Softphone.html      # DO NOT MODIFY
+    ├── android_phone_simulator.html
+    └── sidebar_generic_call_simulator.html
 
 .specify/
 ├── memory/constitution.md
