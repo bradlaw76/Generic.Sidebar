@@ -1818,7 +1818,10 @@ function nxtL() {
   var p=document.getElementById('transcriptPanel'); if(!p||S.trIdx>=S.trLines.length) return;
   var ln=S.trLines[S.trIdx++];
   var b=document.createElement('div'); b.className='tr-bubble '+ln.type;
-  b.innerHTML='<div class="tr-bubble-spk">'+esc(ln.spk)+'</div>'+esc(ln.txt);
+  /* For caller bubbles, show the phone owner's name instead of whatever
+     label was in the transcript text (handles contact changes in Dataverse) */
+  var label=(ln.type==='customer' && S.phoneOwner)?S.phoneOwner:ln.spk;
+  b.innerHTML='<div class="tr-bubble-spk">'+esc(label)+'</div>'+esc(ln.txt);
   p.appendChild(b); p.scrollTop=p.scrollHeight;
 }
 function skipTr() { clearInterval(S.trTimer); while(S.trIdx<S.trLines.length) nxtL(); }
