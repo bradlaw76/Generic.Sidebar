@@ -113,9 +113,17 @@ CTRL+SHIFT+D    Open/close settings screen
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Android Cell Phone — ACS Real Calling</title>
-<!-- ACS Calling SDK -->
-<script src="https://unpkg.com/@azure/communication-common@2.3.1/dist/index.js"></script>
-<script src="https://unpkg.com/@azure/communication-calling@1.30.1/dist/index.js"></script>
+<!-- ACS Calling SDK (browser bundles) -->
+<script src="https://unpkg.com/@azure/communication-common/dist/azure-communication-common.js"></script>
+<script src="https://unpkg.com/@azure/communication-calling/dist/azure-communication-calling.js"></script>
+<script>
+  /* Log whether ACS SDKs loaded */
+  window.addEventListener('load', function(){
+    console.log('[ACS-SDK] communication-common:', typeof AzureCommunicationCommon !== 'undefined' ? 'loaded' : 'MISSING');
+    console.log('[ACS-SDK] communication-calling:', typeof AzureCommunicationCalling !== 'undefined' ? 'loaded' : 'MISSING');
+    if(typeof AzureCommunicationCalling !== 'undefined') console.log('[ACS-SDK] CallClient:', typeof AzureCommunicationCalling.CallClient);
+  });
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;700&family=Jost:wght@300;400;500;600;700&display=swap');
 
@@ -1128,18 +1136,25 @@ var acsReady = false;
 function initAcs() {
   if(acsReady) return Promise.resolve(true);
   console.log('[ACS] Initializing...');
-  return fetch(ACS_TOKEN_URL).then(function(r){ return r.json(); }).then(function(data){
+  console.log('[ACS] Globals — AzureCommunicationCalling:', typeof AzureCommunicationCalling, '| AzureCommunicationCommon:', typeof AzureCommunicationCommon);
+  return fetch(ACS_TOKEN_URL).then(function(r){
+    if(!r.ok) throw new Error('Token fetch failed: ' + r.status);
+    return r.json();
+  }).then(function(data){
     if(!data.token) throw new Error('No token in response');
-    var CallClient = window.AzureCommunicationCalling && window.AzureCommunicationCalling.CallClient;
-    var AzureCommunicationTokenCredential = window.AzureCommunicationCommon && window.AzureCommunicationCommon.AzureCommunicationTokenCredential;
-    if(!CallClient || !AzureCommunicationTokenCredential){
-      console.warn('[ACS] SDK not loaded — falling back to simulation');
+    console.log('[ACS] Token acquired, length:', data.token.length);
+    var CallClient = (typeof AzureCommunicationCalling !== 'undefined') && AzureCommunicationCalling.CallClient;
+    var TokenCred = (typeof AzureCommunicationCommon !== 'undefined') && AzureCommunicationCommon.AzureCommunicationTokenCredential;
+    if(!CallClient || !TokenCred){
+      console.warn('[ACS] SDK classes not found — CallClient:', !!CallClient, 'TokenCred:', !!TokenCred);
+      console.warn('[ACS] Falling back to simulation');
       return false;
     }
     var callClient = new CallClient();
-    var credential = new AzureCommunicationTokenCredential(data.token);
+    var credential = new TokenCred(data.token);
     return callClient.createCallAgent(credential, { displayName: 'Generic Sidebar Phone' }).then(function(agent){
       acsCallAgent = agent;
+      console.log('[ACS] CallAgent created');
       return callClient.getDeviceManager();
     }).then(function(dm){
       return dm.askDevicePermission({ audio: true });
@@ -1155,15 +1170,21 @@ function initAcs() {
 }
 
 function acsCall(phoneNumber) {
-  if(!acsCallAgent) return null;
-  var target = phoneNumber.replace(/[^\\d+]/g, '');
+  if(!acsCallAgent){ console.warn('[ACS] No call agent'); return null; }
+  var target = phoneNumber.replace(/[^\d+]/g, '');
   if(!target.startsWith('+')) target = '+1' + target;
-  console.log('[ACS] Calling', target, 'from', ACS_PHONE_NUMBER);
-  var call = acsCallAgent.startCall(
-    [{ phoneNumber: target }],
-    { alternateCallerId: { phoneNumber: ACS_PHONE_NUMBER } }
-  );
-  return call;
+  console.log('[ACS] Dialing', target, 'from', ACS_PHONE_NUMBER);
+  try {
+    var call = acsCallAgent.startCall(
+      [{ phoneNumber: target }],
+      { alternateCallerId: { phoneNumber: ACS_PHONE_NUMBER } }
+    );
+    console.log('[ACS] Call started, state:', call.state);
+    return call;
+  } catch(err) {
+    console.error('[ACS] startCall error:', err);
+    return null;
+  }
 }
 
 function acsHangUp() {
