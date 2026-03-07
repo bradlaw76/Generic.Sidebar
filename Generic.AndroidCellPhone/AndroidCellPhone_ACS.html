@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.3
+VERSION:      3.0.4
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -1128,20 +1128,18 @@ var _acsScriptsLoaded = false;
 function loadAcsScripts() {
   if(_acsScriptsLoaded) return Promise.resolve(true);
   return new Promise(function(resolve){
-    var s1 = document.createElement('script');
-    s1.src = 'https://cdn.jsdelivr.net/npm/@azure/communication-common@2.3.1/dist/index.js';
-    s1.onload = function(){
-      var s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/@azure/communication-calling@1.29.1/dist/index.js';
-      s2.onload = function(){
-        _acsScriptsLoaded = true;
-        resolve(true);
-      };
-      s2.onerror = function(){ resolve(false); };
-      document.head.appendChild(s2);
+    var s = document.createElement('script');
+    s.src = 'https://fn-generic-sidebar-acs.azurewebsites.net/api/serveAcsBundle';
+    s.onload = function(){
+      _acsScriptsLoaded = true;
+      showDebugToast('ACS SDK bundle loaded (' + (typeof AzureCommunicationCalling) + ')');
+      resolve(true);
     };
-    s1.onerror = function(){ resolve(false); };
-    document.head.appendChild(s1);
+    s.onerror = function(){
+      showDebugToast('ACS SDK FAILED to load from Azure Function');
+      resolve(false);
+    };
+    document.head.appendChild(s);
   });
 }
 
@@ -2308,7 +2306,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v3.0.3-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.4-ACS | ACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
