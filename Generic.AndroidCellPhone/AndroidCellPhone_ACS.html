@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.4
+VERSION:      3.0.5
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -1790,11 +1790,16 @@ function doCall(c) {
           acsCurrentCall = call;
           S._acsMode = true;
           if(nuEl) nuEl.textContent = realNumber;
+          showDebugToast('ACS call started. State: ' + call.state);
           call.on('stateChanged', function(){
-            var st = call.state;
-            console.log('[ACS] Call state:', st);
-            if(st === 'Connected'){ stopRing(); connectAcs(c); }
-            if(st === 'Disconnected'){ endCall(); }
+            var st = (call.state||'').toLowerCase();
+            showDebugToast('ACS state: ' + call.state);
+            if(st === 'connected'){ stopRing(); connectAcs(c); }
+            if(st === 'disconnected'){ endCall(); }
+            if(st === 'ringing' || st === 'earlyMedia'){
+              var sEl = document.querySelector('.calling-status');
+              if(sEl) sEl.textContent = 'Ringing remote phone...';
+            }
           });
           return;
         }
@@ -2306,7 +2311,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v3.0.4-ACS | ACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.5-ACS | ACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
