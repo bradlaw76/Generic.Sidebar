@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.2
+VERSION:      3.0.3
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -113,22 +113,7 @@ CTRL+SHIFT+D    Open/close settings screen
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Android Cell Phone — ACS Real Calling</title>
-<!-- ACS Calling SDK (official Microsoft CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/@azure/communication-common@2.3.1/dist/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@azure/communication-calling@1.29.1/dist/index.js"></script>
-<script>
-  /* Log whether ACS SDKs loaded */
-  window.addEventListener('load', function(){
-    var hasCommon = typeof AzureCommunicationCommon !== 'undefined';
-    var hasCalling = typeof AzureCommunicationCalling !== 'undefined';
-    console.log('[ACS-SDK] communication-common:', hasCommon ? 'loaded' : 'MISSING');
-    console.log('[ACS-SDK] communication-calling:', hasCalling ? 'loaded' : 'MISSING');
-    /* Also check window-level globals */
-    if(!hasCommon && !hasCalling){
-      console.log('[ACS-SDK] Checking window keys:', Object.keys(window).filter(function(k){ return k.toLowerCase().indexOf('azure')>=0 || k.toLowerCase().indexOf('communication')>=0; }).join(', ') || 'none found');
-    }
-  });
-</script>
+<!-- ACS SDK loaded dynamically to avoid blocking page if CDN is slow/blocked -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300;400;500;700&family=Jost:wght@300;400;500;600;700&display=swap');
 
@@ -1137,39 +1122,63 @@ var ACS_PHONE_NUMBER = '+18449197292';
 var acsCallAgent = null;
 var acsCurrentCall = null;
 var acsReady = false;
+var _acsScriptsLoaded = false;
+
+/* Dynamically load ACS SDK scripts */
+function loadAcsScripts() {
+  if(_acsScriptsLoaded) return Promise.resolve(true);
+  return new Promise(function(resolve){
+    var s1 = document.createElement('script');
+    s1.src = 'https://cdn.jsdelivr.net/npm/@azure/communication-common@2.3.1/dist/index.js';
+    s1.onload = function(){
+      var s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/@azure/communication-calling@1.29.1/dist/index.js';
+      s2.onload = function(){
+        _acsScriptsLoaded = true;
+        resolve(true);
+      };
+      s2.onerror = function(){ resolve(false); };
+      document.head.appendChild(s2);
+    };
+    s1.onerror = function(){ resolve(false); };
+    document.head.appendChild(s1);
+  });
+}
 
 function initAcs() {
   if(acsReady) return Promise.resolve(true);
-  console.log('[ACS] Initializing...');
-  console.log('[ACS] Globals — AzureCommunicationCalling:', typeof AzureCommunicationCalling, '| AzureCommunicationCommon:', typeof AzureCommunicationCommon);
-  return fetch(ACS_TOKEN_URL).then(function(r){
-    if(!r.ok) throw new Error('Token fetch failed: ' + r.status);
-    return r.json();
-  }).then(function(data){
-    if(!data.token) throw new Error('No token in response');
-    console.log('[ACS] Token acquired, length:', data.token.length);
-    var CallClient = (typeof AzureCommunicationCalling !== 'undefined') && AzureCommunicationCalling.CallClient;
-    var TokenCred = (typeof AzureCommunicationCommon !== 'undefined') && AzureCommunicationCommon.AzureCommunicationTokenCredential;
-    if(!CallClient || !TokenCred){
-      console.warn('[ACS] SDK classes not found — CallClient:', !!CallClient, 'TokenCred:', !!TokenCred);
-      console.warn('[ACS] Falling back to simulation');
+  return loadAcsScripts().then(function(scriptsOk){
+    if(!scriptsOk){
+      showDebugToast('ACS SDK FAILED to load from CDN');
       return false;
     }
-    var callClient = new CallClient();
-    var credential = new TokenCred(data.token);
-    return callClient.createCallAgent(credential, { displayName: 'Generic Sidebar Phone' }).then(function(agent){
-      acsCallAgent = agent;
-      console.log('[ACS] CallAgent created');
-      return callClient.getDeviceManager();
-    }).then(function(dm){
-      return dm.askDevicePermission({ audio: true });
-    }).then(function(){
-      acsReady = true;
-      console.log('[ACS] Ready. Outbound number:', ACS_PHONE_NUMBER);
-      return true;
+    showDebugToast('ACS SDK loaded. Getting token...');
+    return fetch(ACS_TOKEN_URL).then(function(r){
+      if(!r.ok) throw new Error('Token fetch failed: ' + r.status);
+      return r.json();
+    }).then(function(data){
+      if(!data.token) throw new Error('No token in response');
+      var CallClient = (typeof AzureCommunicationCalling !== 'undefined') && AzureCommunicationCalling.CallClient;
+      var TokenCred = (typeof AzureCommunicationCommon !== 'undefined') && AzureCommunicationCommon.AzureCommunicationTokenCredential;
+      if(!CallClient || !TokenCred){
+        showDebugToast('ACS: SDK globals not found\\nCallClient='+!!CallClient+' TokenCred='+!!TokenCred);
+        return false;
+      }
+      var callClient = new CallClient();
+      var credential = new TokenCred(data.token);
+      return callClient.createCallAgent(credential, { displayName: 'Generic Sidebar Phone' }).then(function(agent){
+        acsCallAgent = agent;
+        return callClient.getDeviceManager();
+      }).then(function(dm){
+        return dm.askDevicePermission({ audio: true });
+      }).then(function(){
+        acsReady = true;
+        showDebugToast('ACS READY! Mic access granted.');
+        return true;
+      });
     });
   }).catch(function(err){
-    console.error('[ACS] Init failed:', err);
+    showDebugToast('ACS INIT ERROR:\\n'+err.message);
     return false;
   });
 }
@@ -2299,7 +2308,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v3.0.2-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.3-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
