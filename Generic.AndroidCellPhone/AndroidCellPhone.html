@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.8.1
+VERSION:      2.8.2
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -138,6 +138,7 @@ html,body{
   overflow:hidden;
   user-select:none;
   -webkit-user-select:none;
+  margin:0;padding:0;
 }
 
 /* ---- Phone Chassis ---- */
@@ -1722,9 +1723,12 @@ function connect(c) {
     secs++; var m=Math.floor(secs/60),s=secs%60;
     if(tEl) tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
   },1000);
-  /* Transcript starts when Genesys Softphone answers (state=CONNECTED),
-     NOT immediately on connect. Listen for the storage change. */
+  /* Transcript starts when Genesys Softphone answers (state=CONNECTED).
+     Start polling; also start immediately as fallback (3s grace). */
   waitForAnswer();
+  S._trFallbackTimer=setTimeout(function(){
+    if(!S.trLines.length || S.trIdx===0) initTr();
+  }, 4000);
 }
 function wrP(c) {
   var cfg=S.cfg||{};
@@ -1776,16 +1780,18 @@ function parseTr(txt) {
   if(!txt) return [];
   /* Normalize line endings */
   txt = txt.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  console.log('[Phone] parseTr input length:', txt.length, 'first 200 chars:', txt.substring(0,200));
   /* Split on blank lines first */
   var blocks = txt.split(/\n\s*\n+/);
   /* If only one block, try splitting on newline before any Name: label */
   if(blocks.length <= 1){
-    blocks = txt.split(/\n(?=[A-Za-z][A-Za-z .]+:\s)/);
+    blocks = txt.split(/\n(?=[A-Za-z][A-Za-z .']+:\s)/);
   }
-  return blocks.map(function(blk){
+  console.log('[Phone] parseTr blocks:', blocks.length);
+  var result = blocks.map(function(blk){
     blk=blk.trim(); if(!blk) return null;
-    /* Match any speaker label before a colon — Agent:, Customer:, Caller:, Ted Bailey:, etc. */
-    var m=blk.match(/^([A-Za-z][A-Za-z .]+?):\s*/);
+    /* Match any speaker label before a colon */
+    var m=blk.match(/^([A-Za-z][A-Za-z .']+?):\s*/);
     if(m){
       var label=m[1].trim().toLowerCase();
       var isAgent=(label==='agent');
@@ -1793,6 +1799,8 @@ function parseTr(txt) {
     }
     return {type:'customer',spk:'Caller',txt:blk};
   }).filter(Boolean);
+  console.log('[Phone] parseTr results:', result.length, result.map(function(r){return r.type+':'+r.spk;}).join(', '));
+  return result;
 }
 function initTr() {
   var p=document.getElementById('transcriptPanel'); if(!p) return;
@@ -1831,7 +1839,7 @@ function endCall() {
   var tEl=document.getElementById('incallTimer');
   var dur=tEl&&tEl.textContent&&tEl.textContent!=='00:00'?'Duration: '+tEl.textContent:'';
   var c=S.con||{};
-  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); if(S._answerPoll) clearInterval(S._answerPoll); stopRing();
+  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); if(S._answerPoll) clearInterval(S._answerPoll); if(S._trFallbackTimer) clearTimeout(S._trFallbackTimer); stopRing();
   S.active=false; S.dp=null; S.trLines=[]; S.trIdx=0;
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   if(tEl) tEl.textContent='00:00';
@@ -2140,7 +2148,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v2.8.1 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
+  showDebugToast('v2.8.2 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
   ldCfg(function(){
     ldCon();
     ldDP();
