@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.6
+VERSION:      3.0.7
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -1123,6 +1123,15 @@ var acsCallAgent = null;
 var acsCurrentCall = null;
 var acsReady = false;
 var _acsScriptsLoaded = false;
+
+/* On-screen debug toast (top-level so ACS functions can use it) */
+function showDebugToast(msg){
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:8px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px 12px;border-radius:8px;pointer-events:none;white-space:pre-wrap;';
+  d.textContent=msg;
+  (document.body||document.documentElement).appendChild(d);
+  setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
+}
 
 /* Dynamically load ACS SDK scripts */
 function loadAcsScripts() {
@@ -2303,15 +2312,7 @@ document.addEventListener('DOMContentLoaded',function(){
   detectMode();
   updC(); setInterval(updC,15000);
   buildKeypad(); buildHomeApps();
-  /* On-screen debug toast so we don't need to find the right console context */
-  function showDebugToast(msg){
-    var d=document.createElement('div');
-    d.style.cssText='position:fixed;bottom:8px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px 12px;border-radius:8px;pointer-events:none;white-space:pre-wrap;';
-    d.textContent=msg;
-    document.body.appendChild(d);
-    setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
-  }
-  showDebugToast('v3.0.6-ACS | ACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.7-ACS | ACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
