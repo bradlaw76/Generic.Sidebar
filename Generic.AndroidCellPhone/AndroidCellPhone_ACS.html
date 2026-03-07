@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.0
+VERSION:      3.0.1
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -2294,7 +2294,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v3.0.0-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.1-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
