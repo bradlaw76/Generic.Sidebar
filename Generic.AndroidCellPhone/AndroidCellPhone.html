@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator (Samsung S25 Ultra)
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone.html
-VERSION:      2.8.0
+VERSION:      2.8.1
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-06
 ENVIRONMENT:  HTML | Vanilla JavaScript
@@ -398,7 +398,7 @@ html,body{
 .transcript-panel.hidden{display:none;}
 .tr-bubble{max-width:80%;padding:10px 14px;border-radius:18px;font-family:var(--fu);font-size:13px;line-height:1.45;animation:bubble-in 0.25s ease-out;}
 @keyframes bubble-in{from{opacity:0;transform:translateY(8px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
-.tr-bubble.customer{align-self:flex-start;background:var(--s2);color:var(--tx);border-bottom-left-radius:4px;}
+.tr-bubble.customer{align-self:flex-start;background:#2a3a4a;color:var(--tx);border-bottom-left-radius:4px;}
 .tr-bubble.agent   {align-self:flex-end;background:var(--ac);color:#fff;border-bottom-right-radius:4px;}
 .tr-bubble-spk{font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;opacity:0.65;margin-bottom:4px;}
 .tr-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:0.35;}
@@ -1722,7 +1722,9 @@ function connect(c) {
     secs++; var m=Math.floor(secs/60),s=secs%60;
     if(tEl) tEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
   },1000);
-  initTr();
+  /* Transcript starts when Genesys Softphone answers (state=CONNECTED),
+     NOT immediately on connect. Listen for the storage change. */
+  waitForAnswer();
 }
 function wrP(c) {
   var cfg=S.cfg||{};
@@ -1751,22 +1753,45 @@ function wrP(c) {
 }
 
 /* ---- Transcript ---- */
+
+/* Wait for Genesys Softphone to answer (state changes to CONNECTED in localStorage) */
+function waitForAnswer() {
+  /* Check immediately in case it's already CONNECTED */
+  try {
+    var raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){ var d=JSON.parse(raw); if(d&&d.state==='CONNECTED'){ initTr(); return; } }
+  } catch(e){}
+  /* Poll localStorage since storage events don't fire in the same tab */
+  S._answerPoll=setInterval(function(){
+    try {
+      var raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw){ clearInterval(S._answerPoll); return; } /* call ended */
+      var d=JSON.parse(raw);
+      if(d&&d.state==='CONNECTED'){ clearInterval(S._answerPoll); initTr(); }
+    } catch(e){}
+  }, 500);
+}
+
 function parseTr(txt) {
   if(!txt) return [];
-  /* Normalize line endings: \r\n → \n, then split on double-newline OR on
-     single newline followed by a speaker label (Customer:/Agent:/Caller:).
-     This handles Dataverse multiline text which may use single line breaks. */
+  /* Normalize line endings */
   txt = txt.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  /* Split on blank lines first */
   var blocks = txt.split(/\n\s*\n+/);
-  /* If only one block but contains multiple speaker labels, split on them */
+  /* If only one block, try splitting on newline before any Name: label */
   if(blocks.length <= 1){
-    blocks = txt.split(/\n(?=(?:Customer|Agent|Caller):\s)/i);
+    blocks = txt.split(/\n(?=[A-Za-z][A-Za-z .]+:\s)/);
   }
   return blocks.map(function(blk){
     blk=blk.trim(); if(!blk) return null;
-    var m=blk.match(/^(Customer|Agent|caller|agent):\s*/i);
-    if(m){ var t=(m[1].toLowerCase()==='customer'||m[1].toLowerCase()==='caller')?'customer':'agent'; return {type:t,spk:m[1],txt:blk.substring(m[0].length)}; }
-    return {type:'customer',spk:'Customer',txt:blk};
+    /* Match any speaker label before a colon — Agent:, Customer:, Caller:, Ted Bailey:, etc. */
+    var m=blk.match(/^([A-Za-z][A-Za-z .]+?):\s*/);
+    if(m){
+      var label=m[1].trim().toLowerCase();
+      var isAgent=(label==='agent');
+      return {type:isAgent?'agent':'customer', spk:m[1].trim(), txt:blk.substring(m[0].length)};
+    }
+    return {type:'customer',spk:'Caller',txt:blk};
   }).filter(Boolean);
 }
 function initTr() {
@@ -1806,7 +1831,7 @@ function endCall() {
   var tEl=document.getElementById('incallTimer');
   var dur=tEl&&tEl.textContent&&tEl.textContent!=='00:00'?'Duration: '+tEl.textContent:'';
   var c=S.con||{};
-  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); stopRing();
+  clearTimeout(S.connectTimer); clearInterval(S.callTimer); clearInterval(S.trTimer); if(S._answerPoll) clearInterval(S._answerPoll); stopRing();
   S.active=false; S.dp=null; S.trLines=[]; S.trIdx=0;
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   if(tEl) tEl.textContent='00:00';
@@ -2115,7 +2140,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v2.8.0 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
+  showDebugToast('v2.8.1 | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,70)+'\\nXrm.WebApi='+(typeof Xrm!=='undefined'&&Xrm&&Xrm.WebApi?'YES ('+Object.keys(Xrm.WebApi).join(',')+')':'NO'));
   ldCfg(function(){
     ldCon();
     ldDP();
