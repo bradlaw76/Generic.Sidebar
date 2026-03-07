@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.1
+VERSION:      3.0.2
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -113,15 +113,20 @@ CTRL+SHIFT+D    Open/close settings screen
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Android Cell Phone — ACS Real Calling</title>
-<!-- ACS Calling SDK (browser bundles) -->
-<script src="https://unpkg.com/@azure/communication-common/dist/azure-communication-common.js"></script>
-<script src="https://unpkg.com/@azure/communication-calling/dist/azure-communication-calling.js"></script>
+<!-- ACS Calling SDK (official Microsoft CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@azure/communication-common@2.3.1/dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/communication-calling@1.29.1/dist/index.js"></script>
 <script>
   /* Log whether ACS SDKs loaded */
   window.addEventListener('load', function(){
-    console.log('[ACS-SDK] communication-common:', typeof AzureCommunicationCommon !== 'undefined' ? 'loaded' : 'MISSING');
-    console.log('[ACS-SDK] communication-calling:', typeof AzureCommunicationCalling !== 'undefined' ? 'loaded' : 'MISSING');
-    if(typeof AzureCommunicationCalling !== 'undefined') console.log('[ACS-SDK] CallClient:', typeof AzureCommunicationCalling.CallClient);
+    var hasCommon = typeof AzureCommunicationCommon !== 'undefined';
+    var hasCalling = typeof AzureCommunicationCalling !== 'undefined';
+    console.log('[ACS-SDK] communication-common:', hasCommon ? 'loaded' : 'MISSING');
+    console.log('[ACS-SDK] communication-calling:', hasCalling ? 'loaded' : 'MISSING');
+    /* Also check window-level globals */
+    if(!hasCommon && !hasCalling){
+      console.log('[ACS-SDK] Checking window keys:', Object.keys(window).filter(function(k){ return k.toLowerCase().indexOf('azure')>=0 || k.toLowerCase().indexOf('communication')>=0; }).join(', ') || 'none found');
+    }
   });
 </script>
 <style>
@@ -2294,7 +2299,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.body.appendChild(d);
     setTimeout(function(){ d.style.transition='opacity 1s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },1200); },15000);
   }
-  showDebugToast('v3.0.1-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
+  showDebugToast('v3.0.2-ACS | mode='+(isD365?'D365':'STANDALONE')+'\\nloc='+window.location.href.substring(0,60)+'\\nACS Phone: +1(844)919-7292');
   ldCfg(function(){
     ldCon();
     ldDP();
