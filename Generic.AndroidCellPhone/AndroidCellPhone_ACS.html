@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Android Cell Phone Simulator — ACS Real Calling
 FILE:         Generic.AndroidCellPhone\AndroidCellPhone_ACS.html
-VERSION:      3.0.7
+VERSION:      3.0.8
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-03-07
 ENVIRONMENT:  HTML | Vanilla JavaScript | Azure Communication Services
@@ -1049,12 +1049,22 @@ html,body{
 </div><!-- /chassis -->
 
 <script>
+/* Global error handler — shows JS errors as an alert */
+window.onerror = function(msg, url, line) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:red;color:white;font:12px monospace;padding:8px;';
+  el.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+  document.body.appendChild(el);
+};
 (function(){
 'use strict';
 
 var STORAGE_KEY = 'genericSimCall';
 var PROFILES_STORAGE_KEY = 'genericSimProfiles';
 var ORG_NAMES_STORAGE_KEY = 'genericSimOrgNames';
+
+/* STARTUP TEST — if you see this alert, v3.0.7 JS is running */
+try { document.title = 'ACS v3.0.7 LOADED'; } catch(e){}
 
 /* ---- Fallback data (standalone mode) ---- */
 var FALLBACK_CONFIG = {
@@ -1193,7 +1203,11 @@ function initAcs() {
 function acsCall(phoneNumber) {
   if(!acsCallAgent){ showDebugToast('ACS ERROR: No call agent!'); return null; }
   var target = phoneNumber.replace(/[^\d+]/g, '');
-  if(!target.startsWith('+')) target = '+1' + target;
+  /* Normalize: if 10 digits, add +1. If 11 digits starting with 1, add +. If already has +, leave it. */
+  if(target.startsWith('+')){ /* already has country code */ }
+  else if(target.length === 10){ target = '+1' + target; }
+  else if(target.length === 11 && target.startsWith('1')){ target = '+' + target; }
+  else { target = '+1' + target; }
   showDebugToast('ACS dialing: ' + target + '\\nfrom: ' + ACS_PHONE_NUMBER);
   try {
     var call = acsCallAgent.startCall(
