@@ -87,7 +87,8 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-v1.0.0  2026-07-21  Initial release - SSO orchestration for Generic.Sidebar
+v2.0.0  2026-07-22  Orchestration layer for Generic.Sidebar SSO
+v1.0.0  2026-07-21  Initial release - config loading + validation
 
 -----------------------------------------------------------------------------
 NON-NEGOTIABLES (Architecture Contract)

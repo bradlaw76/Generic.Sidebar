@@ -80,7 +80,8 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-v1.0.0  2026-07-21  Initial release - MSAL 2.38.3 integration for Generic.Sidebar
+v2.0.0  2026-07-22  MSAL 2.38.3 bootstrap layer for Generic.Sidebar
+v1.0.0  2026-07-21  Initial release - reusable MSAL initialization
 
 -----------------------------------------------------------------------------
 NON-NEGOTIABLES (Architecture Contract)

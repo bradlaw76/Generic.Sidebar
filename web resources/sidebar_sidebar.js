@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
-VERSION:      1.0.0
+VERSION:      2.0.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-07-22
 ENVIRONMENT:  JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,13 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.0.0  2026-07-22  Major: Enterprise SSO integration
+  * Added SSO detection + routing for Copilot Studio embeds
+  * Dynamically load MSAL + orchestration for SSO configs
+  * Fetch SSO fields from Dataverse (client ID, tenant, scopes)
+  * Graceful fallback to standard canvas if SSO fails
+  * 100% backwards compatible with non-SSO configs
+  * Zero hardcoding - all secrets from Dataverse
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
