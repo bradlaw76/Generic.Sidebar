@@ -107,9 +107,9 @@ NON-NEGOTIABLES (Architecture Contract)
     } catch { return null; }
   }
 
-  // Get Default row (or most recent) with minimal fields for header setup
+  // Get Default row (or most recent) with minimal fields for header setup + SSO flag
   async function getDefaultConfigRow() {
-    const select = "$select=sidebar_genericsidebarid,sidebar_title";
+    const select = "$select=sidebar_genericsidebarid,sidebar_title,sidebar_sso_enabled,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_token_endpoint,sidebar_auth_redirect_uri,sidebar_auth_scopes";
     try {
       const r1 = await Xrm.WebApi.retrieveMultipleRecords(
         TABLE, `?${select}&$filter=sidebar_default eq true&$top=1`
@@ -184,6 +184,10 @@ NON-NEGOTIABLES (Architecture Contract)
 
       const cfg = await getConfig();
       console.log("Configuration loaded:", cfg);
+      
+      // Parse SSO flag from config record if available
+      const ssoEnabledField = cfg.sidebar_sso_enabled;
+      cfg.ssoEnabled = (ssoEnabledField === true || ssoEnabledField === 1 || ssoEnabledField === "true");
 
       const pane = await ensurePane(cfg);
 
@@ -196,17 +200,87 @@ NON-NEGOTIABLES (Architecture Contract)
         return;
       }
 
-      // Pass only configId - removed icon-related parameters
+      // Pass configId + SSO detection
       const params = new URLSearchParams();
       if (cfg.configId) params.set("configId", cfg.configId);
 
-      console.log("Navigating to web resource with params:", params.toString());
+      // SSO DETECTION: Check if SSO is enabled for this config
+      // If enabled, route to SSO canvas; otherwise use standard canvas
+      let targetCanvas = "sidebar_sidebar.html";
+      let useSso = false;
 
-      await pane.navigate({
-        pageType: "webresource",
-        webresourceName: "sidebar_sidebar.html", // Make sure this matches your HTML web resource name
-        data: params.toString()
-      });
+      try {
+        if (cfg.ssoEnabled) {
+          console.log("[SSO] SSO enabled for this config");
+          // Load SSO bootstrap + setup libraries before navigation
+          await new Promise(function (resolve, reject) {
+            // Ensure SSO libraries are loaded
+            if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
+              console.log("[SSO] Libraries already loaded");
+              resolve();
+              return;
+            }
+            // Both bootstrap and setup must be loaded before proceeding
+            var libsLoaded = 0;
+            var onLibLoad = function () {
+              libsLoaded++;
+              if (libsLoaded >= 2) resolve();
+            };
+            if (typeof window.SidebarSSO === "undefined") {
+              // Load bootstrap first
+              var bootScript = document.createElement("script");
+              bootScript.src = Xrm.Utility.getGlobalContext().getClientUrl() + "/WebResources/sidebar_sso_bootstrap";
+              bootScript.onload = onLibLoad;
+              bootScript.onerror = function () { reject(new Error("Failed to load SSO bootstrap")); };
+              document.head.appendChild(bootScript);
+            } else {
+              libsLoaded++;
+            }
+            if (typeof window.SidebarSSO === "undefined" || typeof window.SidebarSSO.handlePaneNavigation !== "function") {
+              // Load setup
+              var setupScript = document.createElement("script");
+              setupScript.src = Xrm.Utility.getGlobalContext().getClientUrl() + "/WebResources/sidebar_sso_setup";
+              setupScript.onload = onLibLoad;
+              setupScript.onerror = function () { reject(new Error("Failed to load SSO setup")); };
+              document.head.appendChild(setupScript);
+            } else {
+              libsLoaded++;
+            }
+            setTimeout(function () { if (libsLoaded < 2) reject(new Error("SSO library load timeout")); }, 5000);
+          });
+          targetCanvas = "sidebar_sso_canvas.html";
+          useSso = true;
+        }
+      } catch (e) {
+        console.warn("[SSO] Failed to load SSO libraries: " + e.message + "; falling back to standard canvas");
+        // Continue with non-SSO canvas on library load failure
+        useSso = false;
+        targetCanvas = "sidebar_sidebar.html";
+      }
+
+      console.log("Navigating to web resource:", targetCanvas, "SSO=", useSso);
+
+      if (useSso && typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
+        // Use SSO orchestration
+        console.log("[SSO] Using SSO orchestration for pane navigation");
+        await window.SidebarSSO.handlePaneNavigation(cfg.configId, pane, "sidebar_sso_canvas")
+          .catch(function (e) {
+            console.error("[SSO] SSO navigation failed: " + e.message + "; using fallback canvas");
+            // Fallback: navigate to standard canvas if SSO fails
+            return pane.navigate({
+              pageType: "webresource",
+              webresourceName: "sidebar_sidebar.html",
+              data: params.toString()
+            });
+          });
+      } else {
+        // Use standard canvas navigation
+        await pane.navigate({
+          pageType: "webresource",
+          webresourceName: targetCanvas,
+          data: params.toString()
+        });
+      }
 
       // Track the loaded config on window to persist across form navigations
       window.__sidebarLoadedConfigId = cfg.configId;
