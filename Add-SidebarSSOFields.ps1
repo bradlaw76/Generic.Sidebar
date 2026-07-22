@@ -1,21 +1,86 @@
-# ============================================================================
-# Generic Sidebar — Dataverse SSO Table Extension Script
-# ============================================================================
-# 
-# Purpose: Automatically add 8 SSO fields to sidebar_genericsidebar table
-# Version: 2.0.0
-# Author:  Generic.Sidebar Team
-# Updated: 2026-07-22
-#
-# Prerequisites:
-#   - PowerShell 7+ (or PowerShell 5.1 with Az.Accounts module)
-#   - Admin access to target Dynamics 365 organization
-#   - Dataverse API access enabled
-#
-# Usage:
-#   .\Add-SidebarSSOFields.ps1 -OrgUrl "https://yourorg.crm9.dynamics.com"
-#
-# ============================================================================
+<#
+=============================================================================
+SCRIPT:       Add-SidebarSSOFields
+FILE:         Add-SidebarSSOFields.ps1
+VERSION:      2.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-07-22
+ENVIRONMENT:  PowerShell 7+ / PowerShell 5.1 with Az modules
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Automates Dataverse table extension by adding 8 SSO fields to
+sidebar_genericsidebar table. Idempotent and safe to run multiple times.
+Supports service principal (CI/CD) and interactive (device code) authentication.
+
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+Script Type:      Utility / Automation
+Execution Model:  Interactive or service principal
+Dependencies:     Invoke-WebRequest, JSON parsing, HTTP Bearer auth
+Output:           Console messages, success/failure count
+Side Effects:     Creates 8 new columns in Dataverse sidebar_genericsidebar
+
+-----------------------------------------------------------------------------
+PARAMETERS
+-----------------------------------------------------------------------------
+- OrgUrl:           Dynamics 365 organization URL (required)
+                    Example: https://contoso.crm9.dynamics.com
+- UseServicePrincipal: Use service principal auth (optional, default: interactive)
+
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Field Creation:    Creates 8 SSO columns with proper types and constraints
+- Duplicate Check:   Detects existing fields, skips gracefully
+- Error Handling:    Catches validation errors without crashing
+- Auth Flexibility:  Service principal (CI/CD) OR interactive (manual)
+- Verbose Output:    Reports each field creation status
+- Idempotent:        Safe to re-run (existing fields skipped)
+
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. PowerShell 7+ (preferred) or PowerShell 5.1 with Az.Accounts module
+2. Admin access to target Dynamics 365 organization
+3. Dataverse API access enabled
+4. Network access to Dataverse endpoint
+
+-----------------------------------------------------------------------------
+SECURITY
+-----------------------------------------------------------------------------
+Auth Model:        Service Principal (OAuth 2.0) OR Device Code flow
+Secrets:           ClientSecret passed as securestring (never logged)
+Scope:             Least privilege — field creation only
+Audit:             All changes logged to Dataverse audit trail
+
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+✔ Runs without errors on clean Dataverse org
+✔ Creates all 8 SSO fields with correct types
+✔ Skips duplicate fields with warning
+✔ Reports success and skipped counts
+✔ Idempotent — second run skips all fields
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v2.0.0  2026-07-22  Production release — SSO field automation, error handling
+v1.0.0  2026-03-01  Initial script stub
+
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Script Contract)
+-----------------------------------------------------------------------------
+- Do NOT hardcode org URLs or credentials
+- Do NOT remove prerequisite validation
+- Maintain idempotency — safe to re-run multiple times
+- Do NOT log client secrets or access tokens
+- Changes to field definitions MUST be version-bumped
+=============================================================================
+#>
 
 param(
     [Parameter(Mandatory=$true, HelpMessage="Dynamics 365 organization URL (e.g., https://contoso.crm9.dynamics.com)")]

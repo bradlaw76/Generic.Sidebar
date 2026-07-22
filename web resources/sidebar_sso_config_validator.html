@@ -1,0 +1,400 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_sso_config_validator
+FILE:         web resources/sidebar_sso_config_validator.html
+VERSION:      2.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-07-22
+ENVIRONMENT:  HTML5 (Dynamics 365 Web Resource / Admin Tool)
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Admin self-service preflight validation tool for SSO configuration.
+Validates Client ID, Tenant ID, API Scope, Token Endpoint, Redirect URI.
+=============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generic Sidebar SSO Configuration Validator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      max-width: 700px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+      line-height: 1.4;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-validate {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-validate:hover:not(:disabled) {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-validate:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-reset {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-reset:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+
+    /* Results */
+    .results {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .results.success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .results.success .check {
+      color: #16a34a;
+    }
+
+    .results.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .results.error .check {
+      color: #dc2626;
+    }
+
+    .results h3 {
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .check {
+      flex-shrink: 0;
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: -2px;
+    }
+
+    .check-item.pass .check { color: #16a34a; }
+    .check-item.fail .check { color: #dc2626; }
+
+    .message {
+      flex: 1;
+      color: #333;
+    }
+
+    .message.secondary {
+      color: #666;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e0e0e0;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .info-box {
+      background: #f3f4f6;
+      border-left: 4px solid #667eea;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #374151;
+    }
+
+    .info-box strong {
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 SSO Configuration Validator</h1>
+    <p class="subtitle">
+      Validate your Generic Sidebar SSO configuration before deploying to production.
+      This tool checks that all required fields are present and properly configured.
+    </p>
+
+    <div class="info-box">
+      <strong>ℹ️ What This Does:</strong>
+      <br/>This validator checks your configuration values to ensure they're complete and valid.
+      Run this before enabling SSO in production environments.
+    </div>
+
+    <form id="validatorForm">
+      <div class="form-group">
+        <label for="clientId">Entra App Client ID *</label>
+        <input type="text" id="clientId" placeholder="e.g., 3a669365-5420-433a-913f-ad7e39424a8c" required />
+        <p class="help-text">From Entra ID → App registrations → Your app → Application (client) ID</p>
+      </div>
+
+      <div class="form-group">
+        <label for="tenantId">Tenant ID *</label>
+        <input type="text" id="tenantId" placeholder="e.g., a8037933-4d29-4ef8-8754-e67b2edd480b" required />
+        <p class="help-text">From Azure portal → Tenant information → Tenant ID</p>
+      </div>
+
+      <div class="form-group">
+        <label for="apiScope">API Scope (Fully Qualified) *</label>
+        <input type="text" id="apiScope" placeholder="e.g., api://3db92c26-a99a-4d5f-8009-b5373f4ebfc0/Test.Read" required />
+        <p class="help-text">From Entra ID → Your app → Expose an API → copy full URI (api://...)</p>
+      </div>
+
+      <div class="form-group">
+        <label for="tokenEndpoint">Token Endpoint (Copilot Studio) *</label>
+        <textarea id="tokenEndpoint" rows="3" placeholder="https://..." required></textarea>
+        <p class="help-text">From Copilot Studio → Channels → Direct Line → Token Endpoint</p>
+      </div>
+
+      <div class="form-group">
+        <label for="redirectUri">Redirect URI</label>
+        <input type="text" id="redirectUri" placeholder="https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html" />
+        <p class="help-text">Usually: https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html</p>
+      </div>
+
+      <div class="form-group">
+        <label for="scopes">Additional Scopes (Optional)</label>
+        <input type="text" id="scopes" placeholder="e.g., Sites.Read.All" />
+        <p class="help-text">Space-separated list of any additional Graph or API scopes needed</p>
+      </div>
+
+      <div class="button-group">
+        <button type="button" class="btn-validate" onclick="validateConfig()">
+          ✓ Validate Configuration
+        </button>
+        <button type="reset" class="btn-reset">↺ Clear</button>
+      </div>
+    </form>
+
+    <div id="results" class="results"></div>
+  </div>
+
+  <script>
+  function validateConfig() {
+    const results = document.getElementById("results");
+    const clientId = document.getElementById("clientId").value.trim();
+    const tenantId = document.getElementById("tenantId").value.trim();
+    const apiScope = document.getElementById("apiScope").value.trim();
+    const tokenEndpoint = document.getElementById("tokenEndpoint").value.trim();
+    const redirectUri = document.getElementById("redirectUri").value.trim();
+    const scopes = document.getElementById("scopes").value.trim();
+
+    results.innerHTML = '<div class="loading"><span class="spinner"></span>Validating...</div>';
+    results.classList.add("show");
+
+    // Simulate async validation (in production, this could call a backend API)
+    setTimeout(function () {
+      const checks = [];
+      let allPassed = true;
+
+      // Check Client ID format
+      if (clientId && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(clientId)) {
+        checks.push({ pass: true, message: "Client ID is valid UUID format" });
+      } else {
+        checks.push({ pass: false, message: "Client ID must be a valid UUID (e.g., 3a669365-5420-...)" });
+        allPassed = false;
+      }
+
+      // Check Tenant ID format
+      if (tenantId && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(tenantId)) {
+        checks.push({ pass: true, message: "Tenant ID is valid UUID format" });
+      } else {
+        checks.push({ pass: false, message: "Tenant ID must be a valid UUID" });
+        allPassed = false;
+      }
+
+      // Check API Scope format
+      if (apiScope && apiScope.match(/^api:\/\/.+\/.+/i)) {
+        checks.push({ pass: true, message: "API Scope is properly formatted (api://...)" });
+      } else {
+        checks.push({ pass: false, message: "API Scope must start with 'api://' and include a scope name (e.g., api://client-id/Scope)" });
+        allPassed = false;
+      }
+
+      // Check Token Endpoint format
+      if (tokenEndpoint && tokenEndpoint.match(/^https:\/\/.+powerplatform\.microsoft\.us.+directline\/token/i)) {
+        checks.push({ pass: true, message: "Token Endpoint is valid GCC URL format" });
+      } else if (tokenEndpoint && tokenEndpoint.match(/^https:\/\/.+environment\.api\.microsoft\.com.+directline\/token/i)) {
+        checks.push({ pass: true, message: "Token Endpoint is valid commercial URL format" });
+      } else if (tokenEndpoint && tokenEndpoint.match(/^https:\/\/.*directline\/token/i)) {
+        checks.push({ pass: true, message: "Token Endpoint looks valid (should be https://...directline/token...)" });
+      } else {
+        checks.push({ pass: false, message: "Token Endpoint must end with 'directline/token...' and start with https://" });
+        allPassed = false;
+      }
+
+      // Check Redirect URI
+      if (redirectUri) {
+        if (redirectUri.match(/^https:\/\/.+\.crm\d+\.dynamics\.com\/WebResources\/sidebar_sso_canvas\.html/i)) {
+          checks.push({ pass: true, message: "Redirect URI is valid Dynamics 365 web resource URL" });
+        } else {
+          checks.push({ pass: true, message: "Redirect URI provided (format may vary by environment)" });
+        }
+      }
+
+      // Render results
+      const resultClass = allPassed ? "success" : "error";
+      const resultTitle = allPassed 
+        ? "✓ Configuration Valid" 
+        : "✗ Configuration Invalid";
+
+      let html = '<div class="results ' + resultClass + '"><h3>' + resultTitle + '</h3>';
+      checks.forEach(function (check) {
+        html += '<div class="check-item ' + (check.pass ? 'pass' : 'fail') + '">' +
+          '<span class="check">' + (check.pass ? '✓' : '✗') + '</span>' +
+          '<span class="message">' + check.message + '</span>' +
+          '</div>';
+      });
+
+      if (allPassed) {
+        html += '<p style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #bbf7d0; color: #16a34a; font-size: 13px;">' +
+          '✓ Your configuration is valid! You can now use this config in your sidebar_genericsidebar table.' +
+          '</p>';
+      } else {
+        html += '<p style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #fecaca; color: #dc2626; font-size: 13px;">' +
+          '✗ Please fix the errors above and try again.' +
+          '</p>';
+      }
+
+      html += '</div>';
+      results.innerHTML = html;
+      results.classList.add("show");
+    }, 1000);
+  }
+
+  // Allow Enter to validate
+  document.getElementById("validatorForm").addEventListener("keypress", function (e) {
+    if (e.key === "Enter" && e.ctrlKey) {
+      validateConfig();
+    }
+  });
+  </script>
+</body>
+</html>
