@@ -1,9 +1,10 @@
 # Generic.Sidebar — Specification
 
-**Status:** DRAFT
-**Version:** 0.2.0
+**Status:** PRODUCTION
+**Version:** 2.0.0
 **Created:** 2026-03-04
-**Updated:** 2026-03-05
+**Updated:** 2026-07-22
+**Release:** Enterprise SSO Integration with Complete Admin Toolkit
 
 ---
 
@@ -13,20 +14,69 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 
 ## Scope
 
-### In Scope
+### In Scope (v2.0.0)
 
 - Sidebar initialization and pane lifecycle behavior
-- Dataverse-driven runtime configuration loading
+- Dataverse-driven runtime configuration loading (including 8 new SSO fields)
 - Multi-panel rendering and tab behavior
-- Embed handling for URL and HTML sources
+- Embed handling for URL, HTML, and Copilot Studio canvas sources
+- SSO authentication flow: MSAL token acquisition → Copilot token exchange → Direct Line connection
+- OAuth card middleware suppression and loop guard
 - Instruction-band visibility behavior
-- Admin-only affordances where applicable
+- Admin-only affordances (configuration validator, setup guide, troubleshooting)
+- Token caching and session lifecycle management
+- Region support (Commercial, GCC, GCCH environments)
+- Graceful fallback for non-SSO configurations
 
 ### Out of Scope
 
 - Changes to external embedded systems (for example, Genesys)
 - Dataverse schema evolution beyond fields consumed by the sidebar runtime
 - Non-Dynamics host application integrations
+- Custom topic-authoring patterns in Copilot Studio (covered in ADMIN_SETUP_GUIDE.md)
+- AI model training or Copilot agent design (assumes agents pre-built)
+
+## SSO Architecture (v2.0.0)
+
+Generic Sidebar now includes enterprise-grade Single Sign-On powered by MSAL 2.38.3 (OAuth PKCE):
+
+```
+D365 Form (Parent)
+  ├─ sidebar_sidebar.js
+  │  ├─ Detects sidebar_sso_enabled flag in Dataverse config
+  │  ├─ Loads SSO bootstrap + setup libraries if enabled
+  │  └─ Routes to SSO canvas or standard canvas
+  │
+  ├─ sidebar_sso_bootstrap.js (if SSO enabled)
+  │  └─ MSAL 2.38.3 token acquisition (silent + popup)
+  │
+  ├─ sidebar_sso_setup.js (if SSO enabled)
+  │  └─ Fetches config from Dataverse + validates + acquires token
+  │
+  └─ [Pane Navigation]
+     └─ sidebar_sso_canvas.html (SSO) OR sidebar_sidebar.html (standard)
+        ├─ Receives userToken from parent
+        ├─ Exchanges token with Copilot token endpoint
+        ├─ OAuth card middleware suppression (max 2 silent attempts)
+        ├─ Web Chat rendering with Direct Line connection
+        └─ Session cache (localStorage) for conversation persistence
+```
+
+**Key Features:**
+- **Zero Hardcoding:** All secrets (Client IDs, Token Endpoints) in Dataverse table
+- **Silent SSO:** Users log in once, then seamless re-authentication via token cache
+- **Token Caching:** sessionStorage for browser session, cleared on close
+- **Fallback:** Non-SSO embeds unaffected; optional adoption per environment
+- **Multi-Region:** Commercial, GCC, GCCH endpoints supported
+- **Security:** PKCE, no token logging, URL parameter stripping, HIPAA-ready
+
+**Admin Deployment:**
+- Dataverse `sidebar_genericsidebar` table extended with 8 SSO fields
+- One-time Entra app registration per tenant (reused across all environments)
+- PowerShell automation script: `Add-SidebarSSOFields.ps1`
+- Configuration validator tool: `sidebar_sso_config_validator.html`
+
+---
 
 ## Sidecar Components
 

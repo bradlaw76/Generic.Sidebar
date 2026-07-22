@@ -1,8 +1,36 @@
-🚀 Generic Sidebar for Dynamics 365 — Release v1.0.5
-The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps.
-Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, and theming.
+🚀 Generic Sidebar for Dynamics 365 — Release v2.0.0
+The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps with **enterprise-grade Single Sign-On (SSO)** support.
 
-✨ What’s New in v1.0.5
+Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, theming, and SSO authentication—with **zero hardcoding** and **full backwards compatibility**.
+
+✨ What's New in v2.0.0 — **Enterprise SSO Integration**
+
+🔐 **Single Sign-On (SSO) for Copilot Studio**
+* Users authenticate once to Dynamics 365, then access Copilot agents seamlessly (no sign-in prompts).
+* MSAL 2.38.3 OAuth PKCE flow with silent token acquisition.
+* Session-scoped token caching — tokens cleared on browser close for security.
+* Graceful fallback — if SSO fails, standard canvas embeds continue working.
+
+🛠 **Complete Admin Toolkit**
+* **ADMIN_SETUP_GUIDE.md** — Step-by-step configuration (10 sections, Entra app registration to end-to-end testing).
+* **SECURITY_GUIDE.md** — Token lifecycle, credential storage, HIPAA compliance, GCC/GCCH region support.
+* **TROUBLESHOOTING.md** — 26 error categories with root causes and remediation steps.
+* **Add-SidebarSSOFields.ps1** — PowerShell automation to extend Dataverse table with 8 SSO fields.
+* **Configuration Validator Tool** — Admin preflight checks for SSO setup.
+
+📊 **Product-Grade Architecture**
+* All secrets stored in Dataverse (Client IDs, Token Endpoints) — not in code.
+* Single configuration per Dataverse row — reusable across environments (dev/test/prod).
+* Multi-region support: Commercial, GCC, GCCH endpoints.
+* OAuth card middleware suppression — prevents infinite login loops.
+
+🔄 **Full Backwards Compatibility**
+* Non-SSO configs work exactly as before (no changes required).
+* v1.0.5 → v2.0.0 upgrade is seamless (optional SSO adoption).
+
+---
+
+### Previous Release Highlights (v1.0.5)
 
 ✅ Admin Acknowledgement Banner
 * Added a demo disclaimer banner visible only to admins.
@@ -35,7 +63,21 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 
 ---
 
-## 📱 Android Cell Phone Simulator (Samsung S25 Ultra)
+## � Getting Started with SSO (v2.0.0)
+
+If you're deploying Generic Sidebar with Copilot Studio agents:
+
+1. **Read:** [ADMIN_SETUP_GUIDE.md](ADMIN_SETUP_GUIDE.md) — Complete step-by-step configuration
+2. **Review:** [SECURITY_GUIDE.md](SECURITY_GUIDE.md) — Token lifecycle and compliance requirements
+3. **Run:** `Add-SidebarSSOFields.ps1` — Automatically extend Dataverse table with SSO fields
+4. **Validate:** Use `sidebar_sso_config_validator.html` — Preflight checks before deployment
+5. **Troubleshoot:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — 26 error scenarios with solutions
+
+**First-time setup takes ~30 minutes.** Re-environment deployment is a single Dataverse record copy.
+
+---
+
+## �📱 Android Cell Phone Simulator (Samsung S25 Ultra)
 
 A self-contained HTML phone simulator used as a sidecar embed for contact center demos.
 
