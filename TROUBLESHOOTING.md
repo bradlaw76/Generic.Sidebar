@@ -18,6 +18,7 @@ Start here for fastest resolution:
 ☐ Confirm Copilot agent is Published (not Draft)
 ☐ Confirm Redirect URI matches your org URL exactly
 ☐ Hard refresh browser (Ctrl+Shift+R) to clear cache
+☐ Confirm active child rows exist in sidebar_genericsidebaragent for the selected parent config
 ```
 
 ---
@@ -258,6 +259,35 @@ https://yourorg.crm9.dynamics.us/WebResources/sidebar_sso_canvas.html (GCC)
 2. Verify Token Endpoint URL is correct (copy from Copilot Studio directly)
 3. Verify Copilot agent is **Published** (not Draft)
 4. Try hard refresh (Ctrl+Shift+R)
+
+---
+
+#### **C1a: Picker works but chat stays blank when testing with file:// URL**
+
+**Where you see this:** Local preview opens the picker, but selected agent does not start chat.
+
+**What it means:** This is usually expected in local preview. Full interactive Entra sign-in and embedded host context are validated in model-driven app runtime.
+
+**How to fix:**
+1. Test from Dynamics side pane (hosted web resource) instead of opening HTML directly from disk.
+2. Re-test selection flow in hosted runtime.
+3. If hosted runtime still fails, capture console errors and continue with sections B and C in this guide.
+
+---
+
+#### **C1b: Picker shows fallback list instead of Dataverse agent rows**
+
+**Where you see this:** Banner indicates Dataverse agents are unavailable and bundled list is shown.
+
+**What it means:** Child table rows could not be loaded for the selected parent config, or no active rows were found.
+
+**How to fix:**
+1. Verify `sidebar_genericsidebaragent` exists in the same environment.
+2. Verify at least one child row has:
+  - `sidebar_isactive = Yes`
+  - valid `sidebar_tokenendpoint`
+  - lookup to correct `sidebar_genericsidebar` parent
+3. Publish customizations and hard refresh.
 5. Check if agent is running without errors (go to Copilot Studio → Check agent status)
 
 **Common causes:**

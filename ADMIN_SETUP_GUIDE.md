@@ -278,6 +278,63 @@ Write-Host "SSO fields added successfully!"
 
 ---
 
+## Step 6A: Create the Agent Catalog Child Table
+
+To support multiple Copilot Studio agents from a single Generic Sidebar configuration,
+create a child table that stores one row per agent and links each row back to the
+parent `sidebar_genericsidebar` record.
+
+### Recommended table definition
+
+| Setting | Value |
+|---------|-------|
+| Display name | `Generic Sidebar Agent` |
+| Plural display name | `Generic Sidebar Agents` |
+| Logical name | `sidebar_genericsidebaragent` |
+| Primary column | `sidebar_name` |
+| Parent relationship | Many agent rows to one `sidebar_genericsidebar` row |
+
+### Required child columns
+
+| Field Name | Display Name | Type | Max Length | Required? | Notes |
+|------------|--------------|------|------------|-----------|-------|
+| `sidebar_name` | Agent Name | Text | 100 | Yes | Primary column for the child row |
+| `sidebar_displayname` | Display Name | Text | 150 | Yes | Title shown to end users in the picker |
+| `sidebar_tokenendpoint` | Token Endpoint | Text | 500 | Yes | Agent-specific Direct Line token endpoint |
+| `sidebar_sortorder` | Sort Order | Whole Number | — | Yes | Controls the menu order |
+| `sidebar_isactive` | Is Active | Yes/No | — | Yes | Inactive agents are not rendered |
+| `sidebar_genericsidebarid` | Generic Sidebar | Lookup | — | Yes | Required lookup to the parent `sidebar_genericsidebar` record |
+
+### Optional v1 child columns
+
+| Field Name | Display Name | Type | Max Length | Required? | Notes |
+|------------|--------------|------|------------|-----------|-------|
+| `sidebar_description` | Description | Text | 250 | No | Subtitle shown under the agent title |
+| `sidebar_agenttype` | Agent Type | Choice | — | No | Suggested values: `Copilot Studio`, `PVA Legacy`, `Other` |
+| `sidebar_isdefaultagent` | Default Agent | Yes/No | — | No | Marks the preferred default per parent config |
+| `sidebar_authscopeoverride` | Auth Scope Override | Text | 300 | No | Uses the parent sidebar scope when blank |
+| `sidebar_agentkey` | Agent Key | Text | 100 | No | Stable programmatic key if display names change |
+| `sidebar_iconurl` | Icon URL | Text | 500 | No | Optional icon/avatar shown in the menu |
+
+### Recommended relationship behavior
+
+1. Create a standard Dataverse lookup from `Generic Sidebar Agent` to `Generic Sidebar`.
+2. Use the parent Generic Sidebar record for shared SSO defaults such as client ID,
+   tenant ID, API scope, redirect URI, and additional scopes.
+3. Use child rows only for agent-specific metadata such as display name, description,
+   token endpoint, order, and optional scope override.
+4. Do not move the existing `sidebar_embedcode` fields into the child table for v1.
+
+### Example agent rows
+
+| Agent Name | Display Name | Description | Token Endpoint | Sort Order | Is Active |
+|------------|--------------|-------------|----------------|------------|-----------|
+| `Sales Opportunity` | `Sales Opportunity Agent` | `Request information about your opportunities` | `https://.../directline/token?...` | 10 | Yes |
+| `HR` | `HR Agent` | `Request information about HR policies` | `https://.../directline/token?...` | 20 | Yes |
+| `Service Desk` | `Service Desk Copilot` | `Find cases, accounts, contacts and knowledge` | `https://.../directline/token?...` | 30 | Yes |
+
+---
+
 ## Step 7: Test Configuration
 
 ### Use the Configuration Validator Tool:
@@ -302,6 +359,28 @@ Write-Host "SSO fields added successfully!"
    - ✅ No sign-in prompt (SSO handles it)
    - ✅ Agent responds to your questions
    - ✅ Chat history persists in sidebar session
+
+### Multi-Agent Picker + SSO Runtime Validation:
+
+Run this in hosted Dynamics runtime (not local `file://` preview).
+
+1. **Validate picker population:**
+   - Confirm active rows from `sidebar_genericsidebaragent` render as agent cards.
+   - Confirm inactive rows do not render.
+
+2. **Validate picker interaction:**
+   - Click an agent card.
+   - Confirm action panel hides and active agent header appears.
+   - Confirm **Change** returns to the picker.
+
+3. **Validate token and routing behavior:**
+   - Confirm token acquisition succeeds (silent preferred, popup allowed on first sign-in).
+   - Confirm chat frame loads for the selected agent.
+   - Confirm switching agents updates the routed token endpoint.
+
+4. **Validate fallback behavior:**
+   - Temporarily remove child rows and confirm fallback banner/list appears.
+   - Restore child rows and confirm Dataverse-driven list is used again.
 
 ### Debug Mode:
 

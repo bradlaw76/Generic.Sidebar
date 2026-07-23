@@ -75,6 +75,32 @@ If you're deploying Generic Sidebar with Copilot Studio agents:
 
 **First-time setup takes ~30 minutes.** Re-environment deployment is a single Dataverse record copy.
 
+## SSO Validation Status (2026-07-23)
+
+The Dataverse-driven multi-agent picker and SSO handoff were validated in this branch.
+
+Validated behaviors:
+- Agent picker renders from Dataverse child-table model with fallback list when Dataverse rows are unavailable.
+- Picker selection transitions UI state from action panel to active chat frame mode.
+- Selected agent metadata is encoded and passed to the SSO canvas via data query payload.
+- SSO canvas parses tokenEndpoint and usertoken parameters and performs Direct Line token exchange logic.
+
+Validation caveat:
+- Local file:// preview cannot complete real Entra interactive token acquisition in all environments. Final sign-in validation must be executed in hosted Dynamics context.
+
+Deployment validation checklist:
+1. Open the side panel from Dynamics (not from file://).
+2. Select one agent row from the picker.
+3. Confirm Entra token acquisition succeeds (silent or popup).
+4. Confirm chat frame loads and Direct Line conversation starts.
+5. Confirm Change button returns to picker.
+
+See also:
+- ADMIN_SETUP_GUIDE.md (operations + setup)
+- TROUBLESHOOTING.md (runtime issues)
+- SECURITY_GUIDE.md (token handling and hardening)
+- docs/sso-validation-report-2026-07-23.md (validation evidence)
+
 ---
 
 ## �📱 Android Cell Phone Simulator (Samsung S25 Ultra)

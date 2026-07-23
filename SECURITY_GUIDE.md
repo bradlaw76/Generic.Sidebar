@@ -36,6 +36,12 @@ Generic Sidebar SSO implements OAuth 2.0 PKCE (Proof Key for Code Exchange) with
 ✅ **HTTPS Only:** All token endpoints must be HTTPS  
 ✅ **No Token Logging:** Tokens never written to console or logs  
 
+### Runtime Validation Notes
+
+- The side-panel picker passes runtime token data to the canvas using a temporary query payload.
+- The canvas removes query token values from the visible URL immediately after parsing (`history.replaceState`).
+- End-to-end SSO verification must be performed in hosted Dynamics runtime, not `file://` preview.
+
 ---
 
 ## Security Architecture
@@ -101,6 +107,20 @@ Generic Sidebar SSO implements OAuth 2.0 PKCE (Proof Key for Code Exchange) with
 | **Secret Storage** | Dataverse encryption | Tenant administrator |
 | **Token Cache** | sessionStorage (not persistent) | Browser isolation |
 | **Redirect Validation** | PKCE + URL match | MSAL library + Entra |
+
+### Query Token Handling
+
+The runtime currently uses query payload handoff between side panel and canvas. This is acceptable for the current architecture with the following controls:
+
+1. HTTPS-only hosting.
+2. Immediate URL cleanup in canvas after parsing token data.
+3. No token logging in console/app logs.
+4. Session-scoped token cache.
+
+Recommended future hardening:
+
+1. Replace query payload handoff with `postMessage` to reduce transient URL exposure.
+2. Add explicit origin checks for inter-frame communication.
 
 ---
 
