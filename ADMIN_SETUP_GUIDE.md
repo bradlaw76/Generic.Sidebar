@@ -1,7 +1,7 @@
 # Generic Sidebar SSO — Admin Setup Guide
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Audience:** Dynamics 365 Administrators, Power Platform Administrators
 
 ---
@@ -30,7 +30,7 @@ Generic Sidebar now supports enterprise Single Sign-On (SSO) for Copilot Studio 
 - **Storing** SSO config in Dataverse (zero hardcoding)
 - **Testing** end-to-end functionality
 
-**Key Principle:** All sensitive data (Client IDs, Token Endpoints) is stored securely in Dataverse. The sidebar reads configuration at runtime—no code changes needed per environment.
+**Key Principle:** Runtime configuration is stored in Dataverse. Client IDs, tenant IDs, scopes, and token endpoints are configuration values; they are not browser secrets. Do not store client secrets in browser-facing Dataverse configuration. The sidebar reads configuration at runtime—no code changes needed per environment.
 
 ---
 
@@ -42,7 +42,7 @@ Before you start, ensure you have:
 - ✅ **Power Apps** environment (same as D365 org)
 - ✅ **Copilot Studio** access (enabled in Power Platform tenant)
 - ✅ **Entra ID** admin access (to create app registration)
-- ✅ **Generic.Sidebar** v2.0.0+ deployed to web resources
+- ✅ **Generic.Sidebar** v2.0.1+ deployed to web resources
 - ✅ **Dataverse** table `sidebar_genericsidebar` with SSO fields (see Step 5)
 
 **GCC/GCCH Note:** If deploying to GCC or GCCH, use the respective Entra endpoints:
@@ -77,9 +77,7 @@ Before you start, ensure you have:
      https://<your-org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html
      ```
      Example: `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html`
-   - ✅ Check both:
-     - `Access tokens (used for implicit flows)`
-     - `ID tokens (used for implicit and hybrid flows)`
+    - Use the SPA platform configuration required by your tenant policy. Generic Sidebar uses authorization code flow with PKCE through MSAL; do not enable implicit-grant settings solely for this sidebar.
    - Click **Configure**
 
 4. **Note Your Client ID & Tenant ID:**
@@ -207,7 +205,7 @@ $fields = @(
     @{ logicalName = "sidebar_auth_token_endpoint"; displayName = "Token Endpoint"; type = "String"; maxLength = 500 },
     @{ logicalName = "sidebar_auth_redirect_uri"; displayName = "Redirect URI"; type = "String"; maxLength = 300 },
     @{ logicalName = "sidebar_auth_scopes"; displayName = "Additional Scopes"; type = "String"; maxLength = 500 },
-    @{ logicalName = "sidebar_auth_client_secret"; displayName = "Client Secret (Encrypted)"; type = "String"; maxLength = 256 }
+   @{ logicalName = "sidebar_auth_client_secret"; displayName = "Client Secret (Deprecated)"; type = "String"; maxLength = 256 }
 )
 
 foreach ($field in $fields) {
@@ -246,7 +244,7 @@ Write-Host "SSO fields added successfully!"
    | `sidebar_auth_token_endpoint` | Token Endpoint | Text | 500 | No (if SSO enabled: Yes) | From Copilot Studio Direct Line |
    | `sidebar_auth_redirect_uri` | Redirect URI | Text | 300 | No | Default: `https://<org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
    | `sidebar_auth_scopes` | Additional Scopes | Text | 500 | No | Space-separated (e.g., `Sites.Read.All User.Read`) |
-   | `sidebar_auth_client_secret` | Client Secret (Encrypted) | Text | 256 | No | Use only for service-to-service auth (advanced) |
+   | `sidebar_auth_client_secret` | Client Secret (Deprecated) | Text | 256 | No | Leave blank. Browser SSO uses public-client PKCE; server-side service credentials belong in a server-side secret store. |
 
 4. **Click Save** after adding each field
 
@@ -354,7 +352,7 @@ For non-SSO agents, paste the Copilot Studio iframe snippet into `sidebar_embedc
 
 ## Step 7: Test Configuration
 
-### Use the Configuration Validator Tool:
+### Use the Local Configuration Validator Tool:
 
 1. **Open the validator:**
    - [https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_config_validator.html](https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_config_validator.html)
@@ -364,10 +362,12 @@ For non-SSO agents, paste the Copilot Studio iframe snippet into `sidebar_embedc
    - Click **✓ Validate Configuration**
 
 3. **Check for ✅ or ✗:**
-   - ✅ All checks passed → Config is valid
+   - ✅ All checks passed → Values are locally well-formed; continue with hosted Dynamics validation
    - ✗ Fix any failed checks → Follow remediation tips
 
 ### End-to-End Test:
+
+> The validator does not call Dataverse, Entra ID, or Copilot Studio. Complete this hosted Dynamics test before declaring SSO ready.
 
 1. **Open your D365 form**
 2. **Click "Open Sidebar"** (or your custom button)
@@ -473,6 +473,6 @@ For issues not covered in this guide:
 
 ---
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Next Phase:** See [SECURITY_GUIDE.md](SECURITY_GUIDE.md) for advanced configuration

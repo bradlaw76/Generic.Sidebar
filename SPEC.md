@@ -1,9 +1,9 @@
 # Generic.Sidebar — Specification
 
-**Status:** PRODUCTION
-**Version:** 2.0.0
+**Status:** FUNCTIONAL BASELINE — HOSTED SSO VALIDATION PENDING
+**Version:** 2.0.1
 **Created:** 2026-03-04
-**Updated:** 2026-07-22
+**Updated:** 2026-08-05
 **Release:** Enterprise SSO Integration with Complete Admin Toolkit
 
 ---
@@ -25,7 +25,7 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - Instruction-band visibility behavior
 - Admin-only affordances (configuration validator, setup guide, troubleshooting)
 - Token caching and session lifecycle management
-- Region support (Commercial, GCC, GCCH environments)
+- Region-aware configuration guidance (Commercial, GCC, GCCH environments; hosted validation required)
 - Graceful fallback for non-SSO configurations
 
 ### Out of Scope
@@ -59,22 +59,23 @@ D365 Form (Parent)
         ├─ Exchanges token with Copilot token endpoint
         ├─ OAuth card middleware suppression (max 2 silent attempts)
         ├─ Web Chat rendering with Direct Line connection
-        └─ Session cache (localStorage) for conversation persistence
+      └─ Direct Line connection for the active browser session
 ```
 
 **Key Features:**
-- **Zero Hardcoding:** All secrets (Client IDs, Token Endpoints) in Dataverse table
+- **Zero Hardcoding:** Runtime configuration (Client IDs, Token Endpoints) comes from Dataverse
 - **Silent SSO:** Users log in once, then seamless re-authentication via token cache
 - **Token Caching:** sessionStorage for browser session, cleared on close
 - **Fallback:** Non-SSO embeds unaffected; optional adoption per environment
-- **Multi-Region:** Commercial, GCC, GCCH endpoints supported
-- **Security:** PKCE, no token logging, URL parameter stripping, HIPAA-ready
+- **Multi-Region:** Commercial, GCC, and GCCH guidance is documented; validate the target cloud in hosted Dynamics before production use
+- **Security:** PKCE, no token logging, and immediate URL parameter stripping; query-token handoff is a documented residual risk
 
 **Admin Deployment:**
 - Dataverse `sidebar_genericsidebar` table extended with 8 SSO fields
 - One-time Entra app registration per tenant (reused across all environments)
 - PowerShell automation script: `Add-SidebarSSOFields.ps1`
 - Configuration validator tool: `sidebar_sso_config_validator.html`
+- Admin validation and rollback checklist: `ADMIN_VALIDATION_CHECKLIST.md`
 
 ---
 

@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
-VERSION:      2.2.0
+VERSION:      2.2.1
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-07-23
 ENVIRONMENT:  JavaScript
@@ -69,6 +69,9 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.2.1  2026-08-05  Reliability: hydrate SSO flag and load SSO dependencies in order
+  * Reads sidebar_sso_enabled with a backward-compatible Dataverse fallback
+  * Loads the MSAL bootstrap before the SSO orchestration resource
 v2.2.0  2026-07-23  Minor: Keep tab host renderer as primary runtime
   * Removed forced full-page child-picker routing
   * Preserved route tracking for legacy vs SSO canvas modes
@@ -127,24 +130,38 @@ NON-NEGOTIABLES (Architecture Contract)
     } catch { return null; }
   }
 
-  // Get Default row (or most recent) with minimal fields for header setup + SSO flag
+  // Get Default row (or most recent) with minimal fields for header setup + SSO flag.
+  // Some older environments do not have the optional SSO field, so retry without it.
   async function getDefaultConfigRow() {
-    const select = "$select=sidebar_genericsidebarid,sidebar_title";
-    try {
+    const legacySelect = "$select=sidebar_genericsidebarid,sidebar_title";
+    const ssoSelect = legacySelect + ",sidebar_sso_enabled";
+
+    async function queryDefault(select) {
       const r1 = await Xrm.WebApi.retrieveMultipleRecords(
-        TABLE, `?${select}&$filter=sidebar_default eq true&$top=1`
+        TABLE, `?${select}&$filter=sidebar_default eq true&$orderby=modifiedon desc&$top=1`
       );
       if (r1.entities.length) return r1.entities[0];
-    } catch {}
+      return null;
+    }
 
-    try {
+    async function queryMostRecent(select) {
       const r2 = await Xrm.WebApi.retrieveMultipleRecords(
-        TABLE, `?${select}&$orderby=createdon desc&$top=1`
+        TABLE, `?${select}&$orderby=modifiedon desc&$top=1`
       );
       if (r2.entities.length) return r2.entities[0];
-    } catch {}
+      return null;
+    }
 
-    return null;
+    try {
+      return await queryDefault(ssoSelect) || await queryMostRecent(ssoSelect);
+    } catch (e) {
+      console.warn("SSO field is unavailable; continuing with legacy sidebar configuration", e);
+      try {
+        return await queryDefault(legacySelect) || await queryMostRecent(legacySelect);
+      } catch {
+        return null;
+      }
+    }
   }
 
   async function getConfig() {
@@ -229,39 +246,34 @@ NON-NEGOTIABLES (Architecture Contract)
           console.log("[SSO] SSO enabled for this config");
           // Load SSO bootstrap + setup libraries before navigation
           await new Promise(function (resolve, reject) {
-            // Ensure SSO libraries are loaded
             if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
               console.log("[SSO] Libraries already loaded");
               resolve();
               return;
             }
-            // Both bootstrap and setup must be loaded before proceeding
-            var libsLoaded = 0;
-            var onLibLoad = function () {
-              libsLoaded++;
-              if (libsLoaded >= 2) resolve();
+
+            var clientUrl = Xrm.Utility.getGlobalContext().getClientUrl();
+            var loadScript = function (name, onLoad) {
+              var script = document.createElement("script");
+              script.src = clientUrl + "/WebResources/" + name;
+              script.onload = onLoad;
+              script.onerror = function () { reject(new Error("Failed to load " + name)); };
+              document.head.appendChild(script);
             };
-            if (typeof window.SidebarSSO === "undefined") {
-              // Load bootstrap first
-              var bootScript = document.createElement("script");
-              bootScript.src = Xrm.Utility.getGlobalContext().getClientUrl() + "/WebResources/sidebar_sso_bootstrap";
-              bootScript.onload = onLibLoad;
-              bootScript.onerror = function () { reject(new Error("Failed to load SSO bootstrap")); };
-              document.head.appendChild(bootScript);
+
+            var loadSetup = function () {
+              if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
+                resolve();
+                return;
+              }
+              loadScript("sidebar_sso_setup", resolve);
+            };
+
+            if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.acquireToken === "function") {
+              loadSetup();
             } else {
-              libsLoaded++;
+              loadScript("sidebar_sso_bootstrap", loadSetup);
             }
-            if (typeof window.SidebarSSO === "undefined" || typeof window.SidebarSSO.handlePaneNavigation !== "function") {
-              // Load setup
-              var setupScript = document.createElement("script");
-              setupScript.src = Xrm.Utility.getGlobalContext().getClientUrl() + "/WebResources/sidebar_sso_setup";
-              setupScript.onload = onLibLoad;
-              setupScript.onerror = function () { reject(new Error("Failed to load SSO setup")); };
-              document.head.appendChild(setupScript);
-            } else {
-              libsLoaded++;
-            }
-            setTimeout(function () { if (libsLoaded < 2) reject(new Error("SSO library load timeout")); }, 5000);
           });
           targetCanvas = "sidebar_sso_canvas.html";
           useSso = true;

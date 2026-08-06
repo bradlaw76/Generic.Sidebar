@@ -1,7 +1,7 @@
 # Generic Sidebar SSO — Security Guide
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Audience:** Security Officers, Platform Administrators, Developers
 
 ---
@@ -30,7 +30,7 @@ Generic Sidebar SSO implements OAuth 2.0 PKCE (Proof Key for Code Exchange) with
 ### Key Security Principles
 
 ✅ **Zero Hardcoding:** No Client IDs, Tenant IDs, or Token Endpoints in code  
-✅ **Dataverse-Driven:** All secrets stored in Dataverse, not source code  
+✅ **Dataverse-Driven:** Runtime configuration is stored in Dataverse, not source code
 ✅ **PKCE Flow:** Proof Key for Code Exchange prevents token interception  
 ✅ **Session Scoped:** Tokens cached in sessionStorage, cleared on browser close  
 ✅ **HTTPS Only:** All token endpoints must be HTTPS  
@@ -89,7 +89,7 @@ Generic Sidebar SSO implements OAuth 2.0 PKCE (Proof Key for Code Exchange) with
 │ ├─ API Scope             │   │ └─ Conversation State    │
 │ ├─ Token Endpoint        │   │                          │
 │ ├─ Redirect URI          │   │ Exchanges user tokens    │
-│ └─ [Encrypted]           │   │ for Direct Line tokens   │
+│ └─ No browser secret     │   │ for Direct Line tokens   │
 │                          │   │                          │
 │ Access Control:          │   │ Access Control:          │
 │ ├─ Dataverse RBAC        │   │ ├─ AAD Token Validation  │
@@ -104,13 +104,13 @@ Generic Sidebar SSO implements OAuth 2.0 PKCE (Proof Key for Code Exchange) with
 |----------|-----------|-----------------|
 | **Code→Dataverse** | HTTPS TLS 1.2+ | Azure infrastructure |
 | **Browser→Copilot** | HTTPS TLS 1.2+ | Azure infrastructure |
-| **Secret Storage** | Dataverse encryption | Tenant administrator |
+| **Configuration Storage** | Dataverse RBAC + TLS | Tenant administrator |
 | **Token Cache** | sessionStorage (not persistent) | Browser isolation |
 | **Redirect Validation** | PKCE + URL match | MSAL library + Entra |
 
 ### Query Token Handling
 
-The runtime currently uses query payload handoff between side panel and canvas. This is acceptable for the current architecture with the following controls:
+The runtime currently uses query payload handoff between side panel and canvas. The canvas removes the values immediately after parsing, but this remains a residual risk until an origin-validated inter-frame handoff replaces it. Current controls are:
 
 1. HTTPS-only hosting.
 2. Immediate URL cleanup in canvas after parsing token data.
@@ -121,6 +121,10 @@ Recommended future hardening:
 
 1. Replace query payload handoff with `postMessage` to reduce transient URL exposure.
 2. Add explicit origin checks for inter-frame communication.
+
+### Validation status
+
+The local configuration validator checks supplied-value format and consistency only. It does not authenticate with Entra ID, read Dataverse, or call a Copilot Studio token endpoint. Hosted Dynamics validation is required before production SSO approval. See `ADMIN_VALIDATION_CHECKLIST.md`.
 
 ---
 
@@ -152,7 +156,7 @@ New token issued → cache updated
 ### Direct Line Token (Copilot Studio → Canvas)
 
 **Lifetime:** 30–60 minutes (Copilot-controlled)  
-**Storage:** localStorage (session-scoped key)  
+**Storage:** In-memory Direct Line client for the active page
 **Usage:** Authorizes direct line WebSocket connection to Copilot agent
 
 ```
@@ -163,8 +167,6 @@ POST to Copilot token endpoint with Bearer accessToken
 Copilot validates accessToken via Entra
     ↓
 Copilot issues Direct Line token (exp: 30–60 min)
-    ↓
-Canvas caches Direct Line token in localStorage
     ↓
 WebChat uses Direct Line token to connect to agent
 ```
@@ -197,7 +199,7 @@ User signed in automatically
 
 ## Credential Storage
 
-### Where Secrets Are Stored
+### Runtime Configuration and Tokens
 
 | Secret | Location | Protection | Rotation |
 |--------|----------|-----------|----------|
@@ -206,10 +208,10 @@ User signed in automatically
 | **API Scope** | Dataverse table `sidebar_auth_api_scope` | Dataverse RBAC + TLS | Quarterly (policy) |
 | **Token Endpoint** | Dataverse table `sidebar_auth_token_endpoint` | Dataverse RBAC + TLS | On agent regeneration |
 | **Redirect URI** | Dataverse table `sidebar_auth_redirect_uri` | Dataverse RBAC + TLS | On environment change |
-| **Client Secret (optional)** | Dataverse table `sidebar_auth_client_secret` | Dataverse **encrypted** field | Monthly (policy) |
+| **Client Secret** | Not used by browser SSO | Do not store in browser-facing configuration | N/A |
 | **Access Token (runtime)** | Browser sessionStorage | Browser isolation | Automatic (1h expiry) |
 | **Refresh Token (runtime)** | Browser sessionStorage | Browser isolation | Automatic (90d expiry) |
-| **Direct Line Token** | Browser localStorage (session-scoped) | Browser isolation | On session end |
+| **Direct Line Token** | Active page memory | Browser isolation | On page close/reload |
 
 ### Best Practices for Secret Management
 
@@ -220,14 +222,14 @@ User signed in automatically
    $clientId = [System.Environment]::GetEnvironmentVariable("SIDEBAR_CLIENT_ID")
    ```
 
-2. **Encrypt Dataverse fields:**
-   - Mark `sidebar_auth_client_secret` as **encrypted** in Dataverse
-   - Only admins can view (transparent to app)
+2. **Keep browser SSO public-client only:**
+    - Generic Sidebar uses MSAL authorization code flow with PKCE.
+    - Do not add a client secret to Dataverse values read by browser web resources.
+    - Store any service-to-service secret in a server-side secret store and never pass it to the browser.
 
-3. **Rotate Client Secrets quarterly:**
-   - Entra app → Certificates & secrets → Delete old secret → Create new
-   - Update `sidebar_auth_client_secret` field in Dataverse
-   - No app restart needed
+3. **Rotate server-side secrets according to policy:**
+    - Entra app → Certificates & secrets → Delete old secret → Create new.
+    - Update the server-side secret store; never update a browser-facing configuration record.
 
 4. **Audit access to sidebar config:**
    - Monitor Dataverse audit log for SSO field changes
@@ -240,7 +242,7 @@ User signed in automatically
 #### ❌ DON'T:
 
 1. ❌ Hardcode Client IDs in code
-2. ❌ Pass tokens via URL (except temporarily with history.replaceState)
+2. ❌ Treat temporary query-string token handoff as a long-term security boundary
 3. ❌ Log tokens to console or application logs
 4. ❌ Store tokens in localStorage permanently
 5. ❌ Use same Client ID across multiple environments
@@ -423,6 +425,6 @@ Before going to production:
 
 ---
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Next:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for error resolution

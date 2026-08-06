@@ -1,7 +1,7 @@
 # Generic Sidebar SSO — Troubleshooting Guide
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Quick Help:** Use `Ctrl+Shift+I` → **Console** tab to see debug messages
 
 ---
@@ -11,7 +11,7 @@
 Start here for fastest resolution:
 
 ```
-☐ Run Configuration Validator (sidebar_sso_config_validator.html)
+☐ Run Local Configuration Validator (sidebar_sso_config_validator.html)
 ☐ Check browser console for [sidebar-sso-setup] messages
 ☐ Verify sidebar_sso_enabled = Yes in Dataverse
 ☐ Confirm Client ID is valid UUID format
@@ -59,7 +59,7 @@ Start here for fastest resolution:
 - Token Endpoint
 
 **How to fix:**
-1. Run Configuration Validator tool
+1. Run the Local Configuration Validator tool. It checks values only; it does not read Dataverse or authenticate.
 2. Note which fields show ✗ (failed)
 3. Go to sidebar config record
 4. Fill in the missing values (see [ADMIN_SETUP_GUIDE.md](ADMIN_SETUP_GUIDE.md))
@@ -622,6 +622,6 @@ fetch('https://your-token-endpoint-url', {
 
 ---
 
-**Version:** 2.0.0  
-**Last Updated:** 2026-07-22  
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
 **Still stuck?** Run [Configuration Validator](sidebar_sso_config_validator.html) and provide the output to support

@@ -19,7 +19,7 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 * **Configuration Validator Tool** — Admin preflight checks for SSO setup.
 
 📊 **Product-Grade Architecture**
-* All secrets stored in Dataverse (Client IDs, Token Endpoints) — not in code.
+* Runtime configuration is stored in Dataverse (Client IDs, Token Endpoints) — not in code. Do not store browser client secrets in configuration records.
 * Single configuration per Dataverse row — reusable across environments (dev/test/prod).
 * Multi-region support: Commercial, GCC, GCCH endpoints.
 * OAuth card middleware suppression — prevents infinite login loops.
@@ -87,6 +87,8 @@ Validated behaviors:
 
 Validation caveat:
 - Local file:// preview cannot complete real Entra interactive token acquisition in all environments. Final sign-in validation must be executed in hosted Dynamics context.
+- The local configuration validator checks format and field consistency only; it does not perform live Dataverse, Entra, or Copilot Studio validation.
+- The functional pre-admin-review source baseline is tagged `admin-review-baseline-2026-08-05`.
 
 Deployment validation checklist:
 1. Open the side panel from Dynamics (not from file://).
@@ -97,6 +99,7 @@ Deployment validation checklist:
 
 See also:
 - ADMIN_SETUP_GUIDE.md (operations + setup)
+- ADMIN_VALIDATION_CHECKLIST.md (deployment, hosted-runtime validation, and rollback)
 - TROUBLESHOOTING.md (runtime issues)
 - SECURITY_GUIDE.md (token handling and hardening)
 - docs/sso-validation-report-2026-07-23.md (validation evidence)

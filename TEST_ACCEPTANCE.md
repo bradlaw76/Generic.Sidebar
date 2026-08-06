@@ -1,7 +1,7 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.3.0
 
 ---
 
@@ -34,6 +34,18 @@
 - ✔ Closing and reopening sidebar resets tracking and reloads content
 - ✔ Console logs indicate "Reusing existing sidebar pane" vs "Created new sidebar pane"
 - ✔ Console logs show "Sidebar already showing same config" when skip occurs
+
+### Admin and SSO Readiness
+
+- ✔ SSO flag is read from `sidebar_sso_enabled`; environments that do not yet have the field continue in non-SSO mode
+- ✔ SSO bootstrap loads before SSO orchestration when SSO is enabled
+- ✔ Local validator requires a valid Client ID, Tenant ID, API Scope, HTTPS token endpoint, and HTTPS redirect URI ending in `/WebResources/sidebar_sso_canvas.html`
+- ✔ Local validator reports its boundary: no Dataverse read, Entra sign-in, or Copilot token-endpoint call
+- ✔ Only one intended `sidebar_default = Yes` configuration record exists; multiple defaults are corrected administratively
+- ✔ Inactive or disabled `sidebar_genericsidebaragent` rows do not render in the picker
+- ☐ Hosted Dynamics: first-run Entra popup and subsequent silent token acquisition succeed
+- ☐ Hosted Dynamics: published Copilot agent completes Direct Line token exchange and opens chat
+- ☐ Hosted Dynamics: users without configuration-write rights cannot acknowledge or change sidebar configuration
 
 ### GitHub Pages Site
 
