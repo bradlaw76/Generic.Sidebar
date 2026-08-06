@@ -2,14 +2,15 @@
 =============================================================================
 SCRIPT:       create-generic-sidebar-agent-table
 FILE:         scripts\create-generic-sidebar-agent-table.ps1
-VERSION:      1.0.0
+VERSION:      1.1.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-22
+LAST UPDATED: 2026-07-23
 ENVIRONMENT:  PowerShell 7+
 
 OVERVIEW
 Creates the Dataverse child table sidebar_genericsidebaragent (if missing),
-adds required/optional columns, and provisions lookup to sidebar_genericsidebar.
+adds required/optional columns, provisions lookup to sidebar_genericsidebar,
+and ensures parent tab-target field sidebar_agentmenutab exists.
 =============================================================================
 #>
 
@@ -197,7 +198,7 @@ Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_displaynam
 Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_tokenendpoint" -Payload @{
     "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
     SchemaName = "sidebar_tokenendpoint"
-    RequiredLevel = @{ Value = "ApplicationRequired" }
+    RequiredLevel = @{ Value = "None" }
     MaxLength = 500
     FormatName = @{ Value = "Text" }
     DisplayName = @{ LocalizedLabels = @(@{ Label = "Token Endpoint"; LanguageCode = 1033 }) }
@@ -235,6 +236,16 @@ Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_descriptio
     FormatName = @{ Value = "Text" }
     DisplayName = @{ LocalizedLabels = @(@{ Label = "Description"; LanguageCode = 1033 }) }
     Description = @{ LocalizedLabels = @(@{ Label = "Subtitle shown under the agent display name."; LanguageCode = 1033 }) }
+}
+
+Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_embedcode" -Payload @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "sidebar_embedcode"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 1048576
+    Format = "TextArea"
+    DisplayName = @{ LocalizedLabels = @(@{ Label = "Embed Code"; LanguageCode = 1033 }) }
+    Description = @{ LocalizedLabels = @(@{ Label = "Optional raw HTML or iframe embed code for this agent. If populated, the picker renders this embed directly instead of using SSO token routing."; LanguageCode = 1033 }) }
 }
 
 Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_isdefaultagent" -Payload @{
@@ -293,6 +304,26 @@ Add-Attribute -TableLogicalName $table -AttributeLogicalName "sidebar_agenttype"
             @{ Value = 100000000; Label = @{ LocalizedLabels = @(@{ Label = "Copilot Studio"; LanguageCode = 1033 }) } },
             @{ Value = 100000001; Label = @{ LocalizedLabels = @(@{ Label = "PVA Legacy"; LanguageCode = 1033 }) } },
             @{ Value = 100000002; Label = @{ LocalizedLabels = @(@{ Label = "Other"; LanguageCode = 1033 }) } }
+        )
+    }
+}
+
+# Parent config selector: choose which tab (1-4) should host linked-agent picker.
+Add-Attribute -TableLogicalName "sidebar_genericsidebar" -AttributeLogicalName "sidebar_agentmenutab" -Payload @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "sidebar_agentmenutab"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{ LocalizedLabels = @(@{ Label = "Agent Menu Tab"; LanguageCode = 1033 }) }
+    Description = @{ LocalizedLabels = @(@{ Label = "Optional tab slot (1-4) where linked agents render in the sidebar."; LanguageCode = 1033 }) }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        Options = @(
+            @{ Value = 100000000; Label = @{ LocalizedLabels = @(@{ Label = "None"; LanguageCode = 1033 }) } },
+            @{ Value = 100000001; Label = @{ LocalizedLabels = @(@{ Label = "Tab 1"; LanguageCode = 1033 }) } },
+            @{ Value = 100000002; Label = @{ LocalizedLabels = @(@{ Label = "Tab 2"; LanguageCode = 1033 }) } },
+            @{ Value = 100000003; Label = @{ LocalizedLabels = @(@{ Label = "Tab 3"; LanguageCode = 1033 }) } },
+            @{ Value = 100000004; Label = @{ LocalizedLabels = @(@{ Label = "Tab 4"; LanguageCode = 1033 }) } }
         )
     }
 }

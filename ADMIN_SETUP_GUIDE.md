@@ -300,7 +300,6 @@ parent `sidebar_genericsidebar` record.
 |------------|--------------|------|------------|-----------|-------|
 | `sidebar_name` | Agent Name | Text | 100 | Yes | Primary column for the child row |
 | `sidebar_displayname` | Display Name | Text | 150 | Yes | Title shown to end users in the picker |
-| `sidebar_tokenendpoint` | Token Endpoint | Text | 500 | Yes | Agent-specific Direct Line token endpoint |
 | `sidebar_sortorder` | Sort Order | Whole Number | — | Yes | Controls the menu order |
 | `sidebar_isactive` | Is Active | Yes/No | — | Yes | Inactive agents are not rendered |
 | `sidebar_genericsidebarid` | Generic Sidebar | Lookup | — | Yes | Required lookup to the parent `sidebar_genericsidebar` record |
@@ -310,20 +309,36 @@ parent `sidebar_genericsidebar` record.
 | Field Name | Display Name | Type | Max Length | Required? | Notes |
 |------------|--------------|------|------------|-----------|-------|
 | `sidebar_description` | Description | Text | 250 | No | Subtitle shown under the agent title |
+| `sidebar_embedcode` | Embed Code | Multiple Lines of Text | 1,048,576 | No | Raw Copilot Studio iframe or HTML embed. If populated, the picker renders this directly |
+| `sidebar_tokenendpoint` | Token Endpoint | Text | 500 | No | Agent-specific Direct Line token endpoint. Use for SSO/token-routed agents |
 | `sidebar_agenttype` | Agent Type | Choice | — | No | Suggested values: `Copilot Studio`, `PVA Legacy`, `Other` |
 | `sidebar_isdefaultagent` | Default Agent | Yes/No | — | No | Marks the preferred default per parent config |
 | `sidebar_authscopeoverride` | Auth Scope Override | Text | 300 | No | Uses the parent sidebar scope when blank |
 | `sidebar_agentkey` | Agent Key | Text | 100 | No | Stable programmatic key if display names change |
 | `sidebar_iconurl` | Icon URL | Text | 500 | No | Optional icon/avatar shown in the menu |
 
+### Parent config field (tab targeting)
+
+Add this optional field to `sidebar_genericsidebar` so admins can choose where the linked-agent menu appears in the 4-tab sidebar.
+
+| Field Name | Display Name | Type | Required? | Values | Notes |
+|------------|--------------|------|-----------|--------|-------|
+| `sidebar_agentmenutab` | Agent Menu Tab | Choice | No | `None`, `Tab 1`, `Tab 2`, `Tab 3`, `Tab 4` | When set and linked child agents exist, the selected tab renders the agent picker/menu |
+
 ### Recommended relationship behavior
 
 1. Create a standard Dataverse lookup from `Generic Sidebar Agent` to `Generic Sidebar`.
 2. Use the parent Generic Sidebar record for shared SSO defaults such as client ID,
    tenant ID, API scope, redirect URI, and additional scopes.
-3. Use child rows only for agent-specific metadata such as display name, description,
-   token endpoint, order, and optional scope override.
-4. Do not move the existing `sidebar_embedcode` fields into the child table for v1.
+3. Use child rows for agent-specific metadata such as display name, description,
+   order, optional scope override, and either token endpoint or embed code.
+4. Runtime behavior is dual-mode:
+   - If `sidebar_embedcode` is populated, the picker renders that embed directly.
+   - Otherwise, if `sidebar_tokenendpoint` is populated, the picker uses the SSO canvas flow.
+5. Tab targeting behavior:
+   - If `sidebar_agentmenutab` is set to `Tab 1-4` and active child agents exist, that tab renders the linked-agent menu.
+   - If `sidebar_agentmenutab` is `None` (or blank), legacy tab embeds render unchanged.
+   - This provides a safe rollback path: set `sidebar_agentmenutab` back to `None`.
 
 ### Example agent rows
 
@@ -332,6 +347,8 @@ parent `sidebar_genericsidebar` record.
 | `Sales Opportunity` | `Sales Opportunity Agent` | `Request information about your opportunities` | `https://.../directline/token?...` | 10 | Yes |
 | `HR` | `HR Agent` | `Request information about HR policies` | `https://.../directline/token?...` | 20 | Yes |
 | `Service Desk` | `Service Desk Copilot` | `Find cases, accounts, contacts and knowledge` | `https://.../directline/token?...` | 30 | Yes |
+
+For non-SSO agents, paste the Copilot Studio iframe snippet into `sidebar_embedcode` and leave `sidebar_tokenendpoint` blank.
 
 ---
 

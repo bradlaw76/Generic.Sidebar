@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Copilot canvas</title>
+  <style>
+    html, body { height: 100%; width: 100%; margin: 0; padding: 0; }
+    #webchat { height: 100vh; width: 100%; }
+    .err { font-family: "Segoe UI", sans-serif; padding: 16px; color: #b00020; }
+  </style>
+  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+</head>
+<body>
+  <div id="webchat" role="main"></div>
+  <script>
+  (function () {
+    "use strict";
+
+    // Side panel passes params as data=tokenEndpoint=<x>&usertoken=<jwt>
+    var raw = "";
+    var qs = new URLSearchParams(window.location.search);
+    if (qs.has("data")) raw = qs.get("data");
+    else raw = window.location.search.replace(/^\?/, "");
+
+    var params = {};
+    raw.split("&").forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf("=");
+      if (i > 0) params[decodeURIComponent(kv.substring(0, i))] =
+                  decodeURIComponent(kv.substring(i + 1));
+    });
+
+    var TOKEN_ENDPOINT = params.tokenEndpoint;
+    var USER_TOKEN     = params.usertoken;
+
+    function fail(msg) {
+      document.body.innerHTML =
+        '<div class="err">Could not start chat. ' + msg + '</div>';
+    }
+
+    if (!TOKEN_ENDPOINT) return fail("Missing tokenEndpoint URL parameter.");
+    if (!USER_TOKEN)     return fail("Missing user token URL parameter.");
+
+    // Strip token from the visible URL bar after read.
+    try {
+      window.history.replaceState(null, "", window.location.pathname);
+    } catch (e) { /* non-fatal */ }
+
+    fetch(TOKEN_ENDPOINT, {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + USER_TOKEN }
+    })
+    .then(function (r) {
+      if (!r.ok) throw new Error("Token endpoint returned " + r.status);
+      return r.json();
+    })
+    .then(function (j) {
+      if (!j || !j.token) throw new Error("Token endpoint returned no token.");
+      var directLine = window.WebChat.createDirectLine({ token: j.token });
+
+      // ----------------------------------------------------------------------
+      // SSO middleware. Three jobs:
+      //
+      //   1. On Direct Line connect, proactively send the user's MSAL access
+      //      token to the bot as a tokens/response event. This wakes the bot
+      //      up so the welcome message fires immediately on agent open (no
+      //      first-message-from-user required) AND pre-seeds the bot's Token
+      //      Store so authenticated topics never have to issue a sign-in card.
+      //
+      //   2. Also on connect, dispatch a startConversation event. Without
+      //      this, step 1 wakes the bot into the System Sign-in topic only,
+      //      which completes silently and never hands off to the welcome
+      //      topic. startConversation triggers the Conversation Start /
+      //      welcome topic so the user sees the greeting on agent open.
+      //
+      //   3. On every incoming activity from the bot:
+      //        a. Suppress the System Sign-in topic preamble. The Sign-in
+      //           topic sends a plain text greeting ("Hello! To be able to
+      //           help you, I'll need you to sign in.") before showing the
+      //           OAuth card. We silently fulfill the card below so the user
+      //           is never asked to sign in -- but Web Chat would still
+      //           render the greeting text. Pattern-match the wording (text
+      //           only, no attachments, contains "sign in") and drop it.
+      //        b. Silently fulfill any OAuth sign-in card the agent sends by
+      //           replaying the user's MSAL access token as a tokens/response
+      //           event. Without this, agent topics that use User.AccessToken,
+      //           Power Fx authenticated connectors, or generative tools that
+      //           request delegated access display a sign-in card -> magic
+      //           code prompt.
+      // ----------------------------------------------------------------------
+      var store = window.WebChat.createStore({}, function (_ref) {
+        var dispatch = _ref.dispatch;
+        // Loop guard. If the bot's authentication is misconfigured server-side
+        // (e.g. the bot's custom auth provider does not trust this audience),
+        // every tokens/response we send will be answered with another OAuth
+        // card, which 3b will swallow and reply to again -- infinite loop.
+        // Cap the number of silent fulfillments per connection. After the cap
+        // is hit, subsequent cards render normally so the user has a visible
+        // signal that something is wrong on the bot side.
+        var MAX_SILENT_AUTH = 2;
+        var silentAuthCount = 0;
+        return function (next) { return function (action) {
+          if (action.type === "DIRECT_LINE/CONNECT_FULFILLED") {
+            silentAuthCount = 0;
+            try {
+              dispatch({
+                type: "WEB_CHAT/SEND_EVENT",
+                payload: { name: "tokens/response", value: { token: USER_TOKEN } }
+              });
+              dispatch({
+                type: "WEB_CHAT/SEND_EVENT",
+                payload: { name: "startConversation", value: { type: "user" } }
+              });
+            } catch (e) { /* fall back to reactive handler below */ }
+          }
+          if (action.type === "DIRECT_LINE/INCOMING_ACTIVITY") {
+            var a = action.payload && action.payload.activity;
+            // 3a) Suppress Sign-in topic preamble.
+            var preambleText = a && a.from && a.from.role === "bot" &&
+              a.type === "message" && !((a.attachments || []).length) &&
+              typeof a.text === "string" ? a.text : "";
+            if (preambleText && /\bsign[- ]?in\b/i.test(preambleText)) {
+              return; // swallow preamble so the user never sees it
+            }
+            // 3b) Silently fulfill OAuth sign-in cards.
+            var needsAuth = a && a.from && a.from.role === "bot" &&
+              (a.attachments || []).some(function (x) {
+                return x && x.contentType === "application/vnd.microsoft.card.oauth";
+              });
+            if (needsAuth) {
+              if (silentAuthCount >= MAX_SILENT_AUTH) {
+                // Loop guard tripped. Let the card render so the user sees
+                // something is wrong instead of looping silently forever.
+                try { console.warn("[copilot canvas] Silent auth cap reached; rendering OAuth card. Check the bot's authentication provider configuration in Copilot Studio."); } catch (e) {}
+                return next(action);
+              }
+              silentAuthCount++;
+              try {
+                dispatch({
+                  type: "WEB_CHAT/SEND_EVENT",
+                  payload: { name: "tokens/response", value: { token: USER_TOKEN } }
+                });
+                return; // swallow the card so the user never sees it
+              } catch (e) { /* fall through to render the card */ }
+            }
+          }
+          return next(action);
+        }; };
+      });
+
+      window.WebChat.renderWebChat(
+        { directLine: directLine, store: store },
+        document.getElementById("webchat")
+      );
+    })
+    .catch(function (e) {
+      fail(String((e && e.message) || e));
+    });
+  })();
+  </script>
+</body>
+</html>

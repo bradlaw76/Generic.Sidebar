@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
-VERSION:      2.0.0
+VERSION:      2.2.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-22
+LAST UPDATED: 2026-07-23
 ENVIRONMENT:  JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,15 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.2.0  2026-07-23  Minor: Keep tab host renderer as primary runtime
+  * Removed forced full-page child-picker routing
+  * Preserved route tracking for legacy vs SSO canvas modes
+  * Kept pane reuse safety without bypassing tab-level agent integrations
+v2.1.0  2026-07-23  Minor: Route to child-agent picker when linked agents exist
+  * Added child-agent detection against sidebar_genericsidebaragent
+  * Auto-routes pane to vz_AgentSidePanelHTML.html when linked agents exist
+  * Added route tracking to avoid stale pane reuse across mode changes
+  * Fixed SSO flag hydration from Dataverse config row
 v2.0.0  2026-07-22  Major: Enterprise SSO integration
   * Added SSO detection + routing for Copilot Studio embeds
   * Dynamically load MSAL + orchestration for SSO configs
@@ -91,11 +100,15 @@ NON-NEGOTIABLES (Architecture Contract)
   const PANE_ID = "genericSidebarPane";
   const DEFAULTS = { width: 500, fallbackTitle: "Sidebar" };
   const TABLE = "sidebar_genericsidebar";     // your table logical name
+  const WEBRESOURCE_VERSION = "2026.07.23.1";
 
   // Track the currently loaded configId on window to survive form reloads
   // This persists across record navigations within the same browser session
   if (typeof window.__sidebarLoadedConfigId === "undefined") {
     window.__sidebarLoadedConfigId = null;
+  }
+  if (typeof window.__sidebarLoadedRoute === "undefined") {
+    window.__sidebarLoadedRoute = null;
   }
 
   async function getEnv(schema) {
@@ -116,7 +129,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
   // Get Default row (or most recent) with minimal fields for header setup + SSO flag
   async function getDefaultConfigRow() {
-    const select = "$select=sidebar_genericsidebarid,sidebar_title,sidebar_sso_enabled,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_token_endpoint,sidebar_auth_redirect_uri,sidebar_auth_scopes";
+    const select = "$select=sidebar_genericsidebarid,sidebar_title";
     try {
       const r1 = await Xrm.WebApi.retrieveMultipleRecords(
         TABLE, `?${select}&$filter=sidebar_default eq true&$top=1`
@@ -143,6 +156,8 @@ NON-NEGOTIABLES (Architecture Contract)
       if (rec) {
         cfg.configId = rec.sidebar_genericsidebarid;
         if (rec.sidebar_title) cfg.title = rec.sidebar_title;
+        // Optional field in some orgs; absence should never block config resolution.
+        cfg.sidebar_sso_enabled = rec.sidebar_sso_enabled;
       }
     } catch {}
     return cfg;
@@ -163,6 +178,7 @@ NON-NEGOTIABLES (Architecture Contract)
       });
       // Clear tracking when creating new pane
       window.__sidebarLoadedConfigId = null;
+      window.__sidebarLoadedRoute = null;
       console.log("Created new sidebar pane");
     } else {
       try { if (pane.setTitle && cfg.title) await pane.setTitle(cfg.title); } catch {}
@@ -198,18 +214,10 @@ NON-NEGOTIABLES (Architecture Contract)
 
       const pane = await ensurePane(cfg);
 
-      // Check if the pane already has the same config loaded - skip navigate to preserve chat state
-      // Only skip if: 1) pane existed (not new), 2) config matches, 3) we have a tracked configId
-      if (!pane.__isNewPane && 
-          window.__sidebarLoadedConfigId && 
-          window.__sidebarLoadedConfigId === cfg.configId) {
-        console.log("Sidebar already showing same config, bringing to front without reload");
-        return;
-      }
-
       // Pass configId + SSO detection
       const params = new URLSearchParams();
       if (cfg.configId) params.set("configId", cfg.configId);
+      params.set("wrv", WEBRESOURCE_VERSION);
 
       // SSO DETECTION: Check if SSO is enabled for this config
       // If enabled, route to SSO canvas; otherwise use standard canvas
@@ -265,6 +273,20 @@ NON-NEGOTIABLES (Architecture Contract)
         targetCanvas = "sidebar_sidebar.html";
       }
 
+      const routeKey = useSso ? "sso-canvas" : "legacy-canvas";
+
+      // Check if the pane already has the same config+route loaded - skip navigate to preserve chat state
+        var isConfigAuthoringForm = currentEntity === "sidebar_genericsidebar";
+
+        if (!isConfigAuthoringForm &&
+          !pane.__isNewPane &&
+          window.__sidebarLoadedConfigId &&
+          window.__sidebarLoadedConfigId === cfg.configId &&
+          window.__sidebarLoadedRoute === routeKey) {
+        console.log("Sidebar already showing same config/route, bringing to front without reload");
+        return;
+      }
+
       console.log("Navigating to web resource:", targetCanvas, "SSO=", useSso);
 
       if (useSso && typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
@@ -291,6 +313,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
       // Track the loaded config on window to persist across form navigations
       window.__sidebarLoadedConfigId = cfg.configId;
+      window.__sidebarLoadedRoute = routeKey;
 
       console.log("Sidebar opened successfully");
     } catch (e) {

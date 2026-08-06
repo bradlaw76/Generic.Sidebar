@@ -178,8 +178,8 @@
         <ul class="list">
           <li>Create a standard Dataverse lookup from Generic Sidebar Agent to Generic Sidebar.</li>
           <li>Keep shared SSO defaults on the parent sidebar_genericsidebar record.</li>
-          <li>Use child rows for agent-specific metadata and routing values.</li>
-          <li>Do not move sidebar_embedcode fields into the child table for v1.</li>
+          <li>Use child rows for agent-specific metadata and either routing values or raw embed HTML.</li>
+          <li>If embed code exists, the picker renders it directly; otherwise it uses SSO token routing.</li>
         </ul>
         <div class="note">
           <span class="chip">Parent: sidebar_genericsidebar</span>
@@ -217,14 +217,6 @@
               <td>150</td>
               <td class="check">Yes</td>
               <td>Title shown to end users in picker.</td>
-            </tr>
-            <tr>
-              <td>sidebar_tokenendpoint</td>
-              <td>Token Endpoint</td>
-              <td>Text</td>
-              <td>500</td>
-              <td class="check">Yes</td>
-              <td>Agent-specific Direct Line token endpoint.</td>
             </tr>
             <tr>
               <td>sidebar_sortorder</td>
@@ -275,6 +267,22 @@
               <td>250</td>
               <td>No</td>
               <td>Subtitle under agent title.</td>
+            </tr>
+            <tr>
+              <td>sidebar_embedcode</td>
+              <td>Embed Code</td>
+              <td>Multiple Lines of Text</td>
+              <td>1,048,576</td>
+              <td>No</td>
+              <td>Raw Copilot Studio iframe or HTML embed.</td>
+            </tr>
+            <tr>
+              <td>sidebar_tokenendpoint</td>
+              <td>Token Endpoint</td>
+              <td>Text</td>
+              <td>500</td>
+              <td>No</td>
+              <td>Used for SSO/token-routed agents when no embed code is provided.</td>
             </tr>
             <tr>
               <td>sidebar_agenttype</td>

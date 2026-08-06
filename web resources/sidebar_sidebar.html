@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      1.0.0
+VERSION:      2.15.4
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-07-24
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,22 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.15.4  2026-07-24  UX: adds tab title tooltips and keyboard tab switching
+  * Tab buttons now expose full title via hover tooltip
+  * Added Alt+1..Alt+4 shortcuts to switch visible tabs
+v2.15.3  2026-07-23  UX: removed generated "Panel N" title fallback
+  * Tab labels now come only from Dataverse title fields
+  * Empty Dataverse title remains empty (no synthetic label)
+v2.15.2  2026-07-23  UX: tab labels now show only Dataverse field title text
+  * Removed "Tab N:" prefix from tab buttons
+v2.15.1  2026-07-23  Reliability: avoid stale picker cache and only treat active-state child rows as linked agents
+  * Added static picker version token in injected URL (v=2.1.1) to reduce stale webresource cache behavior
+  * Updated linked-agent summary filter to require both sidebar_isactive and statecode=0
+v2.15.0  2026-07-23  Minor: Linked-agent menu can be injected into a selected tab slot
+  * Added optional parent field support: sidebar_agentmenutab (1-4)
+  * Detects active linked child agents and renders picker inside selected tab
+  * Preserves legacy tab embeds when selector is unset or no linked agents exist
+  * Added fallback query path for orgs where sidebar_agentmenutab is not provisioned yet
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -321,6 +337,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
 <script>
   const TABLE = "sidebar_genericsidebar";
+  const AGENT_TABLE = "sidebar_genericsidebaragent";
   const COPILOT_FILE_TYPE_VALUE = 172520002;
 
   function getParams() {
@@ -400,6 +417,56 @@ NON-NEGOTIABLES (Architecture Contract)
     if (/^webresource:/i.test(t)) return { mode: "url", url: `${base}/WebResources/${t.replace(/^webresource:/i,"")}` };
 
     return { mode: "url", url: t };
+  }
+
+  function parseAgentMenuTab(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    if (n >= 1 && n <= 4) return n;
+    if (n === 100000001) return 1;
+    if (n === 100000002) return 2;
+    if (n === 100000003) return 3;
+    if (n === 100000004) return 4;
+    return null;
+  }
+
+  async function getLinkedAgentSummary(configId) {
+    if (!configId) return { hasLinkedAgents: false, count: 0 };
+    try {
+      const q =
+        "?$select=sidebar_genericsidebaragentid" +
+        "&$filter=_sidebar_genericsidebarid_value eq " + configId + " and sidebar_isactive eq true and statecode eq 0";
+      const r = await parent.Xrm.WebApi.retrieveMultipleRecords(AGENT_TABLE, q);
+      const count = Array.isArray(r.entities) ? r.entities.length : 0;
+      return { hasLinkedAgents: count > 0, count: count };
+    } catch (e) {
+      console.warn("Linked agent lookup failed:", e);
+      return { hasLinkedAgents: false, count: 0 };
+    }
+  }
+
+  async function retrieveSidebarConfig(configId) {
+    const baseSelect =
+      "sidebar_title1,sidebar_instructions,sidebar_embedcode," +
+      "sidebar_title2,sidebar_instructions2,sidebar_embedcode2," +
+      "sidebar_title3,sidebar_instructions3,sidebar_embedcode3," +
+      "sidebar_title4,sidebar_instructions4,sidebar_embedcode4," +
+      "sidebar_iframewidth,sidebar_iframeheight,sidebar_iframestyle,sidebar_iframeallow," +
+      "sidebar_primarycolor,sidebar_textcolor,sidebar_linkcolor,sidebar_filetype";
+
+    const extendedSelect = "?$select=" + baseSelect + ",sidebar_agentmenutab";
+    const fallbackSelect = "?$select=" + baseSelect;
+
+    try {
+      return await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, extendedSelect);
+    } catch (e) {
+      const msg = (e && e.message) ? e.message.toLowerCase() : "";
+      if (msg.indexOf("sidebar_agentmenutab") >= 0 || msg.indexOf("could not find a property") >= 0) {
+        console.warn("sidebar_agentmenutab not found yet; using legacy config select");
+        return await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, fallbackSelect);
+      }
+      throw e;
+    }
   }
 
   function toggleZoom() {
@@ -520,16 +587,8 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     try {
-      const select =
-        "?$select=" +
-        "sidebar_title1,sidebar_instructions,sidebar_embedcode," +
-        "sidebar_title2,sidebar_instructions2,sidebar_embedcode2," +
-        "sidebar_title3,sidebar_instructions3,sidebar_embedcode3," +
-        "sidebar_title4,sidebar_instructions4,sidebar_embedcode4," +
-        "sidebar_iframewidth,sidebar_iframeheight,sidebar_iframestyle,sidebar_iframeallow," +
-        "sidebar_primarycolor,sidebar_textcolor,sidebar_linkcolor,sidebar_filetype";
-
-      const rec = await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, select);
+      const rec = await retrieveSidebarConfig(configId);
+      const linkedAgents = await getLinkedAgentSummary(configId);
 
       const panels = [];
       function addPanel(idx, titleField, instrField, embedField) {
@@ -537,9 +596,10 @@ NON-NEGOTIABLES (Architecture Contract)
         if (!embed) return;
         panels.push({
           index: idx,
-          title: (rec[titleField] || "").trim() || `Panel ${idx}`,
+          title: (rec[titleField] || "").trim(),
           instr: (rec[instrField] || "").trim(),
-          embedField
+          embedField,
+          embedRaw: embed
         });
       }
 
@@ -547,6 +607,27 @@ NON-NEGOTIABLES (Architecture Contract)
       addPanel(2, "sidebar_title2", "sidebar_instructions2", "sidebar_embedcode2");
       addPanel(3, "sidebar_title3", "sidebar_instructions3", "sidebar_embedcode3");
       addPanel(4, "sidebar_title4", "sidebar_instructions4", "sidebar_embedcode4");
+
+      const agentMenuTab = parseAgentMenuTab(rec.sidebar_agentmenutab);
+      if (linkedAgents.hasLinkedAgents && agentMenuTab) {
+        const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
+        const pickerUrl = base + "/WebResources/vz_AgentSidePanelHTML.html?configId=" + encodeURIComponent(configId) + "&v=2.1.1";
+        const existing = panels.find(function (p) { return p.index === agentMenuTab; });
+        if (existing) {
+          existing.embedRaw = pickerUrl;
+          existing.title = existing.title || ("Linked Agents (" + linkedAgents.count + ")");
+        } else {
+          panels.push({
+            index: agentMenuTab,
+            title: "Linked Agents (" + linkedAgents.count + ")",
+            instr: "",
+            embedField: "",
+            embedRaw: pickerUrl
+          });
+        }
+      }
+
+      panels.sort(function (a, b) { return a.index - b.index; });
 
       if (!panels.length) {
         host.innerHTML = '<div class="placeholder">No panels configured.</div>';
@@ -558,7 +639,7 @@ NON-NEGOTIABLES (Architecture Contract)
       panelContainer.innerHTML = "";
 
       panels.forEach((panel, idx) => {
-        const target = resolveEmbed(rec[panel.embedField]);
+        const target = resolveEmbed(panel.embedRaw);
         if (!target) {
           iframes.push(null);
           return;
@@ -607,13 +688,20 @@ NON-NEGOTIABLES (Architecture Contract)
         iframes.push(iframe);
       });
 
-      if (panels.length > 1) {
+      const shouldShowTabRow = panels.length > 1 || (panels.length === 1 && panels[0].index > 1);
+      if (shouldShowTabRow) {
         tabRow.style.display = "flex";
         tabRow.innerHTML = "";
         panels.forEach((p, idx) => {
           const btn = document.createElement("button");
           btn.className = "tab";
           btn.textContent = p.title;
+          if (p.title) {
+            btn.title = p.title;
+          }
+          if (idx < 4) {
+            btn.setAttribute("aria-label", (p.title || "Tab") + " (Alt+" + (idx + 1) + ")");
+          }
           btn.onclick = () => setActivePanel(idx);
           tabRow.appendChild(btn);
         });
@@ -689,6 +777,31 @@ NON-NEGOTIABLES (Architecture Contract)
         // Reset placeholder state when switching tabs
         document.getElementById("popoutPlaceholder").classList.remove("active");
       }
+
+      // Register tab shortcuts each render pass, replacing any previous handler.
+      // Alt+1..Alt+4 is used instead of Ctrl+number because browsers reserve Ctrl+number for tab switching.
+      if (window.__sidebarTabHotkeyHandler) {
+        document.removeEventListener("keydown", window.__sidebarTabHotkeyHandler);
+      }
+      window.__sidebarTabHotkeyHandler = function (event) {
+        if (!event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;
+
+        var targetEl = event.target;
+        var tagName = targetEl && targetEl.tagName ? targetEl.tagName.toLowerCase() : "";
+        if (tagName === "input" || tagName === "textarea" || tagName === "select" || (targetEl && targetEl.isContentEditable)) {
+          return;
+        }
+
+        var numeric = parseInt(event.key, 10);
+        if (!Number.isFinite(numeric) || numeric < 1 || numeric > 4) return;
+
+        var requestedIndex = numeric - 1;
+        if (requestedIndex >= panels.length) return;
+
+        event.preventDefault();
+        setActivePanel(requestedIndex);
+      };
+      document.addEventListener("keydown", window.__sidebarTabHotkeyHandler);
 
       // Restore active panel from sessionStorage, or default to panel 0
       let initialPanel = 0;

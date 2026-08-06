@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    vz_AgentSidePanelHTML
 FILE:         SO Sign In\vz_AgentSidePanelHTML.html
-VERSION:      2.0.0
+VERSION:      2.1.2
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-22
+LAST UPDATED: 2026-07-23
 ENVIRONMENT:  HTML | JavaScript | Dynamics 365 Web Resource
 PORTAL URL:   N/A
 
@@ -18,6 +18,21 @@ selected agent through the existing SSO canvas.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.1.2  2026-07-23  Fixes pop-out context detection by traversing opener ancestor chain for Xrm
+                    so Dataverse-linked agents render instead of bundled fallback list.
+v2.1.1  2026-07-23  Hides disabled/deactivated agents by enforcing both
+                    active flag and active row state; avoids fallback agents
+                    when Dataverse-linked config returns none or errors.
+v2.1.0  2026-07-23  Adds dedicated full-chat mode with Back to agents for
+                    larger agent lists; keeps inline mode for smaller lists.
+v2.0.4  2026-07-23  Keeps agent menu visible (no auto-open) and normalizes
+                    embedded chat HTML to full-height layout.
+v2.0.3  2026-07-23  Auto-opens preferred/default linked agent so chat widget
+                    appears immediately when loaded inside a tab.
+v2.0.2  2026-07-23  Fixed nested iframe Xrm resolution so Tab-injected picker
+                    can reach Dataverse context instead of fallback mode.
+v2.0.1  2026-07-23  Fixed schema-tolerant config loading so linked-agent menu
+                    does not fall back when optional parent fields are absent.
 v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
                     parent/child config loading and graceful fallback.
 =============================================================================
@@ -391,6 +406,53 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
             overflow: hidden;
         }
 
+        .chatHeader {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            height: 42px;
+            padding: 0 10px;
+            background: #0f5c73;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,.18);
+        }
+
+        .frameWrap.chat-only .chatHeader {
+            display: flex;
+        }
+
+        .backToAgentsBtn {
+            border: 1px solid rgba(255,255,255,.35);
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 8px;
+            cursor: pointer;
+        }
+
+        .backToAgentsBtn:hover {
+            background: rgba(255,255,255,.2);
+        }
+
+        .activeAgentTitle {
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            text-align: right;
+        }
+
+        .frameWrap.chat-only iframe,
+        .frameWrap.chat-only .emptyState {
+            top: 42px;
+            height: calc(100% - 42px);
+        }
+
         .emptyState {
             position: absolute;
             inset: 0;
@@ -452,6 +514,10 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         </div>
 
         <div class="frameWrap">
+            <div class="chatHeader" id="chatHeader">
+                <button type="button" class="backToAgentsBtn" id="backToAgentsBtn">← Agents</button>
+                <span class="activeAgentTitle" id="activeAgentTitle">Agent Chat</span>
+            </div>
             <button class="changeAgentBtn" id="changeAgentBtn">
                 <span class="dot"></span>
                 <span id="changeAgentLabel"></span>
@@ -470,6 +536,7 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         var TABLE = "sidebar_genericsidebar";
         var AGENT_TABLE = "sidebar_genericsidebaragent";
         var CANVAS_URL = "/WebResources/rwmcs_vzcopilotcanvas";
+        var DEDICATED_CHAT_THRESHOLD = 4;
         var FALLBACK_SSO_CONFIG = {
             clientId: "3a669365-5420-433a-913f-ad7e39424a8c",
             tenantId: "a8037933-4d29-4ef8-8754-e67b2edd480b",
@@ -527,6 +594,7 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         var quickActions = document.getElementById("quickActions");
         var welcomeText = document.getElementById("welcomeText");
         var emptyText = document.getElementById("emptyState").querySelector(".emptyTxt");
+        var frameWrap = document.querySelector(".frameWrap");
 
         document.getElementById("menuTrigger").addEventListener("click", function (e) {
             e.stopPropagation();
@@ -539,6 +607,7 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         document.getElementById("btnHistory").addEventListener("click", openHistory);
         document.getElementById("btnReset").addEventListener("click", resetAll);
         document.getElementById("changeAgentBtn").addEventListener("click", showActions);
+        document.getElementById("backToAgentsBtn").addEventListener("click", showActions);
 
         init();
 
@@ -546,6 +615,35 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
             try {
                 if (window.parent && window.parent.Xrm) return window.parent.Xrm;
             } catch (e) {}
+
+            // When embedded as iframe-in-iframe (sidebar -> picker), Xrm can be on higher ancestors.
+            try {
+                var current = window;
+                for (var depth = 0; depth < 6; depth++) {
+                    if (!current || !current.parent || current.parent === current) break;
+                    current = current.parent;
+                    if (current && current.Xrm) return current.Xrm;
+                }
+            } catch (e) {}
+
+            try {
+                if (window.top && window.top.Xrm) return window.top.Xrm;
+            } catch (e) {}
+
+            try {
+                if (window.opener && window.opener.Xrm) return window.opener.Xrm;
+            } catch (e) {}
+
+            // In pop-out windows, Xrm is often on opener ancestors, not opener itself.
+            try {
+                var openerCurrent = window.opener;
+                for (var openerDepth = 0; openerDepth < 6; openerDepth++) {
+                    if (!openerCurrent || !openerCurrent.parent || openerCurrent.parent === openerCurrent) break;
+                    openerCurrent = openerCurrent.parent;
+                    if (openerCurrent && openerCurrent.Xrm) return openerCurrent.Xrm;
+                }
+            } catch (e) {}
+
             return typeof window.Xrm !== "undefined" ? window.Xrm : null;
         }
 
@@ -679,16 +777,28 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
             };
         }
 
+        function isMissingPropertyError(error) {
+            var msg = String((error && error.message) || "").toLowerCase();
+            return msg.indexOf("could not find a property") >= 0 || msg.indexOf("property named") >= 0;
+        }
+
         function loadSidebarConfig() {
             if (!state.xrm || !state.xrm.WebApi) {
                 return Promise.resolve(getFallbackSidebarConfig());
             }
 
             var requestedConfigId = normalizeGuid(getQueryParam("configId"));
-            var select = "?$select=sidebar_genericsidebarid,sidebar_title,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_redirect_uri,sidebar_auth_scopes";
+            var baseSelect = "?$select=sidebar_genericsidebarid,sidebar_title";
+            var extendedSelect = "?$select=sidebar_genericsidebarid,sidebar_title,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_redirect_uri,sidebar_auth_scopes";
 
             if (requestedConfigId) {
-                return state.xrm.WebApi.retrieveRecord(TABLE, requestedConfigId, select)
+                return state.xrm.WebApi.retrieveRecord(TABLE, requestedConfigId, extendedSelect)
+                    .catch(function (error) {
+                        if (isMissingPropertyError(error)) {
+                            return state.xrm.WebApi.retrieveRecord(TABLE, requestedConfigId, baseSelect);
+                        }
+                        throw error;
+                    })
                     .then(mapSidebarConfig)
                     .catch(function () {
                         return getDefaultSidebarConfig();
@@ -699,11 +809,14 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         }
 
         function getDefaultSidebarConfig() {
-            var select = "$select=sidebar_genericsidebarid,sidebar_title,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_redirect_uri,sidebar_auth_scopes";
-            return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + select + "&$filter=sidebar_default eq true&$top=1")
+            var baseSelect = "$select=sidebar_genericsidebarid,sidebar_title";
+            return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$filter=sidebar_default eq true&$top=1")
+                .catch(function () {
+                    return { entities: [] };
+                })
                 .then(function (result) {
-                    if (result.entities.length) return mapSidebarConfig(result.entities[0]);
-                    return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + select + "&$orderby=createdon desc&$top=1");
+                    if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
+                    return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$orderby=createdon desc&$top=1");
                 })
                 .then(function (result) {
                     if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
@@ -716,14 +829,17 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
 
         function normalizeAgentRow(record, index) {
             var key = record.sidebar_agentkey || record.sidebar_name || record.sidebar_displayname || ("agent-" + index);
+            var activeByFlag = record.sidebar_isactive !== false;
+            var activeByState = typeof record.statecode === "number" ? record.statecode === 0 : true;
             return {
                 id: record.sidebar_genericsidebaragentid || key,
                 key: key,
                 name: record.sidebar_displayname || record.sidebar_name || key,
                 description: record.sidebar_description || "Select this agent to get started.",
                 tokenEndpoint: record.sidebar_tokenendpoint || "",
+                embedCode: record.sidebar_embedcode || "",
                 sortOrder: typeof record.sidebar_sortorder === "number" ? record.sidebar_sortorder : index,
-                isActive: record.sidebar_isactive !== false,
+                isActive: activeByFlag && activeByState,
                 isDefault: record.sidebar_isdefaultagent === true,
                 authScopeOverride: record.sidebar_authscopeoverride || "",
                 agentType: record.sidebar_agenttype || "Copilot Studio",
@@ -740,24 +856,23 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
 
             var guid = normalizeGuid(configId);
             var query = [
-                "?$select=sidebar_genericsidebaragentid,sidebar_name,sidebar_agentkey,sidebar_displayname,sidebar_description,sidebar_tokenendpoint,sidebar_sortorder,sidebar_isactive,sidebar_isdefaultagent,sidebar_authscopeoverride,sidebar_agenttype,sidebar_iconurl",
+                "?$select=sidebar_genericsidebaragentid,sidebar_name,sidebar_agentkey,sidebar_displayname,sidebar_description,sidebar_tokenendpoint,sidebar_embedcode,sidebar_sortorder,sidebar_isactive,sidebar_isdefaultagent,sidebar_authscopeoverride,sidebar_agenttype,sidebar_iconurl,statecode,statuscode",
                 "&$filter=_sidebar_genericsidebarid_value eq ", guid,
-                " and sidebar_isactive eq true",
+                " and sidebar_isactive ne false and statecode eq 0",
                 "&$orderby=sidebar_sortorder asc,createdon asc"
             ].join("");
 
             return state.xrm.WebApi.retrieveMultipleRecords(AGENT_TABLE, query)
                 .then(function (result) {
-                    if (!result.entities.length) {
-                        state.usingFallbackAgents = true;
-                        return FALLBACK_AGENTS.slice();
-                    }
                     state.usingFallbackAgents = false;
-                    return result.entities.map(normalizeAgentRow);
+                    var activeAgents = result.entities
+                        .map(normalizeAgentRow)
+                        .filter(function (agent) { return agent.isActive; });
+                    return activeAgents;
                 })
                 .catch(function () {
-                    state.usingFallbackAgents = true;
-                    return FALLBACK_AGENTS.slice();
+                    state.usingFallbackAgents = false;
+                    return [];
                 });
         }
 
@@ -869,11 +984,17 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         }
 
         function showActions() {
+            if (shouldUseDedicatedChatView()) {
+                exitDedicatedChatView(true);
+                document.getElementById("historyPanel").style.display = "none";
+                return;
+            }
+
             document.getElementById("actionPanel").classList.remove("hidden");
             document.getElementById("changeAgentBtn").classList.remove("visible");
             document.getElementById("historyPanel").style.display = "none";
             document.getElementById("emptyState").classList.remove("hidden");
-            document.getElementById("frame").src = "about:blank";
+            resetFrame();
             emptyText.textContent = "Select an action above to get started";
         }
 
@@ -911,26 +1032,88 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
             ].join("&");
         }
 
+        function resetFrame() {
+            var frame = document.getElementById("frame");
+            frame.removeAttribute("srcdoc");
+            frame.src = "about:blank";
+        }
+
+        function hasEmbedCode(agent) {
+            return !!String(agent && agent.embedCode || "").trim();
+        }
+
+        function normalizeEmbedHtml(html) {
+            try {
+                var doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+                var style = doc.createElement("style");
+                style.textContent = [
+                    "html, body {",
+                    "  height: 100% !important;",
+                    "  width: 100% !important;",
+                    "  margin: 0 !important;",
+                    "  padding: 0 !important;",
+                    "  overflow: hidden !important;",
+                    "}",
+                    "body {",
+                    "  min-height: 100% !important;",
+                    "}",
+                    "iframe {",
+                    "  width: 100% !important;",
+                    "  height: 100% !important;",
+                    "  min-height: 100% !important;",
+                    "  border: 0 !important;",
+                    "  display: block !important;",
+                    "}",
+                    "body > iframe:first-of-type {",
+                    "  position: absolute !important;",
+                    "  inset: 0 !important;",
+                    "}"
+                ].join("\n");
+                (doc.head || doc.documentElement).appendChild(style);
+                return doc.documentElement.outerHTML;
+            } catch (e) {
+                return html;
+            }
+        }
+
+        function renderEmbedAgent(agent) {
+            var frame = document.getElementById("frame");
+            resetFrame();
+            frame.srcdoc = normalizeEmbedHtml(agent.embedCode);
+        }
+
         function loadAgent(key) {
             var agent = state.agentsByKey[key];
             if (!agent) return;
-            if (!agent.tokenEndpoint) {
-                emptyText.textContent = "This agent is missing a token endpoint configuration.";
-                document.getElementById("emptyState").classList.remove("hidden");
-                return;
-            }
 
             state.lastKey = key;
-            document.getElementById("actionPanel").classList.add("hidden");
-            document.getElementById("changeAgentBtn").classList.add("visible");
+            if (shouldUseDedicatedChatView()) {
+                enterDedicatedChatView(agent.name);
+            } else {
+                exitDedicatedChatView(false);
+            }
             document.getElementById("changeAgentLabel").textContent = agent.name;
             document.getElementById("emptyState").classList.add("hidden");
 
+            if (hasEmbedCode(agent)) {
+                renderEmbedAgent(agent);
+                return;
+            }
+
+            if (!agent.tokenEndpoint) {
+                emptyText.textContent = "This agent is missing a token endpoint configuration.";
+                document.getElementById("emptyState").classList.remove("hidden");
+                resetFrame();
+                return;
+            }
+
             getUserToken(agent).then(function (userToken) {
+                resetFrame();
                 document.getElementById("frame").src = CANVAS_URL + "?data=" + encodeURIComponent(buildCanvasData(agent, userToken));
             }).catch(function (error) {
                 document.getElementById("emptyState").classList.remove("hidden");
                 emptyText.textContent = "Sign-in failed: " + (error && error.message ? error.message : error);
+                resetFrame();
             });
         }
 
@@ -940,6 +1123,30 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
                 return;
             }
             welcomeText.textContent = "Welcome to Copilot. Select one of the configured agents below to get started.";
+        }
+
+        function shouldUseDedicatedChatView() {
+            return state.agents.length >= DEDICATED_CHAT_THRESHOLD;
+        }
+
+        function enterDedicatedChatView(agentName) {
+            frameWrap.classList.add("chat-only");
+            document.getElementById("actionPanel").classList.add("hidden");
+            document.getElementById("changeAgentBtn").classList.remove("visible");
+            document.getElementById("activeAgentTitle").textContent = agentName || "Agent Chat";
+        }
+
+        function exitDedicatedChatView(resetConversation) {
+            frameWrap.classList.remove("chat-only");
+            document.getElementById("activeAgentTitle").textContent = "Agent Chat";
+            document.getElementById("actionPanel").classList.remove("hidden");
+            document.getElementById("changeAgentBtn").classList.remove("visible");
+
+            if (resetConversation) {
+                document.getElementById("emptyState").classList.remove("hidden");
+                emptyText.textContent = "Select an action above to get started";
+                resetFrame();
+            }
         }
 
         function init() {
