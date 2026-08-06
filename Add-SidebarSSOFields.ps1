@@ -2,7 +2,7 @@
 =============================================================================
 SCRIPT:       Add-SidebarSSOFields
 FILE:         Add-SidebarSSOFields.ps1
-VERSION:      2.0.0
+VERSION:      2.1.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-07-22
 ENVIRONMENT:  PowerShell 7+ / PowerShell 5.1 with Az modules
@@ -10,7 +10,7 @@ ENVIRONMENT:  PowerShell 7+ / PowerShell 5.1 with Az modules
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Automates Dataverse table extension by adding 8 SSO fields to
+Automates Dataverse table extension by adding 7 SSO fields to
 sidebar_genericsidebar table. Idempotent and safe to run multiple times.
 Supports service principal (CI/CD) and interactive (device code) authentication.
 
@@ -33,12 +33,12 @@ PARAMETERS
 -----------------------------------------------------------------------------
 FEATURES
 -----------------------------------------------------------------------------
-- Field Creation:    Creates 8 SSO columns with proper types and constraints
+- Field Creation:    Creates 7 SSO columns with proper types and constraints
 - Duplicate Check:   Detects existing fields, skips gracefully
 - Error Handling:    Catches validation errors without crashing
 - Auth Flexibility:  Service principal (CI/CD) OR interactive (manual)
 - Verbose Output:    Reports each field creation status
-- Idempotent:        Safe to re-run (existing fields skipped)
+- Idempotent:        Safe to re-run (existing fields are checked before creation)
 
 -----------------------------------------------------------------------------
 PREREQUISITES
@@ -60,7 +60,7 @@ Audit:             All changes logged to Dataverse audit trail
 TEST CASES
 -----------------------------------------------------------------------------
 ✔ Runs without errors on clean Dataverse org
-✔ Creates all 8 SSO fields with correct types
+✔ Creates all 7 browser SSO fields with correct types
 ✔ Skips duplicate fields with warning
 ✔ Reports success and skipped counts
 ✔ Idempotent — second run skips all fields
@@ -68,6 +68,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.1.0  2026-08-06  Remove unused browser client-secret field; strengthen idempotent checks
 v2.0.0  2026-07-22  Production release — SSO field automation, error handling
 v1.0.0  2026-03-01  Initial script stub
 
@@ -93,10 +94,8 @@ param(
     [SecureString]$ClientSecret,
 
     [Parameter(Mandatory=$false, HelpMessage="Tenant ID (if different from org tenant)")]
-    [string]$TenantId,
+    [string]$TenantId
 
-    [Parameter(Mandatory=$false, HelpMessage="Force recreate fields (overwrite if exists)")]
-    [switch]$Force
 )
 
 # ============================================================================
@@ -162,15 +161,6 @@ $SSO_FIELDS = @(
         Type = "SingleLine.Text"
         MaxLength = 500
         Required = $false
-    },
-    @{
-        Name = "sidebar_auth_client_secret"
-        DisplayName = "Client Secret"
-        Description = "Entra client secret (encrypted, optional)"
-        Type = "SingleLine.Text"
-        MaxLength = 256
-        Required = $false
-        Encrypted = $true
     }
 )
 
@@ -181,7 +171,7 @@ $SSO_FIELDS = @(
 function Write-Header {
     Write-Host "`n╔════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║ Generic Sidebar — Dataverse SSO Table Extension Script      ║" -ForegroundColor Cyan
-    Write-Host "║ Version 2.0.0                                               ║" -ForegroundColor Cyan
+    Write-Host "║ Version 2.1.0                                               ║" -ForegroundColor Cyan
     Write-Host "╚════════════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
 }
 
@@ -302,6 +292,18 @@ function Create-SSOField {
     )
 
     try {
+        $existingUri = "$ApiUrl/EntityDefinitions(LogicalName='$TABLE_NAME')/Attributes(LogicalName='$FieldName')"
+        try {
+            Invoke-RestMethod -Uri $existingUri -Method Get -Headers $Headers | Out-Null
+            Write-Warning-Custom "Field already exists: $FieldName"
+            return $false
+        } catch {
+            $statusCode = $_.Exception.Response.StatusCode.value__
+            if ($statusCode -ne 404) {
+                throw
+            }
+        }
+
         # Build field definition based on type
         $fieldDef = @{
             SchemaName = $FieldName
@@ -326,10 +328,7 @@ function Create-SSOField {
             "SingleLine.Text" {
                 $fieldDef["@odata.type"] = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
                 $fieldDef["MaxLength"] = $MaxLength
-                if ($Encrypted) {
-                    $fieldDef["IsSecured"] = $true
-                    $fieldDef["ImeMode"] = "Inactive"
-                }
+                $fieldDef["ImeMode"] = "Inactive"
             }
         }
 
@@ -347,13 +346,8 @@ function Create-SSOField {
         return $true
     } catch {
         $errorMsg = $_.Exception.Message
-        if ($errorMsg -like "*already exists*" -or $errorMsg -like "*duplicate*") {
-            Write-Warning-Custom "Field already exists: $FieldName"
-            return $false
-        } else {
-            Write-Error-Custom "Failed to create $FieldName : $errorMsg"
-            throw
-        }
+        Write-Error-Custom "Failed to create $FieldName : $errorMsg"
+        throw
     }
 }
 
@@ -373,13 +367,8 @@ Write-Success "Organization URL: $OrgUrl"
 
 # Extract tenant ID from org URL if not provided
 if (-not $TenantId) {
-    Write-Section "Extracting tenant ID from org URL..."
-    try {
-        $response = Invoke-RestMethod "$OrgUrl/api/data/v9.0/" -Headers @{ Authorization = "Bearer temp" } -ErrorAction SilentlyContinue
-    } catch {
-        # Expected (no auth), we just want to trigger tenant discovery
-    }
-    Write-Success "Tenant ID will be discovered during authentication"
+    Write-Section "Tenant ID not supplied..."
+    Write-Success "Interactive authentication will use the common Microsoft identity authority"
 }
 
 # Get API token
@@ -397,7 +386,7 @@ $Headers = @{
     "Content-Type"  = "application/json"
 }
 
-$ApiUrl = "$OrgUrl/api/data/v9.0"
+$ApiUrl = "$OrgUrl/api/data/v9.2"
 
 # Verify table exists
 Write-Section "Verifying table exists..."
