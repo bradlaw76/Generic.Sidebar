@@ -1,0 +1,70 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_copilot_hosted_AgentInstrutions
+FILE:         web resources\sidebar_copilot_hosted_AgentInstrutions.html
+VERSION:      2.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-08-06
+ENVIRONMENT:  HTML | JavaScript
+
+OVERVIEW
+Interactive administrator installation guide for the Generic Sidebar solution.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generic Sidebar Administrator Guide</title>
+  <style>
+    :root { --brand:#0f6cbd; --brand-dark:#0b4f8a; --ink:#1f2933; --muted:#52606d; --border:#d9e2ec; --canvas:#f5f7fa; --panel:#fff; --success:#107c10; --warning:#8a6100; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--canvas); font:14px/1.55 "Segoe UI",Arial,sans-serif; }
+    .shell { max-width:1280px; min-height:100vh; margin:0 auto; display:grid; grid-template-columns:260px minmax(0,1fr); background:var(--panel); box-shadow:0 1px 8px rgba(0,0,0,.12); }
+    .sidebar { position:sticky; top:0; height:100vh; overflow:auto; padding:24px 16px; color:#fff; background:linear-gradient(180deg,#0b4f8a,#06345d); }
+    .brand { padding:0 10px 18px; border-bottom:1px solid rgba(255,255,255,.25); }
+    .brand h1 { margin:0; font-size:19px; line-height:1.25; }.brand p { margin:5px 0 0; color:#d6e8f7; font-size:12px; }
+    .nav { margin-top:18px; }.nav a { display:block; margin:3px 0; padding:9px 10px; border-radius:5px; color:#eaf4fc; text-decoration:none; }.nav a:hover,.nav a:focus { background:rgba(255,255,255,.16); outline:none; }.nav a.active { background:#fff; color:var(--brand-dark); font-weight:600; }
+    .content { min-width:0; padding:32px 42px; }.intro { border-bottom:1px solid var(--border); padding-bottom:22px; }.eyebrow { color:var(--brand-dark); font-weight:700; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }.intro h2 { margin:5px 0 8px; font-size:30px; line-height:1.2; color:#102a43; }.intro p { max-width:780px; color:var(--muted); font-size:16px; }
+    section { padding:30px 0 8px; border-bottom:1px solid var(--border); scroll-margin-top:16px; } section h2 { margin:0 0 12px; color:#102a43; font-size:23px; } section h3 { margin:22px 0 8px; font-size:17px; }
+    .notice { margin:16px 0; padding:13px 16px; border-left:4px solid var(--brand); background:#eef6fc; }.notice.warning { border-color:#d29200; background:#fff7e6; }.notice.success { border-color:var(--success); background:#edf7ed; }
+    .checklist { margin:14px 0; padding:0; list-style:none; }.checklist li { margin:7px 0; padding:9px 12px 9px 34px; position:relative; border:1px solid var(--border); border-radius:5px; background:#fff; }.checklist li::before { content:"□"; position:absolute; left:11px; font-weight:700; color:var(--brand-dark); }
+    .steps { counter-reset:step; margin:16px 0; padding:0; list-style:none; }.steps li { position:relative; margin:12px 0; padding:14px 16px 14px 52px; border:1px solid var(--border); border-radius:6px; background:#fff; }.steps li::before { counter-increment:step; content:counter(step); position:absolute; top:14px; left:14px; width:26px; height:26px; border-radius:50%; color:#fff; background:var(--brand); font-weight:700; text-align:center; line-height:26px; }
+    code { padding:2px 5px; color:#243b53; background:#e9eff5; border-radius:3px; font-family:Consolas,monospace; font-size:.9em; } pre { overflow:auto; margin:10px 0; padding:14px; color:#e6edf3; background:#102a43; border-radius:6px; } pre code { padding:0; color:inherit; background:none; }
+    table { width:100%; border-collapse:collapse; margin:12px 0; } th,td { padding:10px; border:1px solid var(--border); vertical-align:top; text-align:left; } th { background:#eaf2f8; color:#102a43; }
+    .footer { margin-top:32px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; }.badge { display:inline-block; margin-left:8px; padding:2px 8px; border:1px solid #b7d5ef; border-radius:20px; color:#075a9e; background:#edf7ff; font-weight:600; }
+    @media (max-width:760px) { .shell { display:block; }.sidebar { position:static; height:auto; }.nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; }.content { padding:24px 20px; }.intro h2 { font-size:25px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Installation guide navigation">
+      <div class="brand"><h1>Generic Sidebar</h1><p>Administrator installation guide</p></div>
+      <nav class="nav">
+        <a class="active" href="#overview">Overview</a><a href="#prerequisites">Prerequisites</a><a href="#deploy">1. Deploy resources</a><a href="#configure">2. Configure Dataverse</a><a href="#wire">3. Wire the app</a><a href="#agents">4. Configure agents</a><a href="#sso">5. Enable SSO</a><a href="#validate">6. Validate</a><a href="#operations">Operations</a><a href="#troubleshoot">Troubleshooting</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <header class="intro" id="overview"><div class="eyebrow">Installation and administration</div><h2>Set up Generic Sidebar safely</h2><p>Use this guide to deploy the web resources, configure the table-driven side pane, connect optional Copilot agents, and validate the result in a model-driven app.</p><div class="notice"><strong>Design:</strong> the sidebar reads active configuration from Dataverse at runtime. Configuration changes normally do not require redeploying web resources.</div></header>
+      <section id="prerequisites"><h2>Prerequisites</h2><ul class="checklist"><li>System Administrator or System Customizer access in the target Dataverse environment.</li><li>Access to the unmanaged Generic Sidebar solution and the model-driven app form to be wired.</li><li>A security role that can read <code>sidebar_genericsidebar</code> and active <code>sidebar_genericsidebaragent</code> rows.</li><li>For SSO: Copilot Studio, Entra app-registration, and tenant-admin access.</li></ul></section>
+      <section id="deploy"><h2>1. Deploy web resources</h2><ol class="steps"><li>Open the target environment and select the <strong>Generic Sidebar</strong> unmanaged solution.</li><li>Upload or update the sidebar HTML and JavaScript web resources from the approved source repository.</li><li>Publish customizations. Use a full publish only when a targeted publish is blocked by a concurrent customization operation.</li><li>Hard refresh the model-driven app with <code>Ctrl+Shift+R</code> before testing.</li></ol><div class="notice warning"><strong>Do not rename a web resource</strong> without updating every form event, embed configuration, Entra redirect URI, and deployment reference that uses it.</div></section>
+      <section id="configure"><h2>2. Configure Dataverse</h2><ol class="steps"><li>Create or select a row in <code>sidebar_genericsidebar</code>.</li><li>Set exactly one intended row to <code>sidebar_default = Yes</code>. The runtime selects the most recently modified default as a safeguard; fix duplicate defaults rather than relying on that behavior.</li><li>Set panel titles, instructions, and embed values. Use <code>webresource:resource_name</code>, a permitted URL, an iframe snippet, or raw HTML as appropriate.</li><li>Set <code>sidebar_agentmenutab</code> only when the linked-agent picker should replace a configured tab.</li></ol><table><thead><tr><th>Field</th><th>Purpose</th></tr></thead><tbody><tr><td><code>sidebar_default</code></td><td>Identifies the active sidebar configuration.</td></tr><tr><td><code>sidebar_title1</code> through <code>sidebar_title4</code></td><td>Tab labels.</td></tr><tr><td><code>sidebar_embedcode</code> variants</td><td>Content source for each tab.</td></tr><tr><td><code>sidebar_instructions</code> variants</td><td>Optional instruction band above a tab.</td></tr></tbody></table></section>
+      <section id="wire"><h2>3. Wire the model-driven app</h2><ol class="steps"><li>Add <code>sidebar_sidebar.js</code> as a form library.</li><li>Add the approved sidebar entry function to Form OnLoad or the relevant ribbon command, and pass the execution context if the configured function requires it.</li><li>Save and publish the form.</li><li>Open a record in the app and confirm the pane opens with the intended default configuration.</li></ol></section>
+      <section id="agents"><h2>4. Configure linked agents</h2><ol class="steps"><li>Create child rows in <code>sidebar_genericsidebaragent</code> and link each to its parent sidebar configuration.</li><li>Set <code>sidebar_isactive = Yes</code> and leave the row in active Dataverse state.</li><li>Set the parent menu-tab option to place the linked-agent picker in the intended tab.</li><li>Verify inactive or deactivated child rows do not appear in the picker.</li></ol></section>
+      <section id="sso"><h2>5. Enable Copilot SSO (optional)</h2><ol class="steps"><li>Deploy the SSO resources: <code>sidebar_sso_bootstrap.js</code>, <code>sidebar_sso_setup.js</code>, <code>sidebar_sso_canvas.html</code>, and <code>sidebar_sso_config_validator.html</code>.</li><li>Register the canvas web-resource URL as a <strong>SPA redirect URI</strong> in Entra ID.</li><li>Populate the approved public configuration values: client ID, tenant ID, scope, token endpoint, redirect URI, and optional additional scopes.</li><li>Run the SSO validator, then test only inside the hosted model-driven application.</li></ol><div class="notice warning"><strong>Never store a client secret</strong> in Dataverse configuration read by browser web resources. The supported browser flow uses PKCE.</div></section>
+      <section id="validate"><h2>6. Validate before release</h2><ul class="checklist"><li>One correct default configuration is active.</li><li>All configured tabs load, and expected instructions render.</li><li>External content is permitted to render in an iframe.</li><li>Active linked agents appear; inactive agents do not.</li><li>Non-SSO configuration works before SSO is enabled.</li><li>SSO popup and silent sign-in paths work in hosted Dynamics without exposing tokens in logs.</li></ul></section>
+      <section id="operations"><h2>Operations and rollback</h2><p>Record the Git commit, environment, web-resource names, and validation evidence for every deployment. If a regression occurs, restore the approved Git checkpoint, import the known-good resources, publish, and hard refresh.</p><pre><code>git restore --source admin-review-baseline-2026-08-05 -- .</code></pre></section>
+      <section id="troubleshoot"><h2>Troubleshooting</h2><table><thead><tr><th>Symptom</th><th>Action</th></tr></thead><tbody><tr><td>Pane is blank</td><td>Confirm the default row, form event, resource name, and publish state.</td></tr><tr><td>Agent picker is empty</td><td>Confirm parent lookup, <code>sidebar_isactive</code>, and active state for each child row.</td></tr><tr><td>SSO fails to start</td><td>Validate the exact redirect URI, SPA platform type, scope, and Copilot token endpoint.</td></tr><tr><td>Old UI appears</td><td>Publish then hard refresh; verify the web-resource content stored in Dataverse before assuming browser cache.</td></tr></tbody></table></section>
+      <footer class="footer">Generic Sidebar administrator guide <span class="badge">Version 2.0.0</span><span class="badge">Build 2026-08-06</span></footer>
+    </main>
+  </div>
+  <script>
+    const links = Array.from(document.querySelectorAll('.nav a'));
+    const sections = links.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    const observer = new IntersectionObserver(entries => { const visible = entries.filter(entry => entry.isIntersecting).sort((a,b) => b.intersectionRatio-a.intersectionRatio)[0]; if (!visible) return; links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + visible.target.id)); }, { rootMargin:'-20% 0px -65% 0px', threshold:[.1,.5] });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>

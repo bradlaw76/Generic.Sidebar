@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_welcome
 FILE:         web resources\sidebar_welcome.html
-VERSION:      1.0.1
+VERSION:      1.1.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-08-06
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,8 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.1.0  2026-08-06  UX: add persistent page footer with build and version information
+v1.0.2  2026-08-06  UX: add visible build marker for admin verification
 v1.0.1  2026-08-05  Reliability: select the most recently modified default configuration
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
@@ -162,7 +164,7 @@ NON-NEGOTIABLES (Architecture Contract)
 </head>
 <body>
   <div class="container">
-    <div class="page-header">Dynamics 365 Customer Service</div>
+    <div class="page-header">Dynamics 365 Customer Service <span class="pill">Build 2026-08-06 | v1.0.2</span></div>
     <h1>Agent Productivity Pane (Generic Sidebar)</h1>
 
     <!-- Admin-only disclaimer banner -->
@@ -265,7 +267,7 @@ NON-NEGOTIABLES (Architecture Contract)
       <strong>Tip:</strong> Position the pop-out window on the right edge of your screen for easy split-screen snapping (Win+Arrow keys).
     </div>
 
-    <p class="small">© Generic Sidebar kit — configurable, table-driven side pane for model-driven apps.</p>
+    <p class="small">© Generic Sidebar kit — configurable, table-driven side pane for model-driven apps. <span class="pill">Version 1.1.0 | Build 2026-08-06</span></p>
   </div>
 </body>
 </html>
