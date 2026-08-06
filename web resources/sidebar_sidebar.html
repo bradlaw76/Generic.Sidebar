@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      2.15.5
+VERSION:      2.15.4
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-05
+LAST UPDATED: 2026-07-24
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,8 +69,6 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-v2.15.5  2026-08-05  Deployment: use the verified Dataverse linked-agent web-resource name
-  * Replaced the unresolved vz_AgentSidePanelHTML.html URL with sidebar_GenericSidebarAgent
 v2.15.4  2026-07-24  UX: adds tab title tooltips and keyboard tab switching
   * Tab buttons now expose full title via hover tooltip
   * Added Alt+1..Alt+4 shortcuts to switch visible tabs
@@ -613,7 +611,7 @@ NON-NEGOTIABLES (Architecture Contract)
       const agentMenuTab = parseAgentMenuTab(rec.sidebar_agentmenutab);
       if (linkedAgents.hasLinkedAgents && agentMenuTab) {
         const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
-        const pickerUrl = base + "/WebResources/sidebar_GenericSidebarAgent?configId=" + encodeURIComponent(configId) + "&v=2.1.2";
+        const pickerUrl = base + "/WebResources/vz_AgentSidePanelHTML.html?configId=" + encodeURIComponent(configId) + "&v=2.1.1";
         const existing = panels.find(function (p) { return p.index === agentMenuTab; });
         if (existing) {
           existing.embedRaw = pickerUrl;
