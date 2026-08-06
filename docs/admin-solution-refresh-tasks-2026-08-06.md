@@ -1,7 +1,7 @@
 # Generic.Sidebar.Admin Refresh Tasks
 
-**Version:** 1.0.0  
-**Created:** 2026-08-06  
+**Version:** 1.0.0
+**Created:** 2026-08-06
 **Scope:** Contact Center environment, Generic.Sidebar.Admin unmanaged solution
 
 ## Completed in this refresh
