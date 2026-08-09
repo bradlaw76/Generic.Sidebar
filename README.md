@@ -137,9 +137,17 @@ A self-contained HTML phone simulator used as a sidecar embed for contact center
 ⚡ Usage Instructions
 1. Import the Solution
 2. Import the managed/unmanaged solution into your Dynamics 365 environment.
-3. Create a Config Row
+3. Use Packaged Generic Sidebar Forms
+   The solution now includes pre-built Generic Sidebar forms for common OOB tables:
+   * Case -> `Case Generic.Sidebar`
+   * Account -> `Account Generic.Sidebar`
+   * Contact -> `Contact Generic.Sidebar`
+   * Lead -> `Lead Generic.Sidebar`
+   * Opportunity -> `Opportunity Generic.Sidebar`
+   Select these forms in app designer or form order based on your deployment preference.
+4. Create a Config Row
    Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
-4. Set Key Fields
+5. Set Key Fields
    Fill in:
    * sidebar_title — header title (shown in the pane chrome).
    * sidebar_instructions — rich text instructions (bullets/headings supported).
@@ -165,9 +173,9 @@ Example Displayed to End User
 Help, Issue Reporting and Survey\
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
-How to Add JS to a new Form
-1. Add the generic_sidebar.js web resource to your form and set OnLoad handler → Generic_OpenSidebar.
-2. Publish & Refresh
+Packaged Form Wiring
+1. `Generic_OpenSidebar` is already wired on the packaged `* Generic.Sidebar` forms.
+2. For additional custom forms you create later, add `sidebar_sidebar.js` and OnLoad handler `Generic_OpenSidebar`.
 3. Publish all customizations, then hard refresh (Ctrl/Cmd+Shift+R).
 
 📋 Known Limitations

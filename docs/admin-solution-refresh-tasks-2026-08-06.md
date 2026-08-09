@@ -22,6 +22,9 @@
 - [ ] Update and publish `sidebar_welcome` from `web resources/sidebar_welcome.html`.
 - [ ] Update and publish `sidebar_GenericSidebar_AdminSurvey` from `web resources/sidebar_GenericSidebar_AdminSurvey.html`.
 - [ ] Hard refresh the model-driven application and verify each footer/build marker.
+- [ ] Ensure packaged OOB forms are present as solution components: `Case Generic.Sidebar`, `Account Generic.Sidebar`, `Contact Generic.Sidebar`, `Lead Generic.Sidebar`, `Opportunity Generic.Sidebar`.
+- [ ] Verify each packaged form includes form library `sidebar_sidebar.js` and OnLoad handler `Generic_OpenSidebar` with execution context enabled.
+- [ ] Publish all form customizations and verify no missing web-resource dependencies.
 
 ## Validation tasks
 
@@ -31,6 +34,8 @@
 - [ ] Confirm the survey continues rendering above its version footer.
 - [ ] Confirm no browser console errors or policy violations are introduced by any admin web resource.
 - [ ] Record environment, deployment time, tester, and outcome in release evidence.
+- [ ] Validate each packaged `* Generic.Sidebar` form opens the sidebar automatically on load.
+- [ ] Validate OOB primary forms remain available and unchanged unless form-order changes were intentional.
 
 ## Follow-up hardening
 

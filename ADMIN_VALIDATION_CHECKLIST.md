@@ -1,8 +1,8 @@
 # Generic Sidebar — Admin Validation Checklist
 
-**Version:** 1.0.0
-**Last Updated:** 2026-08-05
-**Scope:** Generic Sidebar administration, Dataverse configuration, linked-agent catalog, and SSO readiness.
+**Version:** 1.1.0
+**Last Updated:** 2026-08-06
+**Scope:** Generic Sidebar administration, packaged OOB forms, Dataverse configuration, linked-agent catalog, and SSO readiness.
 
 ## Validation boundary
 
@@ -62,6 +62,31 @@ Verify these files are tracked before importing web resources:
 7. Test an account without configuration-write privileges and confirm it cannot acknowledge or edit configuration.
 8. Record browser console errors without copying access tokens, Direct Line tokens, or full token endpoint query strings into tickets.
 
+## Packaged OOB form validation
+
+Validate that solution-packaged forms exist and run the sidebar automatically.
+
+Expected packaged forms:
+
+1. `Case Generic.Sidebar` (`incident`)
+2. `Account Generic.Sidebar` (`account`)
+3. `Contact Generic.Sidebar` (`contact`)
+4. `Lead Generic.Sidebar` (`lead`)
+5. `Opportunity Generic.Sidebar` (`opportunity`)
+
+For each form:
+
+1. Open a record on that specific `* Generic.Sidebar` form.
+2. Confirm form OnLoad opens the sidebar without manual script registration.
+3. Confirm sidebar renders expected panels from the active config row.
+4. Confirm SSO and non-SSO routing still follows the configuration row.
+5. Confirm linked-agent tab behavior still respects active child rows only.
+
+Primary-form safety check:
+
+1. Open the original OOB primary form for the same table.
+2. Confirm OOB primary form remains available and unchanged unless admins intentionally changed form order.
+
 ## Publish and rollback
 
 1. Import updated web resources and publish customizations.
@@ -72,5 +97,7 @@ Verify these files are tracked before importing web resources:
 
 - Git commit and tag used for the deployment.
 - Dataverse schema and security-role screenshots or export.
+- Screenshots proving the five packaged `* Generic.Sidebar` forms are present in the imported solution.
+- Form-level validation evidence for each packaged OOB form.
 - Validation date, environment, tester, and outcome.
 - Sanitized console errors and screenshots; never retain bearer tokens.
