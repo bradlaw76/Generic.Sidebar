@@ -1,0 +1,175 @@
+Updated todo list
+
+Copy and paste the following into your document.
+
+# Generic.Sidebar Repository URLs
+
+## Repository overview
+
+Repository:  
+https://github.com/bradlaw76/Generic.Sidebar
+
+Issues:  
+https://github.com/bradlaw76/Generic.Sidebar/issues
+
+Pull requests:  
+https://github.com/bradlaw76/Generic.Sidebar/pulls
+
+Releases:  
+https://github.com/bradlaw76/Generic.Sidebar/releases
+
+Branches:  
+https://github.com/bradlaw76/Generic.Sidebar/branches
+
+Commits:  
+https://github.com/bradlaw76/Generic.Sidebar/commits/main
+
+## Project documentation
+
+README:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/README.md
+
+Specification:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/SPEC.md
+
+Administrator setup guide:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/ADMIN_SETUP_GUIDE.md
+
+Administrator validation checklist:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/ADMIN_VALIDATION_CHECKLIST.md
+
+Troubleshooting guide:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/TROUBLESHOOTING.md
+
+Security guide:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/SECURITY_GUIDE.md
+
+Acceptance tests:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/TEST_ACCEPTANCE.md
+
+UX invariants:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/UX_INVARIANTS.md
+
+System manifest:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/SYSTEM_MANIFEST.json.md
+
+## Source files
+
+Main sidebar web resource:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_sidebar.html
+
+Sidebar JavaScript web resource:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_sidebar.js
+
+Copilot Studio agent web resource:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_GenericSidebarAgent.html
+
+SSO bootstrap web resource:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_sso_bootstrap.js
+
+SSO setup web resource:  
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_sso_setup.js
+
+## Raw document URLs
+
+README:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/README.md
+
+Specification:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/SPEC.md
+
+Administrator setup guide:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/ADMIN_SETUP_GUIDE.md
+
+Administrator validation checklist:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/ADMIN_VALIDATION_CHECKLIST.md
+
+Troubleshooting guide:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/TROUBLESHOOTING.md
+
+Security guide:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/SECURITY_GUIDE.md
+
+Acceptance tests:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/TEST_ACCEPTANCE.md
+
+UX invariants:  
+https://raw.githubusercontent.com/bradlaw76/Generic.Sidebar/main/UX_INVARIANTS.md
+
+## Directions for use
+
+### Use in Copilot Studio Website knowledge
+
+1. Open the agent in Copilot Studio.
+2. Open the `Knowledge` page.
+3. Add a new `Public websites` source.
+4. Use only this shallow repository URL:
+
+   https://github.com/bradlaw76/Generic.Sidebar
+
+5. Use the following description:
+
+```text
+This is the official Generic.Sidebar GitHub repository. It contains the project documentation, specifications, administrator setup and validation guidance, troubleshooting procedures, security guidance, acceptance tests, UX rules, deployment scripts, Dataverse configuration assets, Dynamics 365 side-pane web resources, JavaScript handlers, iframe panel components, and Copilot Studio integration resources. Use it as the primary project source for questions about Generic.Sidebar installation, configuration, publishing, deployment, linked agents, Dataverse records, tabs, web resources, blank panes, duplicate panes, incorrect tables, stale content, and runtime troubleshooting.
+```
+
+6. Save the knowledge source.
+7. Run a test question such as:
+
+```text
+How do I troubleshoot a blank Generic.Sidebar pane?
+```
+
+### Important Website source limitation
+
+The Website knowledge source accepts the repository root but may reject deeper URLs. Do not paste these into the Website source:
+
+```text
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/README.md
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/SPEC.md
+https://github.com/bradlaw76/Generic.Sidebar/blob/main/web%20resources/sidebar_sidebar.html
+```
+
+Keep the deeper URLs in your documentation for human reference. For file-level retrieval, use the GitHub connector or GitHub tools instead of the Website knowledge source.
+
+### Use with GitHub tools
+
+Configure the GitHub connector for:
+
+```text
+Owner: bradlaw76
+Repository: Generic.Sidebar
+Branch: main
+```
+
+Use GitHub tools to:
+
+- Read specific repository files.
+- Search source code.
+- Review issues.
+- Review pull requests.
+- Inspect commits.
+- Investigate regressions.
+- Create an issue only when explicitly requested.
+- Prepare code changes only after the user confirms the repository and branch.
+
+### Recommended source priority
+
+Use sources in this order:
+
+1. Current deployed behavior supplied by the user.
+2. Current repository source.
+3. Project specifications and administrator guides.
+4. Troubleshooting and security documentation.
+5. GitHub issues, pull requests, and commit history.
+6. General Microsoft product guidance.
+
+### Validation question
+
+After adding the repository as knowledge, test with:
+
+```text
+What is Generic.Sidebar, which Dataverse tables does it use, and how should I troubleshoot a blank pane without exposing secrets?
+```
+
+The agent should identify the repository as the project source, distinguish verified repository information from assumptions, and provide ordered troubleshooting steps.
