@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sso_setup
 FILE:         web resources\sidebar_sso_setup.js
-VERSION:      1.0.0
+VERSION:      2.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-21
+LAST UPDATED: 2026-08-13
 ENVIRONMENT:  JavaScript (Dynamics 365 Web Resource)
 PORTAL URL:   N/A
 
@@ -87,6 +87,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.0.1  2026-08-13  Await pane navigation before reporting SSO success
 v2.0.0  2026-07-22  Orchestration layer for Generic.Sidebar SSO
 v1.0.0  2026-07-21  Initial release - config loading + validation
 
@@ -95,7 +96,7 @@ NON-NEGOTIABLES (Architecture Contract)
 -----------------------------------------------------------------------------
 - Do NOT hardcode any config values
 - SSO config comes entirely from Dataverse
-- If SSO fails, fallback to non-auth mode (graceful degradation)
+- If SSO fails, reject navigation so the launcher can preserve a secure failure state
 - All errors must be logged with actionable remediation suggestions
 - Token must be passed securely to canvas (URL query params, stripped after read)
 =============================================================================
@@ -246,14 +247,18 @@ NON-NEGOTIABLES (Architecture Contract)
                "&usertoken=" + encodeURIComponent(userToken);
 
     try {
-      pane.navigate({
+      return Promise.resolve(pane.navigate({
         pageType: "webresource",
         webresourceName: canvasWebResourceName,
         data: data
+      }))
+      .then(function () {
+        log("Canvas navigation successful");
+      })
+      .catch(function (e) {
+        err("Canvas navigation failed: " + (e && e.message ? e.message : e));
+        throw e;
       });
-
-      log("Canvas navigation successful");
-      return Promise.resolve();
     } catch (e) {
       err("Canvas navigation failed: " + (e && e.message ? e.message : e));
       return Promise.reject(e);

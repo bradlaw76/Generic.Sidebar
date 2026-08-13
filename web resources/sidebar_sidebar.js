@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
-VERSION:      2.2.1
+VERSION:      2.6.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-23
+LAST UPDATED: 2026-08-13
 ENVIRONMENT:  JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,10 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.6.0  2026-08-13  Security: Fail closed when SSO initialization or navigation fails
+  * Routes SSO failures to the dedicated error resource instead of legacy canvas
+  * Records config and route state only after successful target navigation
+  * Clears failed route state so the explicit retry path reattempts SSO
 v2.2.1  2026-08-05  Reliability: hydrate SSO flag and load SSO dependencies in order
   * Reads sidebar_sso_enabled with a backward-compatible Dataverse fallback
   * Loads the MSAL bootstrap before the SSO orchestration resource
@@ -104,6 +108,7 @@ NON-NEGOTIABLES (Architecture Contract)
   const DEFAULTS = { width: 500, fallbackTitle: "Sidebar" };
   const TABLE = "sidebar_genericsidebar";     // your table logical name
   const WEBRESOURCE_VERSION = "2026.07.23.1";
+  const SSO_FAILURE_RESOURCE = "sidebar_sso_canvas_fallback.html";
 
   // Track the currently loaded configId on window to survive form reloads
   // This persists across record navigations within the same browser session
@@ -208,6 +213,17 @@ NON-NEGOTIABLES (Architecture Contract)
     return pane;
   }
 
+  async function showSsoFailure(pane, params, error) {
+    window.__sidebarLoadedConfigId = null;
+    window.__sidebarLoadedRoute = null;
+    console.error("[SSO] Secure navigation failed; showing SSO error state", error);
+    await pane.navigate({
+      pageType: "webresource",
+      webresourceName: SSO_FAILURE_RESOURCE,
+      data: params.toString()
+    });
+  }
+
   // Main function that opens the sidebar
   async function openSidebar(executionContext) {
     try {
@@ -236,13 +252,8 @@ NON-NEGOTIABLES (Architecture Contract)
       if (cfg.configId) params.set("configId", cfg.configId);
       params.set("wrv", WEBRESOURCE_VERSION);
 
-      // SSO DETECTION: Check if SSO is enabled for this config
-      // If enabled, route to SSO canvas; otherwise use standard canvas
-      let targetCanvas = "sidebar_sidebar.html";
-      let useSso = false;
-
-      try {
-        if (cfg.ssoEnabled) {
+      if (cfg.ssoEnabled) {
+        try {
           console.log("[SSO] SSO enabled for this config");
           // Load SSO bootstrap + setup libraries before navigation
           await new Promise(function (resolve, reject) {
@@ -275,17 +286,13 @@ NON-NEGOTIABLES (Architecture Contract)
               loadScript("sidebar_sso_bootstrap", loadSetup);
             }
           });
-          targetCanvas = "sidebar_sso_canvas.html";
-          useSso = true;
+        } catch (e) {
+          await showSsoFailure(pane, params, e);
+          return;
         }
-      } catch (e) {
-        console.warn("[SSO] Failed to load SSO libraries: " + e.message + "; falling back to standard canvas");
-        // Continue with non-SSO canvas on library load failure
-        useSso = false;
-        targetCanvas = "sidebar_sidebar.html";
       }
 
-      const routeKey = useSso ? "sso-canvas" : "legacy-canvas";
+      const routeKey = cfg.ssoEnabled ? "sso-canvas" : "legacy-canvas";
 
       // Check if the pane already has the same config+route loaded - skip navigate to preserve chat state
         var isConfigAuthoringForm = currentEntity === "sidebar_genericsidebar";
@@ -299,31 +306,23 @@ NON-NEGOTIABLES (Architecture Contract)
         return;
       }
 
-      console.log("Navigating to web resource:", targetCanvas, "SSO=", useSso);
-
-      if (useSso && typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
-        // Use SSO orchestration
+      if (cfg.ssoEnabled) {
         console.log("[SSO] Using SSO orchestration for pane navigation");
-        await window.SidebarSSO.handlePaneNavigation(cfg.configId, pane, "sidebar_sso_canvas")
-          .catch(function (e) {
-            console.error("[SSO] SSO navigation failed: " + e.message + "; using fallback canvas");
-            // Fallback: navigate to standard canvas if SSO fails
-            return pane.navigate({
-              pageType: "webresource",
-              webresourceName: "sidebar_sidebar.html",
-              data: params.toString()
-            });
-          });
+        try {
+          await window.SidebarSSO.handlePaneNavigation(cfg.configId, pane, "sidebar_sso_canvas");
+        } catch (e) {
+          await showSsoFailure(pane, params, e);
+          return;
+        }
       } else {
-        // Use standard canvas navigation
         await pane.navigate({
           pageType: "webresource",
-          webresourceName: targetCanvas,
+          webresourceName: "sidebar_sidebar.html",
           data: params.toString()
         });
       }
 
-      // Track the loaded config on window to persist across form navigations
+      // Track only navigation that completed successfully.
       window.__sidebarLoadedConfigId = cfg.configId;
       window.__sidebarLoadedRoute = routeKey;
 

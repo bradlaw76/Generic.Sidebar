@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sso_bootstrap
 FILE:         web resources\sidebar_sso_bootstrap.js
-VERSION:      1.0.0
+VERSION:      2.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-21
+LAST UPDATED: 2026-08-13
 ENVIRONMENT:  JavaScript (Dynamics 365 Web Resource)
 PORTAL URL:   N/A
 
@@ -80,6 +80,8 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.0.1  2026-08-13  Fix MSAL initialization instance handling
+  * Await PublicClientApplication.initialize() and retain the original client
 v2.0.0  2026-07-22  MSAL 2.38.3 bootstrap layer for Generic.Sidebar
 v1.0.0  2026-07-21  Initial release - reusable MSAL initialization
 
@@ -183,7 +185,9 @@ NON-NEGOTIABLES (Architecture Contract)
           }
         });
 
-        return _msalInstance.initialize();
+        return _msalInstance.initialize().then(function () {
+          return _msalInstance;
+        });
       } catch (e) {
         err("MSAL initialization failed: " + (e && e.message ? e.message : e));
         throw e;

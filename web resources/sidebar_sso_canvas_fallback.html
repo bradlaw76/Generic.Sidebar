@@ -2,16 +2,22 @@
 =============================================================================
 COMPONENT:    sidebar_sso_canvas_fallback
 FILE:         web resources/sidebar_sso_canvas_fallback.html
-VERSION:      2.0.0
+VERSION:      2.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-22
+LAST UPDATED: 2026-08-13
 ENVIRONMENT:  HTML5 (Dynamics 365 Web Resource / Error UI)
 
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Professional error UI displayed when Copilot token endpoint exchange fails.
+Professional error UI displayed when secure Copilot SSO navigation fails.
 Provides clear error messaging, troubleshooting steps, and help links.
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v2.0.1  2026-08-13  Retry secure SSO orchestration through the parent launcher
+v2.0.0  2026-07-22  Initial SSO failure experience
 =============================================================================
 -->
 
@@ -252,10 +258,22 @@ Provides clear error messaging, troubleshooting steps, and help links.
       document.getElementById('errorDetails').textContent = details;
     }
 
-    function retryConnection() {
-      // Remove error params and reload
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.location.href = cleanUrl;
+    async function retryConnection() {
+      const retryButton = document.querySelector('.btn-retry');
+      retryButton.disabled = true;
+      retryButton.textContent = 'Retrying...';
+
+      try {
+        if (window.parent && typeof window.parent.Generic_OpenSidebar === 'function') {
+          await window.parent.Generic_OpenSidebar();
+          return;
+        }
+        throw new Error('Sidebar retry is unavailable. Close and reopen the sidebar.');
+      } catch (error) {
+        document.getElementById('errorDetails').textContent = error.message;
+        retryButton.disabled = false;
+        retryButton.textContent = 'Retry';
+      }
     }
 
     function openTroubleshootingGuide() {
