@@ -1,0 +1,306 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_sso_canvas_fallback
+FILE:         web resources/sidebar_sso_canvas_fallback.html
+VERSION:      2.0.1
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-08-13
+ENVIRONMENT:  HTML5 (Dynamics 365 Web Resource / Error UI)
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Professional error UI displayed when secure Copilot SSO navigation fails.
+Provides clear error messaging, troubleshooting steps, and help links.
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v2.0.1  2026-08-13  Retry secure SSO orchestration through the parent launcher
+v2.0.0  2026-07-22  Initial SSO failure experience
+=============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot Canvas — Error</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background: #f5f5f5;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .error-box {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .error-icon {
+      font-size: 64px;
+      text-align: center;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    .error-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .error-details {
+      background: #f9f9f9;
+      border-left: 4px solid #d13438;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #555;
+      max-height: 200px;
+      overflow: auto;
+    }
+
+    .steps {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .steps h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .steps ol {
+      margin-left: 20px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.7;
+    }
+
+    .steps li {
+      margin-bottom: 8px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-retry {
+      background: #0078d4;
+      color: white;
+    }
+
+    .btn-retry:hover {
+      background: #005a9e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-help {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-help:hover {
+      background: #e0e0e0;
+    }
+
+    .footer {
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .info-box {
+      background: #e8f4f8;
+      border-left: 4px solid #0078d4;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #0c5460;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-box">
+      <div class="error-icon">⚠️</div>
+
+      <div class="error-title">Connection Error</div>
+
+      <div class="error-message">
+        We couldn't connect to Copilot Studio at this moment. This might be a temporary issue.
+      </div>
+
+      <div class="info-box">
+        <strong>What happened?</strong><br/>
+        The token exchange with Copilot Studio failed. This could be a network issue, 
+        configuration problem, or temporary service interruption.
+      </div>
+
+      <div class="error-details" id="errorDetails">
+        Loading error details...
+      </div>
+
+      <div class="steps">
+        <h3>Try These Steps:</h3>
+        <ol>
+          <li>
+            <strong>Refresh the page</strong> — Try clicking the "↺ Retry" button below
+          </li>
+          <li>
+            <strong>Check your network</strong> — Ensure you have internet connectivity
+          </li>
+          <li>
+            <strong>Wait a moment</strong> — Copilot Studio might be temporarily unavailable
+          </li>
+          <li>
+            <strong>Verify configuration</strong> — Contact your administrator to check SSO settings
+          </li>
+          <li>
+            <strong>Check status page</strong> — Visit 
+            <a href="https://status.microsoft.com" target="_blank">status.microsoft.com</a> 
+            for service alerts
+          </li>
+        </ol>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-retry" onclick="retryConnection()">↺ Retry</button>
+        <button class="btn-help" onclick="openTroubleshootingGuide()">? Help</button>
+      </div>
+
+      <div class="footer">
+        Generic Sidebar v2.0.0 • Last updated: 2026-07-22
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function parseErrorDetails() {
+      // Extract error info from URL params if available
+      const params = new URLSearchParams(window.location.search);
+      const errorCode = params.get('error');
+      const errorMsg = params.get('message');
+      const timestamp = new Date().toLocaleString();
+
+      let details = `Timestamp: ${timestamp}\n`;
+      details += `Page: ${window.location.href.split('?')[0]}\n`;
+      details += `Browser: ${navigator.userAgent.substring(0, 80)}\n\n`;
+
+      if (errorCode) {
+        details += `Error Code: ${errorCode}\n`;
+      }
+      if (errorMsg) {
+        details += `Error Message: ${errorMsg}\n`;
+      }
+      if (!errorCode && !errorMsg) {
+        details += `No specific error details available.\n`;
+        details += `Check browser console (F12) for more information.\n`;
+      }
+
+      return details;
+    }
+
+    function displayErrorDetails() {
+      const details = parseErrorDetails();
+      document.getElementById('errorDetails').textContent = details;
+    }
+
+    async function retryConnection() {
+      const retryButton = document.querySelector('.btn-retry');
+      retryButton.disabled = true;
+      retryButton.textContent = 'Retrying...';
+
+      try {
+        if (window.parent && typeof window.parent.Generic_OpenSidebar === 'function') {
+          await window.parent.Generic_OpenSidebar();
+          return;
+        }
+        throw new Error('Sidebar retry is unavailable. Close and reopen the sidebar.');
+      } catch (error) {
+        document.getElementById('errorDetails').textContent = error.message;
+        retryButton.disabled = false;
+        retryButton.textContent = 'Retry';
+      }
+    }
+
+    function openTroubleshootingGuide() {
+      // Try to open troubleshooting guide in parent window
+      if (window.parent !== window) {
+        // We're in an iframe
+        window.parent.location.href = '/TROUBLESHOOTING.md';
+      } else {
+        // Direct link
+        window.open(
+          '/TROUBLESHOOTING.md',
+          '_blank'
+        );
+      }
+    }
+
+    // Initialize error display
+    document.addEventListener('DOMContentLoaded', function () {
+      displayErrorDetails();
+    });
+
+    // Log to parent if available (for debugging)
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.console?.error?.('Copilot canvas fallback error page loaded');
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

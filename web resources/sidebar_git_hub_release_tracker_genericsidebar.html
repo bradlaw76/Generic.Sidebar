@@ -1,0 +1,60 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_git_hub_release_tracker_genericsidebar
+FILE:         web resources\sidebar_git_hub_release_tracker_genericsidebar.html
+VERSION:      2.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-08-06
+ENVIRONMENT:  HTML | JavaScript
+
+OVERVIEW
+Read-only GitHub release tracker for Generic.Sidebar. Uses the public GitHub API.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generic Sidebar Release Tracker</title>
+  <style>
+    :root { --brand:#0f6cbd; --ink:#1f2933; --muted:#52606d; --border:#d9e2ec; --bg:#f5f7fa; --danger:#a4262c; }
+    * { box-sizing:border-box; } body { margin:0; font:14px/1.5 "Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    main { max-width:1100px; min-height:100vh; margin:0 auto; padding:28px; background:#fff; } h1 { margin:0; color:#102a43; font-size:27px; } h2 { font-size:19px; } p { color:var(--muted); }.header,.tools { display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap; }.tools { margin:22px 0; padding:14px; border:1px solid var(--border); border-radius:7px; background:#f8fbfd; justify-content:flex-start; } label { font-weight:600; } select,button { font:inherit; padding:7px 10px; border:1px solid #9fb3c8; border-radius:4px; background:#fff; } button { color:#fff; border-color:var(--brand); background:var(--brand); cursor:pointer; } button:hover { background:#075a9e; }.status { margin:12px 0; padding:10px 12px; border-left:4px solid var(--brand); background:#eef6fc; }.status.error { border-color:var(--danger); background:#fff1f0; color:#7a1318; }.hidden { display:none; } table { width:100%; border-collapse:collapse; } th,td { padding:10px; border:1px solid var(--border); text-align:left; vertical-align:top; } th { background:#eaf2f8; } a { color:#075a9e; }.footer { margin-top:28px; padding-top:14px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; }.badge { display:inline-block; margin-left:7px; padding:2px 8px; border:1px solid #b7d5ef; border-radius:20px; background:#edf7ff; color:#075a9e; font-weight:600; } @media (max-width:650px) { main { padding:18px; } .table-wrap { overflow:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="header"><div><h1>Generic Sidebar Release Tracker</h1><p>Read-only release and asset download data from <a href="https://github.com/bradlaw76/Generic.Sidebar" target="_blank" rel="noopener noreferrer">bradlaw76/Generic.Sidebar</a>.</p></div><a href="https://github.com/bradlaw76/Generic.Sidebar/releases" target="_blank" rel="noopener noreferrer">Open releases ↗</a></header>
+    <div class="tools"><label for="releaseCount">Show releases</label><select id="releaseCount"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select><button id="refresh" type="button">Refresh data</button></div>
+    <div id="status" class="status">Loading release data…</div>
+    <section class="table-wrap"><table><thead><tr><th>Published</th><th>Release</th><th>Assets</th><th>Total downloads</th></tr></thead><tbody id="rows"></tbody></table></section>
+    <footer class="footer">Generic Sidebar release tracker <span class="badge">Version 2.0.0</span><span class="badge">Build 2026-08-06</span></footer>
+  </main>
+  <script>
+    const repository = 'bradlaw76/Generic.Sidebar';
+    const status = document.getElementById('status'); const rows = document.getElementById('rows'); const count = document.getElementById('releaseCount');
+    function message(text, error) { status.textContent = text; status.classList.toggle('error', !!error); }
+    function date(value) { return value ? new Date(value).toLocaleDateString() : '—'; }
+    function cell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
+    async function load() {
+      rows.replaceChildren(); message('Loading release data…');
+      try {
+        const response = await fetch(`https://api.github.com/repos/${repository}/releases?per_page=${count.value}`, { headers:{ Accept:'application/vnd.github+json' } });
+        if (!response.ok) throw new Error(`GitHub returned ${response.status}.`);
+        const releases = await response.json();
+        if (!releases.length) { message('No releases found.'); return; }
+        releases.forEach(release => {
+          const tr = document.createElement('tr'); const title = document.createElement('a'); title.href = release.html_url; title.target = '_blank'; title.rel = 'noopener noreferrer'; title.textContent = release.name || release.tag_name || 'Untitled release';
+          const titleCell = document.createElement('td'); titleCell.append(title, document.createElement('br')); const tag = document.createElement('small'); tag.textContent = release.tag_name || ''; titleCell.append(tag);
+          const assets = release.assets || []; const downloads = assets.reduce((sum, asset) => sum + (asset.download_count || 0), 0); const assetCell = document.createElement('td');
+          if (assets.length) { assets.forEach((asset, index) => { const link = document.createElement('a'); link.href = asset.browser_download_url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = `${asset.name} (${asset.download_count || 0})`; assetCell.append(link); if (index < assets.length - 1) assetCell.append(document.createElement('br')); }); } else { assetCell.textContent = 'No release assets'; }
+          tr.append(cell(date(release.published_at || release.created_at)), titleCell, assetCell, cell(downloads.toLocaleString())); rows.append(tr);
+        });
+        message(`Loaded ${releases.length} release${releases.length === 1 ? '' : 's'} from GitHub.`);
+      } catch (error) { message(`Unable to load release data: ${error.message} Check network access or GitHub API rate limits.`, true); }
+    }
+    document.getElementById('refresh').addEventListener('click', load); count.addEventListener('change', load); load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generic Sidebar Agent Table Preview</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --ink: #1d2433;
+      --muted: #5d667a;
+      --line: #dce3ef;
+      --brand: #0f5c73;
+      --brand-2: #1f8aab;
+      --ok: #1c7c3f;
+      --chip: #eef4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Inter", Tahoma, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 400px at -10% -20%, #e8f6ff 0%, transparent 60%),
+        radial-gradient(900px 300px at 110% 0%, #eaf5ef 0%, transparent 55%),
+        var(--bg);
+      line-height: 1.45;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 28px auto;
+      padding: 0 16px 40px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      border-radius: 16px;
+      padding: 22px 24px;
+      color: #fff;
+      box-shadow: 0 16px 34px rgba(15, 92, 115, 0.25);
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.2px;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      opacity: 0.95;
+      max-width: 920px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(20, 35, 64, 0.06);
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #102038;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fbff;
+    }
+
+    .span-5 { grid-column: span 5; }
+    .span-7 { grid-column: span 7; }
+    .span-12 { grid-column: span 12; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 12px;
+      color: #34486f;
+      background: #f9fbff;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .chip {
+      display: inline-block;
+      background: var(--chip);
+      border: 1px solid #d8e5ff;
+      color: #24468a;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+
+    .check {
+      color: var(--ok);
+      font-weight: 600;
+    }
+
+    .list {
+      padding: 12px 16px 16px;
+      margin: 0;
+    }
+
+    .list li {
+      margin: 0 0 8px 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .note {
+      padding: 12px 16px 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 960px) {
+      .span-5, .span-7 { grid-column: span 12; }
+      .hero h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Step 6A Preview: Agent Catalog Child Table</h1>
+      <p>
+        Visual preview of the Dataverse schema for multi-agent Generic Sidebar support.
+        Parent table remains <strong>sidebar_genericsidebar</strong>. Child table stores one row per agent.
+      </p>
+    </section>
+
+    <section class="grid">
+      <article class="card span-5">
+        <h2>Recommended Table Definition</h2>
+        <table>
+          <tbody>
+            <tr><th>Setting</th><th>Value</th></tr>
+            <tr><td>Display name</td><td>Generic Sidebar Agent</td></tr>
+            <tr><td>Plural display name</td><td>Generic Sidebar Agents</td></tr>
+            <tr><td>Logical name</td><td>sidebar_genericsidebaragent</td></tr>
+            <tr><td>Primary column</td><td>sidebar_name</td></tr>
+            <tr><td>Parent relationship</td><td>Many agent rows to one sidebar_genericsidebar row</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card span-7">
+        <h2>Relationship Behavior</h2>
+        <ul class="list">
+          <li>Create a standard Dataverse lookup from Generic Sidebar Agent to Generic Sidebar.</li>
+          <li>Keep shared SSO defaults on the parent sidebar_genericsidebar record.</li>
+          <li>Use child rows for agent-specific metadata and either routing values or raw embed HTML.</li>
+          <li>If embed code exists, the picker renders it directly; otherwise it uses SSO token routing.</li>
+        </ul>
+        <div class="note">
+          <span class="chip">Parent: sidebar_genericsidebar</span>
+          <span class="chip">Child: sidebar_genericsidebaragent</span>
+          <span class="chip">One-to-many</span>
+        </div>
+      </article>
+
+      <article class="card span-12">
+        <h2>Required Child Columns</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Field Name</th>
+              <th>Display Name</th>
+              <th>Type</th>
+              <th>Max Length</th>
+              <th>Required?</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>sidebar_name</td>
+              <td>Agent Name</td>
+              <td>Text</td>
+              <td>100</td>
+              <td class="check">Yes</td>
+              <td>Primary column for child row.</td>
+            </tr>
+            <tr>
+              <td>sidebar_displayname</td>
+              <td>Display Name</td>
+              <td>Text</td>
+              <td>150</td>
+              <td class="check">Yes</td>
+              <td>Title shown to end users in picker.</td>
+            </tr>
+            <tr>
+              <td>sidebar_sortorder</td>
+              <td>Sort Order</td>
+              <td>Whole Number</td>
+              <td>-</td>
+              <td class="check">Yes</td>
+              <td>Controls menu order.</td>
+            </tr>
+            <tr>
+              <td>sidebar_isactive</td>
+              <td>Is Active</td>
+              <td>Yes/No</td>
+              <td>-</td>
+              <td class="check">Yes</td>
+              <td>Inactive agents are not rendered.</td>
+            </tr>
+            <tr>
+              <td>sidebar_genericsidebarid</td>
+              <td>Generic Sidebar</td>
+              <td>Lookup</td>
+              <td>-</td>
+              <td class="check">Yes</td>
+              <td>Required lookup to parent sidebar_genericsidebar record.</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card span-12">
+        <h2>Optional v1 Child Columns</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Field Name</th>
+              <th>Display Name</th>
+              <th>Type</th>
+              <th>Max Length</th>
+              <th>Required?</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>sidebar_description</td>
+              <td>Description</td>
+              <td>Text</td>
+              <td>250</td>
+              <td>No</td>
+              <td>Subtitle under agent title.</td>
+            </tr>
+            <tr>
+              <td>sidebar_embedcode</td>
+              <td>Embed Code</td>
+              <td>Multiple Lines of Text</td>
+              <td>1,048,576</td>
+              <td>No</td>
+              <td>Raw Copilot Studio iframe or HTML embed.</td>
+            </tr>
+            <tr>
+              <td>sidebar_tokenendpoint</td>
+              <td>Token Endpoint</td>
+              <td>Text</td>
+              <td>500</td>
+              <td>No</td>
+              <td>Used for SSO/token-routed agents when no embed code is provided.</td>
+            </tr>
+            <tr>
+              <td>sidebar_agenttype</td>
+              <td>Agent Type</td>
+              <td>Choice</td>
+              <td>-</td>
+              <td>No</td>
+              <td>Copilot Studio, PVA Legacy, Other.</td>
+            </tr>
+            <tr>
+              <td>sidebar_isdefaultagent</td>
+              <td>Default Agent</td>
+              <td>Yes/No</td>
+              <td>-</td>
+              <td>No</td>
+              <td>Preferred default per parent config.</td>
+            </tr>
+            <tr>
+              <td>sidebar_authscopeoverride</td>
+              <td>Auth Scope Override</td>
+              <td>Text</td>
+              <td>300</td>
+              <td>No</td>
+              <td>Overrides parent scope when populated.</td>
+            </tr>
+            <tr>
+              <td>sidebar_agentkey</td>
+              <td>Agent Key</td>
+              <td>Text</td>
+              <td>100</td>
+              <td>No</td>
+              <td>Stable key if display name changes.</td>
+            </tr>
+            <tr>
+              <td>sidebar_iconurl</td>
+              <td>Icon URL</td>
+              <td>Text</td>
+              <td>500</td>
+              <td>No</td>
+              <td>Optional avatar/icon for UI.</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card span-12">
+        <h2>Example Agent Rows</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Agent Name</th>
+              <th>Display Name</th>
+              <th>Description</th>
+              <th>Token Endpoint</th>
+              <th>Sort Order</th>
+              <th>Is Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sales Opportunity</td>
+              <td>Sales Opportunity Agent</td>
+              <td>Request information about your opportunities</td>
+              <td>https://.../directline/token?...</td>
+              <td>10</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>HR</td>
+              <td>HR Agent</td>
+              <td>Request information about HR policies</td>
+              <td>https://.../directline/token?...</td>
+              <td>20</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Service Desk</td>
+              <td>Service Desk Copilot</td>
+              <td>Find cases, accounts, contacts and knowledge</td>
+              <td>https://.../directline/token?...</td>
+              <td>30</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

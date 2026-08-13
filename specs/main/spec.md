@@ -1,24 +1,34 @@
 # Generic.Sidebar — Baseline Specification
 
-**Feature Branch**: `main`  
+**Feature Branch**: `feature/sso-integration-v2`  
 **Created**: 2026-02-17  
-**Status**: Draft  
-**Input**: Configuration-driven sidebar UX demo for Dynamics 365; public site pages for docs and stats.
+**Updated**: 2026-07-22  
+**Status**: Production (v2.0.0)  
+**Release**: Enterprise SSO Integration with Complete Admin Toolkit  
+**Input**: Configuration-driven sidebar UX + enterprise SSO for Copilot Studio embeds + admin experience toolkit
 
 ## User Scenarios & Testing (mandatory)
 
-### User Story 1 — Admin Configures and Renders Sidebar (Priority: P1)
+### User Story 1 — Admin Configures Sidebar with Optional SSO (Priority: P1)
 
-Admins create or update a `sidebar_genericsidebar` record to control title, instructions band, and embed content. Users opening the form see the sidebar rendered in the side pane with the active panel.
+Admins create or update a `sidebar_genericsidebar` record to control title, instructions band, embed content, and optionally enable SSO for seamless Copilot authentication. Users opening the form see the sidebar rendered in the side pane with the active panel.
 
-**Why this priority**: Core value — the sidebar must function from data-driven configuration without redeployment.
+**Why this priority**: Core value — the sidebar must function from data-driven configuration without redeployment. SSO eliminates repeated sign-in prompts for Copilot agents.
 
-**Independent Test**: Update config record fields and refresh form; verify title, instructions, and embed render accordingly.
+**What's New in v2.0.0**: Admins can now set `sidebar_sso_enabled = Yes` and populate 8 new SSO fields (Client ID, Tenant ID, API Scope, Token Endpoint, Redirect URI, Additional Scopes, Client Secret) in Dataverse. No code changes required.
 
-**Acceptance Scenarios**:
+**Independent Test**: Update config record fields and refresh form; verify title, instructions, and embed render accordingly. For SSO configs, verify silent authentication on first visit and token cache on revisit.
+
+**Acceptance Scenarios (Core - unchanged from v1.0.5)**:
 1. Given a default config row exists, When the form loads and the pane opens, Then the sidebar title matches `sidebar_title` and panel 1 renders its embed.
 2. Given `sidebar_instructions` has content, When panel 1 is active, Then the instructions band is visible; When content is blank, Then the band is hidden.
 3. Given `sidebar_embedcode` contains a URL, When panel 1 is active, Then the iframe loads the URL with required policies.
+
+**New Acceptance Scenarios (SSO - v2.0.0)**:
+4. Given `sidebar_sso_enabled = Yes` and all 8 SSO fields populated correctly, When the user opens the sidebar, Then MSAL acquires token silently (first visit shows popup, subsequent visits are seamless).
+5. Given SSO is configured and user is authenticated, When the canvas loads, Then Direct Line token is acquired silently with no visible "Sign in" prompts.
+6. Given SSO token is cached in sessionStorage, When the user navigates between records, Then the sidebar reopens without re-prompting for authentication.
+7. Given `sidebar_sso_enabled = No`, When the sidebar loads, Then SSO libraries are not loaded and standard canvas rendering occurs (backwards compatible).
 
 ---
 
@@ -125,13 +135,38 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-033**: Iframe widget embeds (Copilot, Canvas Apps) MUST NOT have `ensureFullHeightHtml()` applied; widgets control their own layout.
 - **FR-034**: Auto-zoom MUST be triggered by title keywords ("phone", "genesys") regardless of embed type.
 
+#### SSO Requirements (v2.0.0)
+
+- **FR-035**: When `sidebar_sso_enabled = Yes` in Dataverse config, the sidebar MUST load SSO bootstrap and setup libraries dynamically.
+- **FR-036**: The system MUST check `sidebar_sso_enabled` flag and route to `sidebar_sso_canvas.html` if enabled, else use `sidebar_sidebar.html`.
+- **FR-037**: MSAL 2.38.3 MUST be loaded from CDN with error fallback; initialization MUST NOT fail if CDN is unreachable (graceful degradation).
+- **FR-038**: Token acquisition MUST attempt silent mode first (sessionStorage cache); if cache miss or expiry, popup MUST be triggered for first-time consent.
+- **FR-039**: Tokens MUST be cached in sessionStorage with 60-second expiry buffer; tokens MUST be cleared on browser close for security.
+- **FR-040**: Token acquisition timeout MUST be 5 seconds; if exceeded, system MUST fallback to popup or error UI.
+- **FR-041**: All SSO configuration (Client ID, Tenant ID, API Scope, Token Endpoint, Redirect URI, Additional Scopes) MUST be read from Dataverse table fields; NO hardcoding allowed.
+- **FR-042**: The Direct Line token endpoint MUST be called with Bearer token from user; response MUST include token + conversationId + streamUrl.
+- **FR-043**: OAuth card middleware MUST suppress "Sign in" messages and auto-fulfill OAuth cards up to 2 times; after 2 attempts, real OAuth card MUST render (loop guard).
+- **FR-044**: Direct Line token + conversationId MUST be cached in localStorage (session-scoped) to preserve chat state across sidebar reopening (same session).
+- **FR-045**: URL parameters containing tokens MUST be stripped after reading (history.replaceState) to prevent token leakage in browser history/clipboard.
+- **FR-046**: SSO MUST support multi-region environments: Commercial (`login.microsoftonline.com`), GCC (same), GCCH (`login-us.microsoftonline.us`).
+- **FR-047**: Configuration validation MUST occur on `sidebar_sso_setup.js` load; missing required fields MUST show user-friendly error message.
+- **FR-048**: If SSO token acquisition fails, canvas MUST display error UI with troubleshooting steps and retry button.
+- **FR-049**: New Chat button MUST clear localStorage cache and reload iframe to reset conversation and force fresh token acquisition.
+- **FR-050**: Non-SSO configs (where `sidebar_sso_enabled = No` or missing SSO fields) MUST work exactly as v1.0.5 (backwards compatible).
+
+#### Performance & Testing
+
 - **FR-027**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
+- **FR-051**: SSO silent token acquisition: p50 ≤ 1s, p95 ≤ 3s (cached).
+- **FR-052**: Direct Line token exchange: p50 ≤ 2s, p95 ≤ 5s.
 - **FR-028**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
 - **FR-029**: Admin-only banner visibility rules [NEEDS CLARIFICATION: which roles or security groups control visibility?].
 
 ### Key Entities
 
-- **SidebarConfig**: Represents a `sidebar_genericsidebar` record; key attributes: `sidebar_title`, `sidebar_instructions`, `sidebar_embedcode`, variants for panels 2–4; theming fields; file type.
+- **SidebarConfig**: Represents a `sidebar_genericsidebar` record; key attributes: `sidebar_title`, `sidebar_instructions`, `sidebar_embedcode`, variants for panels 2–4; theming fields; file type; **NEW**: 8 SSO fields.
+  - **SSO Fields**: `sidebar_sso_enabled`, `sidebar_auth_client_id`, `sidebar_auth_tenant_id`, `sidebar_auth_api_scope`, `sidebar_auth_token_endpoint`, `sidebar_auth_redirect_uri`, `sidebar_auth_scopes`, `sidebar_auth_client_secret`
+- **SSOConfig** (v2.0.0): Subset of `SidebarConfig` SSO fields; used by MSAL initialization and Direct Line token exchange.
 - **Panel**: Derived from `SidebarConfig` for each index (1–4); attributes: title, instructions, embed target (mode + value).
 - **SitePage**: Landing, Downloads, Agent; behaviors: chart/table, filters, CSV export; accessibility attributes.
 

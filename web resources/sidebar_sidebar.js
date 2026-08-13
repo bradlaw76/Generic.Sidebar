@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
-VERSION:      1.0.0
+VERSION:      2.6.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-08-13
 ENVIRONMENT:  JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,29 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.6.0  2026-08-13  Security: Fail closed when SSO initialization or navigation fails
+  * Routes SSO failures to the dedicated error resource instead of legacy canvas
+  * Records config and route state only after successful target navigation
+  * Clears failed route state so the explicit retry path reattempts SSO
+v2.2.1  2026-08-05  Reliability: hydrate SSO flag and load SSO dependencies in order
+  * Reads sidebar_sso_enabled with a backward-compatible Dataverse fallback
+  * Loads the MSAL bootstrap before the SSO orchestration resource
+v2.2.0  2026-07-23  Minor: Keep tab host renderer as primary runtime
+  * Removed forced full-page child-picker routing
+  * Preserved route tracking for legacy vs SSO canvas modes
+  * Kept pane reuse safety without bypassing tab-level agent integrations
+v2.1.0  2026-07-23  Minor: Route to child-agent picker when linked agents exist
+  * Added child-agent detection against sidebar_genericsidebaragent
+  * Auto-routes pane to vz_AgentSidePanelHTML.html when linked agents exist
+  * Added route tracking to avoid stale pane reuse across mode changes
+  * Fixed SSO flag hydration from Dataverse config row
+v2.0.0  2026-07-22  Major: Enterprise SSO integration
+  * Added SSO detection + routing for Copilot Studio embeds
+  * Dynamically load MSAL + orchestration for SSO configs
+  * Fetch SSO fields from Dataverse (client ID, tenant, scopes)
+  * Graceful fallback to standard canvas if SSO fails
+  * 100% backwards compatible with non-SSO configs
+  * Zero hardcoding - all secrets from Dataverse
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -84,11 +107,16 @@ NON-NEGOTIABLES (Architecture Contract)
   const PANE_ID = "genericSidebarPane";
   const DEFAULTS = { width: 500, fallbackTitle: "Sidebar" };
   const TABLE = "sidebar_genericsidebar";     // your table logical name
+  const WEBRESOURCE_VERSION = "2026.07.23.1";
+  const SSO_FAILURE_RESOURCE = "sidebar_sso_canvas_fallback.html";
 
   // Track the currently loaded configId on window to survive form reloads
   // This persists across record navigations within the same browser session
   if (typeof window.__sidebarLoadedConfigId === "undefined") {
     window.__sidebarLoadedConfigId = null;
+  }
+  if (typeof window.__sidebarLoadedRoute === "undefined") {
+    window.__sidebarLoadedRoute = null;
   }
 
   async function getEnv(schema) {
@@ -107,24 +135,38 @@ NON-NEGOTIABLES (Architecture Contract)
     } catch { return null; }
   }
 
-  // Get Default row (or most recent) with minimal fields for header setup
+  // Get Default row (or most recent) with minimal fields for header setup + SSO flag.
+  // Some older environments do not have the optional SSO field, so retry without it.
   async function getDefaultConfigRow() {
-    const select = "$select=sidebar_genericsidebarid,sidebar_title";
-    try {
+    const legacySelect = "$select=sidebar_genericsidebarid,sidebar_title";
+    const ssoSelect = legacySelect + ",sidebar_sso_enabled";
+
+    async function queryDefault(select) {
       const r1 = await Xrm.WebApi.retrieveMultipleRecords(
-        TABLE, `?${select}&$filter=sidebar_default eq true&$top=1`
+        TABLE, `?${select}&$filter=sidebar_default eq true&$orderby=modifiedon desc&$top=1`
       );
       if (r1.entities.length) return r1.entities[0];
-    } catch {}
+      return null;
+    }
 
-    try {
+    async function queryMostRecent(select) {
       const r2 = await Xrm.WebApi.retrieveMultipleRecords(
-        TABLE, `?${select}&$orderby=createdon desc&$top=1`
+        TABLE, `?${select}&$orderby=modifiedon desc&$top=1`
       );
       if (r2.entities.length) return r2.entities[0];
-    } catch {}
+      return null;
+    }
 
-    return null;
+    try {
+      return await queryDefault(ssoSelect) || await queryMostRecent(ssoSelect);
+    } catch (e) {
+      console.warn("SSO field is unavailable; continuing with legacy sidebar configuration", e);
+      try {
+        return await queryDefault(legacySelect) || await queryMostRecent(legacySelect);
+      } catch {
+        return null;
+      }
+    }
   }
 
   async function getConfig() {
@@ -136,6 +178,8 @@ NON-NEGOTIABLES (Architecture Contract)
       if (rec) {
         cfg.configId = rec.sidebar_genericsidebarid;
         if (rec.sidebar_title) cfg.title = rec.sidebar_title;
+        // Optional field in some orgs; absence should never block config resolution.
+        cfg.sidebar_sso_enabled = rec.sidebar_sso_enabled;
       }
     } catch {}
     return cfg;
@@ -156,6 +200,7 @@ NON-NEGOTIABLES (Architecture Contract)
       });
       // Clear tracking when creating new pane
       window.__sidebarLoadedConfigId = null;
+      window.__sidebarLoadedRoute = null;
       console.log("Created new sidebar pane");
     } else {
       try { if (pane.setTitle && cfg.title) await pane.setTitle(cfg.title); } catch {}
@@ -166,6 +211,17 @@ NON-NEGOTIABLES (Architecture Contract)
     if (typeof pane.bringToFront === "function") await pane.bringToFront();
     pane.__isNewPane = isNewPane;
     return pane;
+  }
+
+  async function showSsoFailure(pane, params, error) {
+    window.__sidebarLoadedConfigId = null;
+    window.__sidebarLoadedRoute = null;
+    console.error("[SSO] Secure navigation failed; showing SSO error state", error);
+    await pane.navigate({
+      pageType: "webresource",
+      webresourceName: SSO_FAILURE_RESOURCE,
+      data: params.toString()
+    });
   }
 
   // Main function that opens the sidebar
@@ -184,32 +240,91 @@ NON-NEGOTIABLES (Architecture Contract)
 
       const cfg = await getConfig();
       console.log("Configuration loaded:", cfg);
+      
+      // Parse SSO flag from config record if available
+      const ssoEnabledField = cfg.sidebar_sso_enabled;
+      cfg.ssoEnabled = (ssoEnabledField === true || ssoEnabledField === 1 || ssoEnabledField === "true");
 
       const pane = await ensurePane(cfg);
 
-      // Check if the pane already has the same config loaded - skip navigate to preserve chat state
-      // Only skip if: 1) pane existed (not new), 2) config matches, 3) we have a tracked configId
-      if (!pane.__isNewPane && 
-          window.__sidebarLoadedConfigId && 
-          window.__sidebarLoadedConfigId === cfg.configId) {
-        console.log("Sidebar already showing same config, bringing to front without reload");
+      // Pass configId + SSO detection
+      const params = new URLSearchParams();
+      if (cfg.configId) params.set("configId", cfg.configId);
+      params.set("wrv", WEBRESOURCE_VERSION);
+
+      if (cfg.ssoEnabled) {
+        try {
+          console.log("[SSO] SSO enabled for this config");
+          // Load SSO bootstrap + setup libraries before navigation
+          await new Promise(function (resolve, reject) {
+            if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
+              console.log("[SSO] Libraries already loaded");
+              resolve();
+              return;
+            }
+
+            var clientUrl = Xrm.Utility.getGlobalContext().getClientUrl();
+            var loadScript = function (name, onLoad) {
+              var script = document.createElement("script");
+              script.src = clientUrl + "/WebResources/" + name;
+              script.onload = onLoad;
+              script.onerror = function () { reject(new Error("Failed to load " + name)); };
+              document.head.appendChild(script);
+            };
+
+            var loadSetup = function () {
+              if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.handlePaneNavigation === "function") {
+                resolve();
+                return;
+              }
+              loadScript("sidebar_sso_setup", resolve);
+            };
+
+            if (typeof window.SidebarSSO !== "undefined" && typeof window.SidebarSSO.acquireToken === "function") {
+              loadSetup();
+            } else {
+              loadScript("sidebar_sso_bootstrap", loadSetup);
+            }
+          });
+        } catch (e) {
+          await showSsoFailure(pane, params, e);
+          return;
+        }
+      }
+
+      const routeKey = cfg.ssoEnabled ? "sso-canvas" : "legacy-canvas";
+
+      // Check if the pane already has the same config+route loaded - skip navigate to preserve chat state
+        var isConfigAuthoringForm = currentEntity === "sidebar_genericsidebar";
+
+        if (!isConfigAuthoringForm &&
+          !pane.__isNewPane &&
+          window.__sidebarLoadedConfigId &&
+          window.__sidebarLoadedConfigId === cfg.configId &&
+          window.__sidebarLoadedRoute === routeKey) {
+        console.log("Sidebar already showing same config/route, bringing to front without reload");
         return;
       }
 
-      // Pass only configId - removed icon-related parameters
-      const params = new URLSearchParams();
-      if (cfg.configId) params.set("configId", cfg.configId);
+      if (cfg.ssoEnabled) {
+        console.log("[SSO] Using SSO orchestration for pane navigation");
+        try {
+          await window.SidebarSSO.handlePaneNavigation(cfg.configId, pane, "sidebar_sso_canvas");
+        } catch (e) {
+          await showSsoFailure(pane, params, e);
+          return;
+        }
+      } else {
+        await pane.navigate({
+          pageType: "webresource",
+          webresourceName: "sidebar_sidebar.html",
+          data: params.toString()
+        });
+      }
 
-      console.log("Navigating to web resource with params:", params.toString());
-
-      await pane.navigate({
-        pageType: "webresource",
-        webresourceName: "sidebar_sidebar.html", // Make sure this matches your HTML web resource name
-        data: params.toString()
-      });
-
-      // Track the loaded config on window to persist across form navigations
+      // Track only navigation that completed successfully.
       window.__sidebarLoadedConfigId = cfg.configId;
+      window.__sidebarLoadedRoute = routeKey;
 
       console.log("Sidebar opened successfully");
     } catch (e) {

@@ -1,0 +1,17 @@
+{
+  "name": "acs-bundle",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@azure/communication-calling": "^1.42.1",
+    "@azure/communication-common": "^2.4.0",
+    "esbuild": "^0.27.3"
+  }
+}

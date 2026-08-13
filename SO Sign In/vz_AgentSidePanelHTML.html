@@ -1,0 +1,1181 @@
+<!--
+=============================================================================
+COMPONENT:    vz_AgentSidePanelHTML
+FILE:         SO Sign In\vz_AgentSidePanelHTML.html
+VERSION:      2.1.2
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-07-23
+ENVIRONMENT:  HTML | JavaScript | Dynamics 365 Web Resource
+PORTAL URL:   N/A
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Dataverse-backed agent picker for the Dynamics side pane. Loads the parent
+Generic Sidebar config row plus related child agent rows, then routes the
+selected agent through the existing SSO canvas.
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v2.1.2  2026-07-23  Fixes pop-out context detection by traversing opener ancestor chain for Xrm
+                    so Dataverse-linked agents render instead of bundled fallback list.
+v2.1.1  2026-07-23  Hides disabled/deactivated agents by enforcing both
+                    active flag and active row state; avoids fallback agents
+                    when Dataverse-linked config returns none or errors.
+v2.1.0  2026-07-23  Adds dedicated full-chat mode with Back to agents for
+                    larger agent lists; keeps inline mode for smaller lists.
+v2.0.4  2026-07-23  Keeps agent menu visible (no auto-open) and normalizes
+                    embedded chat HTML to full-height layout.
+v2.0.3  2026-07-23  Auto-opens preferred/default linked agent so chat widget
+                    appears immediately when loaded inside a tab.
+v2.0.2  2026-07-23  Fixed nested iframe Xrm resolution so Tab-injected picker
+                    can reach Dataverse context instead of fallback mode.
+v2.0.1  2026-07-23  Fixed schema-tolerant config loading so linked-agent menu
+                    does not fall back when optional parent fields are absent.
+v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
+                    parent/child config loading and graceful fallback.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Studio</title>
+    <link href="./AI Studio_files/css2" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: "Plus Jakarta Sans",sans-serif;
+            background: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 4px 8px;
+            border-bottom: 1px solid #ebebeb;
+            flex-shrink: 0;
+            background: #fafafa;
+        }
+
+        .menuWrap {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .menuTrigger {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-size: 13px;
+            color: #888;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .dropIcon {
+            width: 18px;
+            text-align: center;
+        }
+
+        .changeHint {
+            font-size: 10px;
+            opacity: .6;
+            margin-left: 2px;
+        }
+
+            .menuTrigger:hover {
+                background: #f0f0f0;
+                color: #333;
+            }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 6px 24px rgba(0,0,0,.13);
+            min-width: 140px;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+            .dropdown.open {
+                display: block;
+            }
+
+        .dropItem {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 13px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            border-bottom: 1px solid #f2f2f2;
+            white-space: nowrap;
+        }
+
+            .dropItem:last-child {
+                border-bottom: none;
+            }
+
+            .dropItem:hover {
+                background: #f5f5f5;
+            }
+
+            .dropItem.danger:hover {
+                background: #fff5f5;
+                color: #c0392b;
+            }
+
+        /* HISTORY */
+        .history {
+            display: none;
+            max-height: 110px;
+            overflow: auto;
+            border-bottom: 1px solid #e4eaf4;
+            background: #f8f8f8;
+            padding: 4px;
+            flex-shrink: 0;
+        }
+
+        .historyItem {
+            font-size: 11px;
+            padding: 5px 9px;
+            border-radius: 6px;
+            margin: 2px;
+            cursor: pointer;
+            color: #555;
+        }
+
+            .historyItem:hover {
+                background: #ececec;
+            }
+
+        .historyEmpty {
+            font-size: 11px;
+            color: #bbb;
+            padding: 8px;
+            text-align: center;
+        }
+
+        /* ACTION PANEL */
+        .actionPanel {
+            flex-shrink: 0;
+            padding: 12px 10px 14px;
+            background: #fff;
+        }
+
+            .actionPanel.hidden {
+                display: none;
+            }
+
+        .welcomeText {
+            font-size: 12px;
+            color: #444;
+            font-weight: 500;
+            margin-bottom: 10px;
+            line-height: 1.45;
+        }
+
+        .quickActions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .quickBtn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: "Plus Jakarta Sans",sans-serif;
+            border: 1px solid #d8d8d8;
+            background: #fff;
+            color: #1a1a1a;
+            text-align: left;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            transition: background .15s,border-color .15s,box-shadow .15s;
+        }
+
+            .quickBtn:hover {
+                background: #f5f5f5;
+                border-color: #888;
+                box-shadow: 0 2px 8px rgba(0,0,0,.09);
+            }
+
+            .quickBtn.dancing {
+                animation: slowDance 1s cubic-bezier(.36,.07,.19,.97) forwards;
+                pointer-events: none;
+            }
+
+        @keyframes slowDance {
+            0% {
+                transform: rotate(0) scale(1);
+            }
+
+            10% {
+                transform: rotate(-4deg) scale(1.05);
+            }
+
+            25% {
+                transform: rotate(4deg) scale(1.07);
+            }
+
+            40% {
+                transform: rotate(-3deg) scale(1.06);
+            }
+
+            55% {
+                transform: rotate(3deg) scale(1.05);
+            }
+
+            70% {
+                transform: rotate(-2deg) scale(1.03);
+            }
+
+            85% {
+                transform: rotate(1deg) scale(1.01);
+            }
+
+            100% {
+                transform: rotate(0) scale(1);
+            }
+        }
+
+        .quickBtn.dancing .btnIcon {
+            animation: iconSpin 1s cubic-bezier(.34,1.56,.64,1) forwards;
+        }
+
+        @keyframes iconSpin {
+            0% {
+                transform: rotate(0) scale(1);
+            }
+
+            50% {
+                transform: rotate(200deg) scale(1.3);
+            }
+
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
+
+        .btnIcon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: #efefef;
+            transition: transform .3s;
+        }
+
+        .quickBtn:not(.dancing):hover .btnIcon {
+            transform: scale(1.1);
+        }
+
+        .btnText {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1;
+        }
+
+        .btnLabel {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1a1a1a;
+            line-height: 1.3;
+        }
+
+        .btnSub {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.3;
+        }
+
+        .btnArrow {
+            font-size: 16px;
+            color: #aaa;
+            flex-shrink: 0;
+            transition: transform .15s,color .15s;
+        }
+
+        .quickBtn:hover .btnArrow {
+            transform: translateX(3px);
+            color: #555;
+        }
+
+        /* CHANGE PILL */
+        .changeAgentBtn {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 13px;
+            background: #fff;
+            border: 1.5px solid #aaa;
+            border-radius: 30px;
+            font-family: "Plus Jakarta Sans",sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: #444;
+            cursor: pointer;
+            box-shadow: 0 3px 12px rgba(0,0,0,.10);
+            transition: all .2s;
+        }
+
+            .changeAgentBtn.visible {
+                display: flex;
+            }
+
+            .changeAgentBtn:hover {
+                background: #444;
+                color: #fff;
+                transform: scale(1.04);
+            }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0%,100% {
+                box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(34,197,94,.06);
+            }
+        }
+
+        /* FRAME */
+        .frameWrap {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .chatHeader {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            height: 42px;
+            padding: 0 10px;
+            background: #0f5c73;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,.18);
+        }
+
+        .frameWrap.chat-only .chatHeader {
+            display: flex;
+        }
+
+        .backToAgentsBtn {
+            border: 1px solid rgba(255,255,255,.35);
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 8px;
+            cursor: pointer;
+        }
+
+        .backToAgentsBtn:hover {
+            background: rgba(255,255,255,.2);
+        }
+
+        .activeAgentTitle {
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            text-align: right;
+        }
+
+        .frameWrap.chat-only iframe,
+        .frameWrap.chat-only .emptyState {
+            top: 42px;
+            height: calc(100% - 42px);
+        }
+
+        .emptyState {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #fff;
+        }
+
+            .emptyState.hidden {
+                display: none;
+            }
+
+        .emptyIcon {
+            font-size: 38px;
+            opacity: .2;
+        }
+
+        .emptyTxt {
+            font-size: 12px;
+            font-weight: 500;
+            color: #bbb;
+        }
+
+        iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+
+    <!-- <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+
+</head>
+<body>
+    <div class="container">
+
+        <div class="toolbar">
+            <div class="menuWrap">
+                <div class="menuTrigger" id="menuTrigger">⋯</div>
+                <div class="dropdown" id="dropdown">
+                    <div class="dropItem" id="btnHistory"><span class="dropIcon">🕙</span><span>History</span></div>
+                    <div class="dropItem danger" id="btnReset"><span class="dropIcon">↻</span><span>Reset</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history" id="historyPanel"><div id="historyList"><div class="historyEmpty">No history yet</div></div></div>
+
+        <div class="actionPanel" id="actionPanel">
+            <p class="welcomeText" id="welcomeText">Welcome to Copilot. Select one of the suggestions below to get started.</p>
+            <div class="quickActions" id="quickActions"></div>
+        </div>
+
+        <div class="frameWrap">
+            <div class="chatHeader" id="chatHeader">
+                <button type="button" class="backToAgentsBtn" id="backToAgentsBtn">← Agents</button>
+                <span class="activeAgentTitle" id="activeAgentTitle">Agent Chat</span>
+            </div>
+            <button class="changeAgentBtn" id="changeAgentBtn">
+                <span class="dot"></span>
+                <span id="changeAgentLabel"></span>
+                <span class="changeHint">⇄ Change</span>
+            </button>
+            <div class="emptyState" id="emptyState">
+                <div class="emptyIcon">🤖</div>
+                <p class="emptyTxt">Select an action above to get started</p>
+            </div>
+            <iframe id="frame" src="about:blank" allow="microphone; camera" title="Copilot agent conversation"></iframe>
+        </div>
+
+    </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var TABLE = "sidebar_genericsidebar";
+        var AGENT_TABLE = "sidebar_genericsidebaragent";
+        var CANVAS_URL = "/WebResources/rwmcs_vzcopilotcanvas";
+        var DEDICATED_CHAT_THRESHOLD = 4;
+        var FALLBACK_SSO_CONFIG = {
+            clientId: "3a669365-5420-433a-913f-ad7e39424a8c",
+            tenantId: "a8037933-4d29-4ef8-8754-e67b2edd480b",
+            apiScope: "api://3db92c26-a99a-4d5f-8009-b5373f4ebfc0/Test.Read",
+            redirectUri: "https://org1f50fb0c.crm9.dynamics.com/WebResources/rwmcs_vzAgentSidePanelHTML",
+            scopesText: ""
+        };
+        var FALLBACK_AGENTS = [
+            {
+                key: "salesopportunity",
+                name: "Sales Opportunity Agent",
+                description: "Request information about your opportunities",
+                tokenEndpoint: "https://adb67d14bc04e7178149fdf9a7fecfd.8.environment.api.gov.powerplatform.microsoft.us/powervirtualagents/botsbyschema/cr0f0_agent/directline/token?api-version=2022-03-01-preview",
+                icon: "🧑‍💼",
+                agentType: "Copilot Studio"
+            },
+            {
+                key: "hragent",
+                name: "HR Agent",
+                description: "Request information about HR policies",
+                tokenEndpoint: "https://adb67d14bc04e7178149fdf9a7fecfd.8.environment.api.gov.powerplatform.microsoft.us/powervirtualagents/botsbyschema/cr0f0_agent1_gEQR/directline/token?api-version=2022-03-01-preview",
+                icon: "🔐",
+                agentType: "Copilot Studio"
+            },
+            {
+                key: "servicedesk",
+                name: "Service Desk Copilot",
+                description: "Find cases, accounts, contacts and knowledge",
+                tokenEndpoint: "https://adb67d14bc04e7178149fdf9a7fecfd.8.environment.api.gov.powerplatform.microsoft.us/powervirtualagents/botsbyschema/cr0f0_agentOWcb1p/directline/token?api-version=2022-03-01-preview",
+                icon: "🎧",
+                agentType: "Copilot Studio"
+            },
+            {
+                key: "assignproxy",
+                name: "Assign Proxy (DO NOT USE)",
+                description: "Disabled",
+                tokenEndpoint: "https://localhost",
+                icon: "🔄",
+                agentType: "Other"
+            }
+        ];
+
+        var state = {
+            xrm: resolveXrm(),
+            msalInstance: null,
+            sidebarConfig: null,
+            agents: [],
+            agentsByKey: {},
+            sessions: JSON.parse(sessionStorage.getItem("ai_sessions") || "[]"),
+            tokenCache: {},
+            lastKey: null,
+            usingFallbackAgents: false
+        };
+
+        var quickActions = document.getElementById("quickActions");
+        var welcomeText = document.getElementById("welcomeText");
+        var emptyText = document.getElementById("emptyState").querySelector(".emptyTxt");
+        var frameWrap = document.querySelector(".frameWrap");
+
+        document.getElementById("menuTrigger").addEventListener("click", function (e) {
+            e.stopPropagation();
+            document.getElementById("dropdown").classList.toggle("open");
+        });
+        document.addEventListener("click", function () {
+            document.getElementById("dropdown").classList.remove("open");
+        });
+        document.getElementById("dropdown").addEventListener("click", function (e) { e.stopPropagation(); });
+        document.getElementById("btnHistory").addEventListener("click", openHistory);
+        document.getElementById("btnReset").addEventListener("click", resetAll);
+        document.getElementById("changeAgentBtn").addEventListener("click", showActions);
+        document.getElementById("backToAgentsBtn").addEventListener("click", showActions);
+
+        init();
+
+        function resolveXrm() {
+            try {
+                if (window.parent && window.parent.Xrm) return window.parent.Xrm;
+            } catch (e) {}
+
+            // When embedded as iframe-in-iframe (sidebar -> picker), Xrm can be on higher ancestors.
+            try {
+                var current = window;
+                for (var depth = 0; depth < 6; depth++) {
+                    if (!current || !current.parent || current.parent === current) break;
+                    current = current.parent;
+                    if (current && current.Xrm) return current.Xrm;
+                }
+            } catch (e) {}
+
+            try {
+                if (window.top && window.top.Xrm) return window.top.Xrm;
+            } catch (e) {}
+
+            try {
+                if (window.opener && window.opener.Xrm) return window.opener.Xrm;
+            } catch (e) {}
+
+            // In pop-out windows, Xrm is often on opener ancestors, not opener itself.
+            try {
+                var openerCurrent = window.opener;
+                for (var openerDepth = 0; openerDepth < 6; openerDepth++) {
+                    if (!openerCurrent || !openerCurrent.parent || openerCurrent.parent === openerCurrent) break;
+                    openerCurrent = openerCurrent.parent;
+                    if (openerCurrent && openerCurrent.Xrm) return openerCurrent.Xrm;
+                }
+            } catch (e) {}
+
+            return typeof window.Xrm !== "undefined" ? window.Xrm : null;
+        }
+
+        function buildDefaultRedirectUri() {
+            try {
+                if (state.xrm && state.xrm.Utility && state.xrm.Utility.getGlobalContext) {
+                    return state.xrm.Utility.getGlobalContext().getClientUrl() + "/WebResources/rwmcs_vzAgentSidePanelHTML";
+                }
+            } catch (e) {}
+            return FALLBACK_SSO_CONFIG.redirectUri;
+        }
+
+        function getQueryParam(name) {
+            return new URLSearchParams(window.location.search).get(name);
+        }
+
+        function normalizeGuid(guid) {
+            return String(guid || "").replace(/[{}]/g, "");
+        }
+
+        function escapeODataString(value) {
+            return String(value || "").replace(/'/g, "''");
+        }
+
+        function splitScopes(text) {
+            return String(text || "")
+                .split(/\s+/)
+                .map(function (scope) { return scope.trim(); })
+                .filter(function (scope) { return scope.length > 0; });
+        }
+
+        function uniqueScopes(scopes) {
+            var seen = {};
+            return scopes.filter(function (scope) {
+                if (seen[scope]) return false;
+                seen[scope] = true;
+                return true;
+            });
+        }
+
+        function getScopesForAgent(agent) {
+            if (agent && agent.authScopeOverride) {
+                return splitScopes(agent.authScopeOverride);
+            }
+            var config = state.sidebarConfig || FALLBACK_SSO_CONFIG;
+            var combined = [];
+            combined = combined.concat(splitScopes(config.apiScope));
+            combined = combined.concat(splitScopes(config.scopesText));
+            return uniqueScopes(combined);
+        }
+
+        function ensureMsalInstance(config) {
+            if (state.msalInstance) return state.msalInstance;
+
+            state.msalInstance = new msal.PublicClientApplication({
+                auth: {
+                    clientId: config.clientId,
+                    authority: "https://login.microsoftonline.com/" + config.tenantId,
+                    redirectUri: config.redirectUri || buildDefaultRedirectUri()
+                },
+                cache: {
+                    cacheLocation: "sessionStorage",
+                    storeAuthStateInCookie: false
+                }
+            });
+            return state.msalInstance;
+        }
+
+        function getUserToken(agent) {
+            var config = state.sidebarConfig || FALLBACK_SSO_CONFIG;
+            var scopes = getScopesForAgent(agent);
+            var scopesKey = scopes.join(" ");
+            var cached = state.tokenCache[scopesKey];
+
+            if (cached && Date.now() < cached.expiresAt - 60000) {
+                return Promise.resolve(cached.accessToken);
+            }
+
+            var msalInstance = ensureMsalInstance(config);
+            var account = msalInstance.getAllAccounts()[0];
+            var request = { scopes: scopes, account: account };
+            var authPromise = account
+                ? msalInstance.acquireTokenSilent(request)
+                : msalInstance.ssoSilent(request).catch(function () {
+                        return msalInstance.loginPopup({ scopes: scopes });
+                    });
+
+            return authPromise.then(function (result) {
+                state.tokenCache[scopesKey] = {
+                    accessToken: result.accessToken,
+                    expiresAt: result.expiresOn ? result.expiresOn.getTime() : Date.now() + 3600000
+                };
+                return result.accessToken;
+            });
+        }
+
+        function getDefaultIcon(agentType) {
+            switch (String(agentType || "").toLowerCase()) {
+                case "copilot studio":
+                    return "🤖";
+                case "pva legacy":
+                    return "🧠";
+                case "other":
+                    return "✨";
+                default:
+                    return "🤖";
+            }
+        }
+
+        function mapSidebarConfig(record) {
+            return {
+                configId: record.sidebar_genericsidebarid,
+                title: record.sidebar_title || "Dynamics AI",
+                clientId: record.sidebar_auth_client_id || FALLBACK_SSO_CONFIG.clientId,
+                tenantId: record.sidebar_auth_tenant_id || FALLBACK_SSO_CONFIG.tenantId,
+                apiScope: record.sidebar_auth_api_scope || FALLBACK_SSO_CONFIG.apiScope,
+                redirectUri: record.sidebar_auth_redirect_uri || buildDefaultRedirectUri(),
+                scopesText: record.sidebar_auth_scopes || ""
+            };
+        }
+
+        function getFallbackSidebarConfig() {
+            return {
+                configId: null,
+                title: "Dynamics AI",
+                clientId: FALLBACK_SSO_CONFIG.clientId,
+                tenantId: FALLBACK_SSO_CONFIG.tenantId,
+                apiScope: FALLBACK_SSO_CONFIG.apiScope,
+                redirectUri: buildDefaultRedirectUri(),
+                scopesText: FALLBACK_SSO_CONFIG.scopesText
+            };
+        }
+
+        function isMissingPropertyError(error) {
+            var msg = String((error && error.message) || "").toLowerCase();
+            return msg.indexOf("could not find a property") >= 0 || msg.indexOf("property named") >= 0;
+        }
+
+        function loadSidebarConfig() {
+            if (!state.xrm || !state.xrm.WebApi) {
+                return Promise.resolve(getFallbackSidebarConfig());
+            }
+
+            var requestedConfigId = normalizeGuid(getQueryParam("configId"));
+            var baseSelect = "?$select=sidebar_genericsidebarid,sidebar_title";
+            var extendedSelect = "?$select=sidebar_genericsidebarid,sidebar_title,sidebar_auth_client_id,sidebar_auth_tenant_id,sidebar_auth_api_scope,sidebar_auth_redirect_uri,sidebar_auth_scopes";
+
+            if (requestedConfigId) {
+                return state.xrm.WebApi.retrieveRecord(TABLE, requestedConfigId, extendedSelect)
+                    .catch(function (error) {
+                        if (isMissingPropertyError(error)) {
+                            return state.xrm.WebApi.retrieveRecord(TABLE, requestedConfigId, baseSelect);
+                        }
+                        throw error;
+                    })
+                    .then(mapSidebarConfig)
+                    .catch(function () {
+                        return getDefaultSidebarConfig();
+                    });
+            }
+
+            return getDefaultSidebarConfig();
+        }
+
+        function getDefaultSidebarConfig() {
+            var baseSelect = "$select=sidebar_genericsidebarid,sidebar_title";
+            return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$filter=sidebar_default eq true&$top=1")
+                .catch(function () {
+                    return { entities: [] };
+                })
+                .then(function (result) {
+                    if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
+                    return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$orderby=createdon desc&$top=1");
+                })
+                .then(function (result) {
+                    if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
+                    return getFallbackSidebarConfig();
+                })
+                .catch(function () {
+                    return getFallbackSidebarConfig();
+                });
+        }
+
+        function normalizeAgentRow(record, index) {
+            var key = record.sidebar_agentkey || record.sidebar_name || record.sidebar_displayname || ("agent-" + index);
+            var activeByFlag = record.sidebar_isactive !== false;
+            var activeByState = typeof record.statecode === "number" ? record.statecode === 0 : true;
+            return {
+                id: record.sidebar_genericsidebaragentid || key,
+                key: key,
+                name: record.sidebar_displayname || record.sidebar_name || key,
+                description: record.sidebar_description || "Select this agent to get started.",
+                tokenEndpoint: record.sidebar_tokenendpoint || "",
+                embedCode: record.sidebar_embedcode || "",
+                sortOrder: typeof record.sidebar_sortorder === "number" ? record.sidebar_sortorder : index,
+                isActive: activeByFlag && activeByState,
+                isDefault: record.sidebar_isdefaultagent === true,
+                authScopeOverride: record.sidebar_authscopeoverride || "",
+                agentType: record.sidebar_agenttype || "Copilot Studio",
+                iconUrl: record.sidebar_iconurl || "",
+                icon: getDefaultIcon(record.sidebar_agenttype)
+            };
+        }
+
+        function loadAgents(configId) {
+            if (!state.xrm || !state.xrm.WebApi || !configId) {
+                state.usingFallbackAgents = true;
+                return Promise.resolve(FALLBACK_AGENTS.slice());
+            }
+
+            var guid = normalizeGuid(configId);
+            var query = [
+                "?$select=sidebar_genericsidebaragentid,sidebar_name,sidebar_agentkey,sidebar_displayname,sidebar_description,sidebar_tokenendpoint,sidebar_embedcode,sidebar_sortorder,sidebar_isactive,sidebar_isdefaultagent,sidebar_authscopeoverride,sidebar_agenttype,sidebar_iconurl,statecode,statuscode",
+                "&$filter=_sidebar_genericsidebarid_value eq ", guid,
+                " and sidebar_isactive ne false and statecode eq 0",
+                "&$orderby=sidebar_sortorder asc,createdon asc"
+            ].join("");
+
+            return state.xrm.WebApi.retrieveMultipleRecords(AGENT_TABLE, query)
+                .then(function (result) {
+                    state.usingFallbackAgents = false;
+                    var activeAgents = result.entities
+                        .map(normalizeAgentRow)
+                        .filter(function (agent) { return agent.isActive; });
+                    return activeAgents;
+                })
+                .catch(function () {
+                    state.usingFallbackAgents = false;
+                    return [];
+                });
+        }
+
+        function setAgents(agents) {
+            state.agents = agents.slice().sort(function (left, right) {
+                return (left.sortOrder || 0) - (right.sortOrder || 0);
+            });
+            state.agentsByKey = {};
+            state.agents.forEach(function (agent) {
+                state.agentsByKey[agent.key] = agent;
+            });
+        }
+
+        function renderAgentButtons() {
+            quickActions.innerHTML = "";
+
+            if (!state.agents.length) {
+                var empty = document.createElement("div");
+                empty.className = "historyEmpty";
+                empty.textContent = "No active agents are configured for this sidebar.";
+                quickActions.appendChild(empty);
+                return;
+            }
+
+            state.agents.forEach(function (agent) {
+                quickActions.appendChild(buildAgentButton(agent));
+            });
+        }
+
+        function buildAgentButton(agent) {
+            var button = document.createElement("button");
+            button.className = "quickBtn";
+            button.type = "button";
+
+            var icon = document.createElement("div");
+            icon.className = "btnIcon";
+            if (agent.iconUrl) {
+                icon.style.backgroundImage = "url('" + agent.iconUrl.replace(/'/g, "%27") + "')";
+                icon.style.backgroundPosition = "center";
+                icon.style.backgroundRepeat = "no-repeat";
+                icon.style.backgroundSize = "cover";
+                icon.textContent = "";
+            } else {
+                icon.textContent = agent.icon || getDefaultIcon(agent.agentType);
+            }
+
+            var text = document.createElement("div");
+            text.className = "btnText";
+
+            var label = document.createElement("span");
+            label.className = "btnLabel";
+            label.textContent = agent.name;
+
+            var sub = document.createElement("span");
+            sub.className = "btnSub";
+            sub.textContent = agent.description || "Select this agent to get started.";
+
+            var arrow = document.createElement("span");
+            arrow.className = "btnArrow";
+            arrow.textContent = "›";
+
+            text.appendChild(label);
+            text.appendChild(sub);
+            button.appendChild(icon);
+            button.appendChild(text);
+            button.appendChild(arrow);
+            button.addEventListener("click", function () {
+                triggerAgent(agent.key, button);
+            });
+            return button;
+        }
+
+        function openHistory() {
+            var panel = document.getElementById("historyPanel");
+            var open = panel.style.display === "block";
+            panel.style.display = open ? "none" : "block";
+            if (!open) renderHistory();
+        }
+
+        function renderHistory() {
+            var container = document.getElementById("historyList");
+            container.innerHTML = "";
+            if (!state.sessions.length) {
+                var empty = document.createElement("div");
+                empty.className = "historyEmpty";
+                empty.textContent = "No history yet";
+                container.appendChild(empty);
+                return;
+            }
+
+            state.sessions.slice().reverse().forEach(function (session) {
+                var agent = state.agentsByKey[session.key];
+                if (!agent) return;
+                var item = document.createElement("div");
+                item.className = "historyItem";
+                item.textContent = agent.name;
+                item.addEventListener("click", function () {
+                    document.getElementById("historyPanel").style.display = "none";
+                    loadAgent(session.key);
+                });
+                container.appendChild(item);
+            });
+        }
+
+        function saveSession(key) {
+            state.sessions.push({ key: key, ts: Date.now() });
+            sessionStorage.setItem("ai_sessions", JSON.stringify(state.sessions));
+            renderHistory();
+        }
+
+        function showActions() {
+            if (shouldUseDedicatedChatView()) {
+                exitDedicatedChatView(true);
+                document.getElementById("historyPanel").style.display = "none";
+                return;
+            }
+
+            document.getElementById("actionPanel").classList.remove("hidden");
+            document.getElementById("changeAgentBtn").classList.remove("visible");
+            document.getElementById("historyPanel").style.display = "none";
+            document.getElementById("emptyState").classList.remove("hidden");
+            resetFrame();
+            emptyText.textContent = "Select an action above to get started";
+        }
+
+        function resetAll() {
+            state.sessions = [];
+            sessionStorage.removeItem("ai_sessions");
+            state.lastKey = null;
+            renderHistory();
+            showActions();
+        }
+
+        function triggerAgent(key, button) {
+            if (button.classList.contains("dancing")) return;
+            button.classList.add("dancing");
+            var done = false;
+
+            function proceed() {
+                if (done) return;
+                done = true;
+                button.classList.remove("dancing");
+                saveSession(key);
+                loadAgent(key);
+            }
+
+            button.addEventListener("animationend", proceed, { once: true });
+            setTimeout(proceed, 1100);
+        }
+
+        function buildCanvasData(agent, userToken) {
+            return [
+                "tokenEndpoint=" + encodeURIComponent(agent.tokenEndpoint),
+                "usertoken=" + encodeURIComponent(userToken),
+                "agentKey=" + encodeURIComponent(agent.key),
+                "agentType=" + encodeURIComponent(agent.agentType || "Copilot Studio")
+            ].join("&");
+        }
+
+        function resetFrame() {
+            var frame = document.getElementById("frame");
+            frame.removeAttribute("srcdoc");
+            frame.src = "about:blank";
+        }
+
+        function hasEmbedCode(agent) {
+            return !!String(agent && agent.embedCode || "").trim();
+        }
+
+        function normalizeEmbedHtml(html) {
+            try {
+                var doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+                var style = doc.createElement("style");
+                style.textContent = [
+                    "html, body {",
+                    "  height: 100% !important;",
+                    "  width: 100% !important;",
+                    "  margin: 0 !important;",
+                    "  padding: 0 !important;",
+                    "  overflow: hidden !important;",
+                    "}",
+                    "body {",
+                    "  min-height: 100% !important;",
+                    "}",
+                    "iframe {",
+                    "  width: 100% !important;",
+                    "  height: 100% !important;",
+                    "  min-height: 100% !important;",
+                    "  border: 0 !important;",
+                    "  display: block !important;",
+                    "}",
+                    "body > iframe:first-of-type {",
+                    "  position: absolute !important;",
+                    "  inset: 0 !important;",
+                    "}"
+                ].join("\n");
+                (doc.head || doc.documentElement).appendChild(style);
+                return doc.documentElement.outerHTML;
+            } catch (e) {
+                return html;
+            }
+        }
+
+        function renderEmbedAgent(agent) {
+            var frame = document.getElementById("frame");
+            resetFrame();
+            frame.srcdoc = normalizeEmbedHtml(agent.embedCode);
+        }
+
+        function loadAgent(key) {
+            var agent = state.agentsByKey[key];
+            if (!agent) return;
+
+            state.lastKey = key;
+            if (shouldUseDedicatedChatView()) {
+                enterDedicatedChatView(agent.name);
+            } else {
+                exitDedicatedChatView(false);
+            }
+            document.getElementById("changeAgentLabel").textContent = agent.name;
+            document.getElementById("emptyState").classList.add("hidden");
+
+            if (hasEmbedCode(agent)) {
+                renderEmbedAgent(agent);
+                return;
+            }
+
+            if (!agent.tokenEndpoint) {
+                emptyText.textContent = "This agent is missing a token endpoint configuration.";
+                document.getElementById("emptyState").classList.remove("hidden");
+                resetFrame();
+                return;
+            }
+
+            getUserToken(agent).then(function (userToken) {
+                resetFrame();
+                document.getElementById("frame").src = CANVAS_URL + "?data=" + encodeURIComponent(buildCanvasData(agent, userToken));
+            }).catch(function (error) {
+                document.getElementById("emptyState").classList.remove("hidden");
+                emptyText.textContent = "Sign-in failed: " + (error && error.message ? error.message : error);
+                resetFrame();
+            });
+        }
+
+        function updateWelcomeText() {
+            if (state.usingFallbackAgents) {
+                welcomeText.textContent = "Dataverse agents are not available yet. Using the bundled agent list for now.";
+                return;
+            }
+            welcomeText.textContent = "Welcome to Copilot. Select one of the configured agents below to get started.";
+        }
+
+        function shouldUseDedicatedChatView() {
+            return state.agents.length >= DEDICATED_CHAT_THRESHOLD;
+        }
+
+        function enterDedicatedChatView(agentName) {
+            frameWrap.classList.add("chat-only");
+            document.getElementById("actionPanel").classList.add("hidden");
+            document.getElementById("changeAgentBtn").classList.remove("visible");
+            document.getElementById("activeAgentTitle").textContent = agentName || "Agent Chat";
+        }
+
+        function exitDedicatedChatView(resetConversation) {
+            frameWrap.classList.remove("chat-only");
+            document.getElementById("activeAgentTitle").textContent = "Agent Chat";
+            document.getElementById("actionPanel").classList.remove("hidden");
+            document.getElementById("changeAgentBtn").classList.remove("visible");
+
+            if (resetConversation) {
+                document.getElementById("emptyState").classList.remove("hidden");
+                emptyText.textContent = "Select an action above to get started";
+                resetFrame();
+            }
+        }
+
+        function init() {
+            loadSidebarConfig()
+                .then(function (config) {
+                    state.sidebarConfig = config;
+                    ensureMsalInstance(config);
+                    return loadAgents(config.configId);
+                })
+                .then(function (agents) {
+                    setAgents(agents.map(function (agent, index) {
+                        return agent.key ? agent : normalizeAgentRow(agent, index);
+                    }));
+                    updateWelcomeText();
+                    renderAgentButtons();
+                    renderHistory();
+                })
+                .catch(function () {
+                    state.sidebarConfig = getFallbackSidebarConfig();
+                    ensureMsalInstance(state.sidebarConfig);
+                    state.usingFallbackAgents = true;
+                    setAgents(FALLBACK_AGENTS.slice());
+                    updateWelcomeText();
+                    renderAgentButtons();
+                    renderHistory();
+                });
+        }
+    });
+            </script>
+
+</body>
+</html>

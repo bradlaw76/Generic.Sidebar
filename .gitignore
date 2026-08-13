@@ -1,0 +1,9 @@
+# Generated dependencies and build output
+node_modules/
+azure-functions/node_modules/
+
+# Local diagnostics and temporary files
+_debug.txt
+
+# Generated deployment archives (retain explicitly versioned releases instead)
+azure-functions.zip

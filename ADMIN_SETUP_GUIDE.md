@@ -1,0 +1,478 @@
+# Generic Sidebar SSO — Admin Setup Guide
+
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
+**Audience:** Dynamics 365 Administrators, Power Platform Administrators
+
+---
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Prerequisites](#prerequisites)
+3. [Step 1: Create Entra App Registration](#step-1-create-entra-app-registration)
+4. [Step 2: Configure API Permissions](#step-2-configure-api-permissions)
+5. [Step 3: Create Copilot Studio Agent](#step-3-create-copilot-studio-agent)
+6. [Step 4: Get Copilot Token Endpoint](#step-4-get-copilot-token-endpoint)
+7. [Step 5: Extend Dataverse Table](#step-5-extend-dataverse-table)
+8. [Step 6: Configure SSO in Sidebar](#step-6-configure-sso-in-sidebar)
+9. [Step 7: Test Configuration](#step-7-test-configuration)
+10. [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+Generic Sidebar now supports enterprise Single Sign-On (SSO) for Copilot Studio embeds. This guide walks you through:
+
+- **Creating** a secure Entra app registration
+- **Configuring** API permissions
+- **Building** a Copilot agent
+- **Storing** SSO config in Dataverse (zero hardcoding)
+- **Testing** end-to-end functionality
+
+**Key Principle:** Runtime configuration is stored in Dataverse. Client IDs, tenant IDs, scopes, and token endpoints are configuration values; they are not browser secrets. Do not store client secrets in browser-facing Dataverse configuration. The sidebar reads configuration at runtime—no code changes needed per environment.
+
+---
+
+## Prerequisites
+
+Before you start, ensure you have:
+
+- ✅ **Dynamics 365** organization with D365 model-driven app
+- ✅ **Power Apps** environment (same as D365 org)
+- ✅ **Copilot Studio** access (enabled in Power Platform tenant)
+- ✅ **Entra ID** admin access (to create app registration)
+- ✅ **Generic.Sidebar** v2.0.1+ deployed to web resources
+- ✅ **Dataverse** table `sidebar_genericsidebar` with SSO fields (see Step 5)
+
+**GCC/GCCH Note:** If deploying to GCC or GCCH, use the respective Entra endpoints:
+- **Commercial:** `https://login.microsoftonline.com`
+- **GCC:** `https://login.microsoftonline.com` (same, but with `powerplatform.microsoft.us` token endpoint)
+- **GCCH:** `https://login-us.microsoftonline.us` (requires separate Entra instance)
+
+---
+
+## Step 1: Create Entra App Registration
+
+### In Azure Portal:
+
+1. **Navigate to Entra ID:**
+   - Go to [portal.azure.com](https://portal.azure.com)
+   - Search for "Microsoft Entra ID"
+   - Click **App registrations** (left sidebar)
+
+2. **Create New Registration:**
+   - Click **+ New registration**
+   - **Name:** e.g., "Generic Sidebar Copilot" or "Copilot Canvas App"
+   - **Supported account types:** Select "Accounts in this organizational directory only"
+   - **Redirect URI:** Leave blank for now (we'll add it next)
+   - Click **Register**
+
+3. **Add Redirect URI:**
+   - In your new app, go to **Authentication** (left sidebar)
+   - Click **+ Add a platform**
+   - Select **Single-page application (SPA)**
+   - **Redirect URI:** Enter your Dynamics 365 org URL + web resource name:
+     ```
+     https://<your-org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html
+     ```
+     Example: `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html`
+    - Use the SPA platform configuration required by your tenant policy. Generic Sidebar uses authorization code flow with PKCE through MSAL; do not enable implicit-grant settings solely for this sidebar.
+   - Click **Configure**
+
+4. **Note Your Client ID & Tenant ID:**
+   - Go to **Overview**
+   - Copy and save:
+     - **Application (client) ID** → needed for sidebar config
+     - **Directory (tenant) ID** → needed for sidebar config
+
+---
+
+## Step 2: Configure API Permissions
+
+### In Azure Portal (same app):
+
+1. **Navigate to API Permissions:**
+   - In your app, go to **API permissions** (left sidebar)
+   - Click **+ Add a permission**
+
+2. **Add Microsoft Graph Permissions (Optional):**
+   - Select **Microsoft Graph** → **Delegated permissions**
+   - Search for: `User.Read`, `offline_access`
+   - Select both and click **Add permissions**
+   - *(These allow reading user profile during SSO)*
+
+3. **Create Custom API Scope:**
+   - Go to **Expose an API** (left sidebar)
+   - **Application ID URI:**
+     - Click **Set** or **Add**
+     - Recommended format: `api://<client-id>` (auto-filled)
+     - Or: `api://copilot-sidebar-app`
+     - Click **Save**
+
+4. **Add Scope:**
+   - Under "Scopes defined by this API," click **+ Add a scope**
+   - **Scope name:** `Test.Read` (or your custom name)
+   - **Admin consent display name:** "Read test scope"
+   - **Admin consent description:** "Allows the app to read test data"
+   - Click **Add scope**
+
+5. **Copy Your API Scope:**
+   - The full scope will appear as: `api://<app-id>/Test.Read`
+   - Example: `api://3a669365-5420-433a-913f-ad7e39424a8c/Test.Read`
+   - **Save this** → needed for sidebar config
+
+---
+
+## Step 3: Create Copilot Studio Agent
+
+### In Power Platform Admin Center or Copilot Studio:
+
+1. **Go to Copilot Studio:**
+   - [powerplatform.microsoft.com](https://powerplatform.microsoft.com)
+   - Select your environment
+   - Click **Copilot Studio** (or **Agents** → **Create new**)
+
+2. **Create New Agent:**
+   - Click **Create** or **+ New agent**
+   - **Name:** e.g., "Sales Opportunities Agent"
+   - Select a template or start blank
+   - Design your agent topics (e.g., "Get Opportunities", "Create Lead", etc.)
+
+3. **Publish Agent:**
+   - Click **Publish** (top right)
+   - Wait for publication to complete
+
+4. **Note Agent Endpoint:**
+   - After publishing, go to **Channels** → **Direct Line**
+   - You'll see a token endpoint URL
+   - **Save this** → needed for Step 4
+
+---
+
+## Step 4: Get Copilot Token Endpoint
+
+### In Copilot Studio (same agent):
+
+1. **Navigate to Channels:**
+   - In your agent, go to **Channels** (left sidebar)
+   - Click **Direct Line** (if not visible, click **+ Add channel**)
+
+2. **Copy Token Endpoint:**
+   - You'll see:
+     ```
+     Token Endpoint:
+     https://adb67d14bc04e71...environment.api.powerplatform.microsoft.us/powervirtualagents/botsbyschema/.../directline/token?api-version=2022-03-01-preview
+     ```
+   - **Copy the entire URL** → needed for sidebar config
+   - Keep this URL confidential (it identifies your agent)
+
+3. **Note the Environment URL:**
+   - The URL contains your environment identifier
+   - Example: `.environment.api.powerplatform.microsoft.us/` (GCC)
+   - This confirms the region (commercial vs. GCC vs. GCCH)
+
+---
+
+## Step 5: Extend Dataverse Table
+
+Generic Sidebar needs 8 new fields on the `sidebar_genericsidebar` table to store SSO config.
+
+### Option A: PowerShell Script (Recommended)
+
+Run this PowerShell script to add the fields automatically:
+
+```powershell
+# Requires: PowerShell 7+ and PFXCert authentication
+# See SECURITY_GUIDE.md for credential setup
+
+$OrgUrl = "https://yourorg.crm9.dynamics.com"
+$ApiUrl = "$OrgUrl/api/data/v9.0"
+
+# Connect to Dataverse
+$cred = Get-Credential
+$headers = @{
+    "Authorization" = "Bearer $(Get-MsalToken -ClientId 'your-app-id' -TenantId 'your-tenant-id').AccessToken"
+    "Content-Type" = "application/json"
+}
+
+# Create SSO fields on sidebar_genericsidebar table
+$fields = @(
+    @{ logicalName = "sidebar_sso_enabled"; displayName = "SSO Enabled"; type = "Boolean" },
+    @{ logicalName = "sidebar_auth_client_id"; displayName = "Client ID"; type = "String"; maxLength = 100 },
+    @{ logicalName = "sidebar_auth_tenant_id"; displayName = "Tenant ID"; type = "String"; maxLength = 100 },
+    @{ logicalName = "sidebar_auth_api_scope"; displayName = "API Scope"; type = "String"; maxLength = 200 },
+    @{ logicalName = "sidebar_auth_token_endpoint"; displayName = "Token Endpoint"; type = "String"; maxLength = 500 },
+    @{ logicalName = "sidebar_auth_redirect_uri"; displayName = "Redirect URI"; type = "String"; maxLength = 300 },
+    @{ logicalName = "sidebar_auth_scopes"; displayName = "Additional Scopes"; type = "String"; maxLength = 500 },
+   @{ logicalName = "sidebar_auth_client_secret"; displayName = "Client Secret (Deprecated)"; type = "String"; maxLength = 256 }
+)
+
+foreach ($field in $fields) {
+    $payload = @{
+        LogicalName = $field.logicalName
+        DisplayName = $field.displayName
+        # Additional field properties...
+    } | ConvertTo-Json
+
+    Invoke-RestMethod -Uri "$ApiUrl/EntityDefinitions(LogicalName='sidebar_genericsidebar')/Attributes" `
+        -Method POST `
+        -Headers $headers `
+        -Body $payload
+}
+
+Write-Host "SSO fields added successfully!"
+```
+
+### Option B: Manual Configuration (UI)
+
+1. **Open your Dynamics 365 org**
+2. **Go to Dataverse (Power Platform Admin):**
+   - [https://admin.powerplatform.microsoft.com](https://admin.powerplatform.microsoft.com)
+   - Select your environment
+   - Click **Dataverse** → **Tables**
+   - Search for `sidebar_genericsidebar`
+
+3. **Add Fields (one by one):**
+
+   | Field Name | Display Name | Type | Max Length | Required? | Notes |
+   |------------|--------------|------|------------|-----------|-------|
+   | `sidebar_sso_enabled` | SSO Enabled | Yes/No | — | No | Default: No (SSO off unless explicitly enabled) |
+   | `sidebar_auth_client_id` | Client ID | Text | 100 | No (if SSO enabled: Yes) | From Entra app registration |
+   | `sidebar_auth_tenant_id` | Tenant ID | Text | 100 | No (if SSO enabled: Yes) | From Entra directory |
+   | `sidebar_auth_api_scope` | API Scope | Text | 200 | No (if SSO enabled: Yes) | Format: `api://client-id/scope` |
+   | `sidebar_auth_token_endpoint` | Token Endpoint | Text | 500 | No (if SSO enabled: Yes) | From Copilot Studio Direct Line |
+   | `sidebar_auth_redirect_uri` | Redirect URI | Text | 300 | No | Default: `https://<org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
+   | `sidebar_auth_scopes` | Additional Scopes | Text | 500 | No | Space-separated (e.g., `Sites.Read.All User.Read`) |
+   | `sidebar_auth_client_secret` | Client Secret (Deprecated) | Text | 256 | No | Leave blank. Browser SSO uses public-client PKCE; server-side service credentials belong in a server-side secret store. |
+
+4. **Click Save** after adding each field
+
+---
+
+## Step 6: Configure SSO in Sidebar
+
+### In Dynamics 365:
+
+1. **Open sidebar_genericsidebar table:**
+   - Go to your model-driven app
+   - Find the **Generic Sidebar Configuration** table (or custom table name)
+   - Open or create a configuration record
+
+2. **Fill in SSO fields:**
+
+   | Field | Value | Example |
+   |-------|-------|---------|
+   | **SSO Enabled** | Yes | Toggle ON |
+   | **Client ID** | From Step 1 | `3a669365-5420-433a-913f-ad7e39424a8c` |
+   | **Tenant ID** | From Step 1 | `a8037933-4d29-4ef8-8754-e67b2edd480b` |
+   | **API Scope** | From Step 2 | `api://3a669365-5420-433a-913f-ad7e39424a8c/Test.Read` |
+   | **Token Endpoint** | From Step 4 | `https://...powerplatform...directline/token...` |
+   | **Redirect URI** | Your D365 org URL + canvas web resource | `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
+   | **Additional Scopes** | (Optional) | Leave blank or add: `Sites.Read.All` |
+   | **Client Secret** | (Optional) | Leave blank unless using service principal auth |
+
+3. **Save the record**
+
+---
+
+## Step 6A: Create the Agent Catalog Child Table
+
+To support multiple Copilot Studio agents from a single Generic Sidebar configuration,
+create a child table that stores one row per agent and links each row back to the
+parent `sidebar_genericsidebar` record.
+
+### Recommended table definition
+
+| Setting | Value |
+|---------|-------|
+| Display name | `Generic Sidebar Agent` |
+| Plural display name | `Generic Sidebar Agents` |
+| Logical name | `sidebar_genericsidebaragent` |
+| Primary column | `sidebar_name` |
+| Parent relationship | Many agent rows to one `sidebar_genericsidebar` row |
+
+### Required child columns
+
+| Field Name | Display Name | Type | Max Length | Required? | Notes |
+|------------|--------------|------|------------|-----------|-------|
+| `sidebar_name` | Agent Name | Text | 100 | Yes | Primary column for the child row |
+| `sidebar_displayname` | Display Name | Text | 150 | Yes | Title shown to end users in the picker |
+| `sidebar_sortorder` | Sort Order | Whole Number | — | Yes | Controls the menu order |
+| `sidebar_isactive` | Is Active | Yes/No | — | Yes | Inactive agents are not rendered |
+| `sidebar_genericsidebarid` | Generic Sidebar | Lookup | — | Yes | Required lookup to the parent `sidebar_genericsidebar` record |
+
+### Optional v1 child columns
+
+| Field Name | Display Name | Type | Max Length | Required? | Notes |
+|------------|--------------|------|------------|-----------|-------|
+| `sidebar_description` | Description | Text | 250 | No | Subtitle shown under the agent title |
+| `sidebar_embedcode` | Embed Code | Multiple Lines of Text | 1,048,576 | No | Raw Copilot Studio iframe or HTML embed. If populated, the picker renders this directly |
+| `sidebar_tokenendpoint` | Token Endpoint | Text | 500 | No | Agent-specific Direct Line token endpoint. Use for SSO/token-routed agents |
+| `sidebar_agenttype` | Agent Type | Choice | — | No | Suggested values: `Copilot Studio`, `PVA Legacy`, `Other` |
+| `sidebar_isdefaultagent` | Default Agent | Yes/No | — | No | Marks the preferred default per parent config |
+| `sidebar_authscopeoverride` | Auth Scope Override | Text | 300 | No | Uses the parent sidebar scope when blank |
+| `sidebar_agentkey` | Agent Key | Text | 100 | No | Stable programmatic key if display names change |
+| `sidebar_iconurl` | Icon URL | Text | 500 | No | Optional icon/avatar shown in the menu |
+
+### Parent config field (tab targeting)
+
+Add this optional field to `sidebar_genericsidebar` so admins can choose where the linked-agent menu appears in the 4-tab sidebar.
+
+| Field Name | Display Name | Type | Required? | Values | Notes |
+|------------|--------------|------|-----------|--------|-------|
+| `sidebar_agentmenutab` | Agent Menu Tab | Choice | No | `None`, `Tab 1`, `Tab 2`, `Tab 3`, `Tab 4` | When set and linked child agents exist, the selected tab renders the agent picker/menu |
+
+### Recommended relationship behavior
+
+1. Create a standard Dataverse lookup from `Generic Sidebar Agent` to `Generic Sidebar`.
+2. Use the parent Generic Sidebar record for shared SSO defaults such as client ID,
+   tenant ID, API scope, redirect URI, and additional scopes.
+3. Use child rows for agent-specific metadata such as display name, description,
+   order, optional scope override, and either token endpoint or embed code.
+4. Runtime behavior is dual-mode:
+   - If `sidebar_embedcode` is populated, the picker renders that embed directly.
+   - Otherwise, if `sidebar_tokenendpoint` is populated, the picker uses the SSO canvas flow.
+5. Tab targeting behavior:
+   - If `sidebar_agentmenutab` is set to `Tab 1-4` and active child agents exist, that tab renders the linked-agent menu.
+   - If `sidebar_agentmenutab` is `None` (or blank), legacy tab embeds render unchanged.
+   - This provides a safe rollback path: set `sidebar_agentmenutab` back to `None`.
+
+### Example agent rows
+
+| Agent Name | Display Name | Description | Token Endpoint | Sort Order | Is Active |
+|------------|--------------|-------------|----------------|------------|-----------|
+| `Sales Opportunity` | `Sales Opportunity Agent` | `Request information about your opportunities` | `https://.../directline/token?...` | 10 | Yes |
+| `HR` | `HR Agent` | `Request information about HR policies` | `https://.../directline/token?...` | 20 | Yes |
+| `Service Desk` | `Service Desk Copilot` | `Find cases, accounts, contacts and knowledge` | `https://.../directline/token?...` | 30 | Yes |
+
+For non-SSO agents, paste the Copilot Studio iframe snippet into `sidebar_embedcode` and leave `sidebar_tokenendpoint` blank.
+
+---
+
+## Step 7: Test Configuration
+
+### Use the Local Configuration Validator Tool:
+
+1. **Open the validator:**
+   - [https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_config_validator.html](https://yourorg.crm9.dynamics.com/WebResources/sidebar_sso_config_validator.html)
+
+2. **Paste your values:**
+   - Client ID, Tenant ID, API Scope, Token Endpoint
+   - Click **✓ Validate Configuration**
+
+3. **Check for ✅ or ✗:**
+   - ✅ All checks passed → Values are locally well-formed; continue with hosted Dynamics validation
+   - ✗ Fix any failed checks → Follow remediation tips
+
+### End-to-End Test:
+
+> The validator does not call Dataverse, Entra ID, or Copilot Studio. Complete this hosted Dynamics test before declaring SSO ready.
+
+1. **Open your D365 form**
+2. **Click "Open Sidebar"** (or your custom button)
+3. **Observe:**
+   - ✅ You should see Copilot in the sidebar
+   - ✅ No sign-in prompt (SSO handles it)
+   - ✅ Agent responds to your questions
+   - ✅ Chat history persists in sidebar session
+
+### Multi-Agent Picker + SSO Runtime Validation:
+
+Run this in hosted Dynamics runtime (not local `file://` preview).
+
+1. **Validate picker population:**
+   - Confirm active rows from `sidebar_genericsidebaragent` render as agent cards.
+   - Confirm inactive rows do not render.
+
+2. **Validate picker interaction:**
+   - Click an agent card.
+   - Confirm action panel hides and active agent header appears.
+   - Confirm **Change** returns to the picker.
+
+3. **Validate token and routing behavior:**
+   - Confirm token acquisition succeeds (silent preferred, popup allowed on first sign-in).
+   - Confirm chat frame loads for the selected agent.
+   - Confirm switching agents updates the routed token endpoint.
+
+4. **Validate fallback behavior:**
+   - Temporarily remove child rows and confirm fallback banner/list appears.
+   - Restore child rows and confirm Dataverse-driven list is used again.
+
+### Debug Mode:
+
+1. **Open browser console:** `F12` → **Console** tab
+2. **Look for log messages:**
+   - `[sidebar-sso-setup] Loading SSO config...`
+   - `[sidebar-sso-setup] Config validation passed`
+   - `[sidebar-sso-setup] Token acquired successfully`
+   - `[SSO] SSO enabled for this config`
+
+3. **If errors appear:** See [Troubleshooting](#troubleshooting) below
+
+---
+
+## Troubleshooting
+
+### "SSO not enabled for this config"
+- **Cause:** `sidebar_sso_enabled` is set to **No**
+- **Fix:** Go to sidebar config record → Set **SSO Enabled** to **Yes**
+
+### "Missing required SSO fields"
+- **Cause:** One or more SSO fields are empty
+- **Fix:** Run the Configuration Validator to identify which fields are missing
+- **Action:** Fill in the missing values from Steps 1–4
+
+### "Token Endpoint must be HTTPS"
+- **Cause:** Token endpoint URL doesn't start with `https://`
+- **Fix:** Copy the full token endpoint URL from Copilot Studio (Step 4)
+
+### "Sidebar shows 'Connecting to Copilot Studio...' forever"
+- **Cause:** Token endpoint is unreachable or returns 5XX error
+- **Fix:**
+  1. Verify Token Endpoint URL is correct (copy-paste from Copilot Studio)
+  2. Check if Copilot agent is **Published** (not just draft)
+  3. Verify API Scope is correctly formatted (`api://...`)
+
+### "CORS error" or "Token request failed"
+- **Cause:** Redirect URI mismatch or token endpoint doesn't recognize the request
+- **Fix:**
+  1. Verify Redirect URI exactly matches your D365 org URL + `/WebResources/sidebar_sso_canvas.html`
+  2. Ensure the Redirect URI is configured in Entra app registration (Step 1, Step 2)
+  3. Check browser console for exact error message
+
+### "OAuth card keeps appearing"
+- **Cause:** Loop guard triggered (max 2 silent OAuth attempts exceeded)
+- **Fix:**
+  1. Check Copilot token endpoint logs for errors
+  2. Verify Direct Line channel is enabled in Copilot Studio
+  3. Hard refresh browser (`Ctrl+Shift+R`) to clear cached tokens
+
+### "Non-SSO embeds not working"
+- **Cause:** Phase 1 implementation broke backwards compatibility
+- **Fix:** Contact support; should never happen. Verify sidebar_sidebar.js v2.0.0+
+
+---
+
+## Additional Resources
+
+- **Security Guide:** See [SECURITY_GUIDE.md](SECURITY_GUIDE.md) for token lifecycle, credential storage, best practices
+- **Troubleshooting Guide:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed error codes
+- **VZ Reference:** See [SO Sign In/copilot-sso-runbook.md](SO%20Sign%20In/copilot-sso-runbook.md) for VZ implementation patterns
+- **Copilot Studio Docs:** [https://learn.microsoft.com/en-us/power-virtual-agents/](https://learn.microsoft.com/en-us/power-virtual-agents/)
+
+---
+
+## Support
+
+For issues not covered in this guide:
+1. Check browser console (`F12`) for error messages
+2. Run Configuration Validator tool
+3. Review [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+4. Contact your Power Platform administrator
+
+---
+
+**Version:** 2.0.1
+**Last Updated:** 2026-08-05
+**Next Phase:** See [SECURITY_GUIDE.md](SECURITY_GUIDE.md) for advanced configuration

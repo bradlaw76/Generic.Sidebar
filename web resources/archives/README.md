@@ -12,8 +12,8 @@ Files are archived with the version number appended to the filename:
 
 | File | Current Version |
 |------|-----------------|
-| `sidebar_sidebar.html` | v2.14.0 |
-| `sidebar_sidebar.js` | v2.5.0 |
+| `sidebar_sidebar.html` | v2.15.4 |
+| `sidebar_sidebar.js` | v2.2.1 |
 
 ## Archive Process
 

@@ -1,0 +1,320 @@
+<!--
+=============================================================================
+COMPONENT:    sidebar_sso_canvas
+FILE:         web resources/sidebar_sso_canvas.html
+VERSION:      2.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-07-22
+ENVIRONMENT:  HTML5 (Dynamics 365 Web Resource / Copilot Studio Embed)
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Copilot Studio canvas with OAuth card suppression middleware.
+Receives user token from parent, exchanges for Direct Line token, renders Web Chat.
+=============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Copilot Studio Canvas (SSO)</title>
+  <style>
+    html, body { 
+      height: 100%; 
+      width: 100%; 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    #webchat { 
+      height: 100vh; 
+      width: 100%; 
+    }
+
+    .status-message {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      background: #fff;
+      font-family: "Segoe UI", sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .status-spinner {
+      border: 3px solid #e0e0e0;
+      border-top: 3px solid #0078d4;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-text {
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .error-message {
+      background: #fde7e9;
+      border: 1px solid #d13438;
+      color: #a4262c;
+      padding: 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.4;
+      max-width: 400px;
+    }
+
+    .error-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .error-detail {
+      margin: 4px 0;
+      font-family: monospace;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+  </style>
+  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+</head>
+<body>
+  <div id="webchat" role="main"></div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // ===================================================================
+    // CONFIG EXTRACTION FROM URL
+    // ===================================================================
+
+    function parseUrlParams() {
+      var qs = window.location.search.replace(/^\?/, "");
+      var data = "";
+      
+      // Try ?data=... format first (from sidebar navigation)
+      if (qs.indexOf("data=") !== -1) {
+        var parts = qs.split("&");
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i].indexOf("data=") === 0) {
+            data = decodeURIComponent(parts[i].substring(5));
+            break;
+          }
+        }
+      } else {
+        // Fallback to direct query params
+        data = qs;
+      }
+
+      // Parse key=value pairs
+      var params = {};
+      if (data) {
+        data.split(/[&;]/).forEach(function (pair) {
+          var idx = pair.indexOf("=");
+          if (idx > 0) {
+            var key = decodeURIComponent(pair.substring(0, idx)).toLowerCase();
+            var val = decodeURIComponent(pair.substring(idx + 1));
+            params[key] = val;
+          }
+        });
+      }
+
+      return params;
+    }
+
+    function showStatus(message, isError) {
+      var existing = document.getElementById("webchat");
+      var div = document.createElement("div");
+      div.className = "status-message";
+      
+      if (isError) {
+        div.innerHTML = message;
+      } else {
+        div.innerHTML = '<div class="status-spinner"></div><div class="status-text">' + message + '</div>';
+      }
+      
+      document.body.innerHTML = "";
+      document.body.appendChild(div);
+    }
+
+    function showError(title, details) {
+      var html = '<div class="error-message">' +
+        '<div class="error-title">' + title + '</div>' +
+        (details ? '<div class="error-detail">' + details + '</div>' : '') +
+        '</div>';
+      showStatus(html, true);
+    }
+
+    // ===================================================================
+    // MAIN INITIALIZATION
+    // ===================================================================
+
+    showStatus("Connecting to Copilot Studio...");
+
+    var params = parseUrlParams();
+    var TOKEN_ENDPOINT = params.tokenendpoint;
+    var USER_TOKEN = params.usertoken;
+
+    if (!TOKEN_ENDPOINT) {
+      showError("Configuration Error", "Missing tokenEndpoint parameter");
+      return;
+    }
+
+    if (!USER_TOKEN) {
+      showError("Authentication Error", "Missing user token");
+      return;
+    }
+
+    // Strip token from visible URL bar after read
+    try {
+      window.history.replaceState(null, "", window.location.pathname);
+    } catch (e) { /* non-fatal */ }
+
+    // ===================================================================
+    // EXCHANGE USER TOKEN FOR DIRECT LINE TOKEN
+    // ===================================================================
+
+    fetch(TOKEN_ENDPOINT, {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + USER_TOKEN }
+    })
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error("Token endpoint returned status " + response.status);
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      if (!data || !data.token) {
+        throw new Error("Token endpoint returned no Direct Line token");
+      }
+
+      // Create Direct Line connection
+      var directLine = window.WebChat.createDirectLine({ token: data.token });
+
+      // ===================================================================
+      // MIDDLEWARE: OAuth Card Suppression + Loop Guard
+      // ===================================================================
+      // This middleware:
+      //   1. Proactively sends the user's token as tokens/response on connect
+      //   2. Sends startConversation to wake the bot (not just sign-in topic)
+      //   3. Suppresses "I'll need you to sign in" preamble text
+      //   4. Silently fulfills OAuth sign-in cards (max 2 silent attempts, then render real card)
+      // ===================================================================
+
+      var store = window.WebChat.createStore({}, function (ref) {
+        var dispatch = ref.dispatch;
+        var MAX_SILENT_AUTH = 2;
+        var silentAuthCount = 0;
+
+        return function (next) {
+          return function (action) {
+            // On Direct Line connect: proactively send token + start conversation
+            if (action.type === "DIRECT_LINE/CONNECT_FULFILLED") {
+              silentAuthCount = 0;
+              try {
+                dispatch({
+                  type: "WEB_CHAT/SEND_EVENT",
+                  payload: { name: "tokens/response", value: { token: USER_TOKEN } }
+                });
+                dispatch({
+                  type: "WEB_CHAT/SEND_EVENT",
+                  payload: { name: "startConversation", value: { type: "user" } }
+                });
+              } catch (e) { console.warn("[canvas] Initial event dispatch failed", e); }
+            }
+
+            // On incoming activity: suppress preamble + fulfill OAuth cards
+            if (action.type === "DIRECT_LINE/INCOMING_ACTIVITY") {
+              var activity = action.payload && action.payload.activity;
+
+              // Suppress "I'll need you to sign in" preamble
+              var isPreamble = activity && 
+                activity.from && activity.from.role === "bot" &&
+                activity.type === "message" &&
+                (!activity.attachments || activity.attachments.length === 0) &&
+                typeof activity.text === "string" &&
+                /\bsign[- ]?in\b/i.test(activity.text);
+
+              if (isPreamble) {
+                console.log("[canvas] Suppressing sign-in preamble");
+                return; // Swallow the message so user never sees it
+              }
+
+              // Silently fulfill OAuth cards
+              var hasOAuthCard = activity &&
+                activity.from && activity.from.role === "bot" &&
+                activity.attachments && activity.attachments.some(function (att) {
+                  return att && att.contentType === "application/vnd.microsoft.card.oauth";
+                });
+
+              if (hasOAuthCard) {
+                if (silentAuthCount >= MAX_SILENT_AUTH) {
+                  // Loop guard: too many silent attempts, render the real card
+                  console.warn("[canvas] Silent auth cap reached (" + MAX_SILENT_AUTH + "); rendering OAuth card");
+                  return next(action);
+                }
+
+                silentAuthCount++;
+                console.log("[canvas] Silently fulfilling OAuth card (attempt " + silentAuthCount + "/" + MAX_SILENT_AUTH + ")");
+
+                try {
+                  dispatch({
+                    type: "WEB_CHAT/SEND_EVENT",
+                    payload: { name: "tokens/response", value: { token: USER_TOKEN } }
+                  });
+                  return; // Swallow the card so user never sees it
+                } catch (e) {
+                  console.error("[canvas] Failed to fulfill OAuth card", e);
+                }
+              }
+            }
+
+            return next(action);
+          };
+        };
+      });
+
+      // ===================================================================
+      // RENDER WEB CHAT
+      // ===================================================================
+
+      showStatus("Starting conversation...");
+
+      window.WebChat.renderWebChat(
+        { directLine: directLine, store: store },
+        document.getElementById("webchat")
+      );
+
+      document.getElementById("webchat").style.display = "block";
+    })
+    .catch(function (error) {
+      var detail = error && error.message ? error.message : String(error);
+      console.error("[canvas] Initialization failed", error);
+      showError("Failed to Start Copilot Studio", detail);
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -11,7 +11,7 @@ All tables use the publisher prefix `gensoft_`. Do not alter any standard/OOB ta
 
 | Item | Status | Action |
 |---|---|---|
-| Table 1 `gensoft_genericsoftphone` | **Exists** (in solution) | Add 3 new columns |
+| Table 1 `gensoft_genericsoftphone` | **Exists** (in solution) | Add 4 new columns |
 | Table 2 `gensoft_demo_profile` | **New** | Create table + 7 columns, add to solution |
 | Solution `GenericSoftphone` | **Exists** (v1.0.0.11, Unmanaged) | Add new table to it |
 | Publisher | **Generic.Softphone** (prefix `gensoft_`) | No changes |
@@ -56,6 +56,7 @@ record with this flag set to true on load.
 | Mute Ringtone | `gensoft_muteringtone` | Yes/No | No | Suppresses ringtone playback. Default: No. |
 | Phone Wallpaper URL | `gensoft_phonewallpaperurl` | Single line of text (500) | No | **NEW** — URL to an image used as the phone home screen wallpaper. |
 | Transcript Completed | `gensoft_transcriptcompleted` | Yes/No | No | **NEW** — Set to Yes by the softphone when transcript playback finishes. Default: No. |
+| Outbound Organization Name | `gensoft_outboundorganizationname` | Single line of text (200) | No | **NEW** — Display name of the organization the caller is dialing (e.g. "Veterans Affairs"). Shown in the phone's contact list. Falls back to gensoft_queuename if blank. |
 
 ### Transcript Text Format
 
