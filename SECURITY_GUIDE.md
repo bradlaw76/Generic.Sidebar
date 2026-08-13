@@ -303,12 +303,12 @@ If you're processing Protected Health Information (PHI), follow these controls:
 
 ### Incident Response
 
-If token compromise suspected:
+If token compromise is suspected:
 
-1. **Immediately rotate Client Secret:**
-   - Entra app → Certificates & secrets → Delete compromised secret
-   - Create new secret
-   - Update Dataverse field
+1. **Revoke the affected sessions and credentials:**
+    - Revoke the user's Entra sessions and access tokens.
+    - If a separate server-side integration credential may be affected, rotate it in its server-side secret store.
+    - Generic Sidebar browser SSO has no client secret to rotate and stores no secret in Dataverse.
 
 2. **Revoke all sessions:**
    - Go to Entra app → Sessions (if available)
@@ -369,8 +369,8 @@ If token compromise suspected:
 ### Token Compromise Checklist
 
 **Immediate (0–5 minutes):**
-- [ ] Rotate Client Secret in Entra
-- [ ] Update Dataverse field with new secret
+- [ ] Revoke affected Entra sessions and access tokens
+- [ ] Rotate any affected server-side integration credential in its secret store
 - [ ] Monitor for suspicious Copilot activity
 
 **Short-term (5–30 minutes):**
@@ -408,7 +408,7 @@ Before going to production:
 - [ ] API Scope starts with `api://` (e.g., `api://3a669365.../Test.Read`)
 - [ ] Token Endpoint is HTTPS + contains `directline/token`
 - [ ] Redirect URI matches your org URL exactly
-- [ ] Dataverse `sidebar_auth_client_secret` field is **encrypted**
+- [ ] No browser client secret exists in Dataverse configuration
 - [ ] Dataverse audit enabled on SSO fields
 - [ ] No secrets in source code (check git history)
 - [ ] HIPAA compliance controls enabled (if applicable)

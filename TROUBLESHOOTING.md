@@ -393,20 +393,19 @@ https://yourorg.crm9.dynamics.us/WebResources/sidebar_sso_canvas.html (GCC)
 
 **Where you see this:** Configuration Validator shows "Missing fields" error after step 5
 
-**What it means:** The 8 SSO fields haven't been added to the table yet
+**What it means:** The seven browser-safe SSO fields haven't been added to the table yet
 
 **How to fix:**
 1. Run PowerShell script from [ADMIN_SETUP_GUIDE.md](ADMIN_SETUP_GUIDE.md), Step 5
 2. Or manually add fields via UI (see Step 5, Option B)
-3. Verify all 8 fields exist:
+3. Verify all seven fields exist:
    - `sidebar_sso_enabled`
    - `sidebar_auth_client_id`
    - `sidebar_auth_tenant_id`
    - `sidebar_auth_api_scope`
    - `sidebar_auth_token_endpoint`
    - `sidebar_auth_redirect_uri`
-   - `sidebar_auth_scopes`
-   - `sidebar_auth_client_secret`
+  - `sidebar_auth_scopes`
 
 ---
 
@@ -523,19 +522,18 @@ https://yourorg.crm9.dynamics.us/WebResources/sidebar_sso_canvas.html (GCC)
 
 ---
 
-#### **G2: "Client secret is invalid"**
+#### **G2: `invalid_client` during browser SSO**
 
-**Where you see this:** Token acquisition fails with "invalid_client"
+**Where you see this:** Token acquisition fails with `invalid_client`.
 
-**What it means:** Client secret in Dataverse doesn't match Entra app
+**What it means:** The Entra registration is not configured as the public SPA client expected by Generic Sidebar, or the configured client/tenant identifiers are wrong. Browser SSO does not use a client secret.
 
 **How to fix:**
-1. Go to Azure Portal → Your app → Certificates & secrets
-2. Create a **new client secret**
-3. Copy the secret value (do this immediately, it won't show again)
-4. Update Dataverse field `sidebar_auth_client_secret`
-5. Save
-6. Hard refresh sidebar
+1. Verify the Client ID and Tenant ID in Dataverse.
+2. Confirm the app registration has the exact SPA redirect URI used by `sidebar_sso_canvas.html`.
+3. Confirm the required delegated API scope and consent.
+4. Remove any browser-facing client-secret configuration; do not replace it with another secret.
+5. Hard refresh the sidebar and retry.
 
 ---
 

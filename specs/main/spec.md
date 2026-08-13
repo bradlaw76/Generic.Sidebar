@@ -1,9 +1,9 @@
 # Generic.Sidebar — Baseline Specification
 
-**Feature Branch**: `feature/sso-integration-v2`  
+**Integration Branch**: `integration/sso-v2`
 **Created**: 2026-02-17  
-**Updated**: 2026-07-22  
-**Status**: Production (v2.0.0)  
+**Updated**: 2026-08-13
+**Status**: Integrated pre-release; release-blocking security findings remain open
 **Release**: Enterprise SSO Integration with Complete Admin Toolkit  
 **Input**: Configuration-driven sidebar UX + enterprise SSO for Copilot Studio embeds + admin experience toolkit
 
@@ -15,7 +15,7 @@ Admins create or update a `sidebar_genericsidebar` record to control title, inst
 
 **Why this priority**: Core value — the sidebar must function from data-driven configuration without redeployment. SSO eliminates repeated sign-in prompts for Copilot agents.
 
-**What's New in v2.0.0**: Admins can now set `sidebar_sso_enabled = Yes` and populate 8 new SSO fields (Client ID, Tenant ID, API Scope, Token Endpoint, Redirect URI, Additional Scopes, Client Secret) in Dataverse. No code changes required.
+**What's New in v2.0.0**: Admins can set `sidebar_sso_enabled = Yes` and populate seven browser-safe SSO fields (enabled flag, Client ID, Tenant ID, API Scope, Token Endpoint, Redirect URI, and Additional Scopes) in Dataverse. Browser SSO uses public-client PKCE and does not store a client secret.
 
 **Independent Test**: Update config record fields and refresh form; verify title, instructions, and embed render accordingly. For SSO configs, verify silent authentication on first visit and token cache on revisit.
 
@@ -25,7 +25,7 @@ Admins create or update a `sidebar_genericsidebar` record to control title, inst
 3. Given `sidebar_embedcode` contains a URL, When panel 1 is active, Then the iframe loads the URL with required policies.
 
 **New Acceptance Scenarios (SSO - v2.0.0)**:
-4. Given `sidebar_sso_enabled = Yes` and all 8 SSO fields populated correctly, When the user opens the sidebar, Then MSAL acquires token silently (first visit shows popup, subsequent visits are seamless).
+4. Given `sidebar_sso_enabled = Yes` and all required SSO fields populated correctly, When the user opens the sidebar, Then MSAL acquires a token silently when possible (first consent may show a popup; subsequent visits are seamless).
 5. Given SSO is configured and user is authenticated, When the canvas loads, Then Direct Line token is acquired silently with no visible "Sign in" prompts.
 6. Given SSO token is cached in sessionStorage, When the user navigates between records, Then the sidebar reopens without re-prompting for authentication.
 7. Given `sidebar_sso_enabled = No`, When the sidebar loads, Then SSO libraries are not loaded and standard canvas rendering occurs (backwards compatible).
@@ -164,8 +164,8 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ### Key Entities
 
-- **SidebarConfig**: Represents a `sidebar_genericsidebar` record; key attributes: `sidebar_title`, `sidebar_instructions`, `sidebar_embedcode`, variants for panels 2–4; theming fields; file type; **NEW**: 8 SSO fields.
-  - **SSO Fields**: `sidebar_sso_enabled`, `sidebar_auth_client_id`, `sidebar_auth_tenant_id`, `sidebar_auth_api_scope`, `sidebar_auth_token_endpoint`, `sidebar_auth_redirect_uri`, `sidebar_auth_scopes`, `sidebar_auth_client_secret`
+- **SidebarConfig**: Represents a `sidebar_genericsidebar` record; key attributes: `sidebar_title`, `sidebar_instructions`, `sidebar_embedcode`, variants for panels 2–4; theming fields; file type; **NEW**: seven browser-safe SSO fields.
+  - **SSO Fields**: `sidebar_sso_enabled`, `sidebar_auth_client_id`, `sidebar_auth_tenant_id`, `sidebar_auth_api_scope`, `sidebar_auth_token_endpoint`, `sidebar_auth_redirect_uri`, `sidebar_auth_scopes`
 - **SSOConfig** (v2.0.0): Subset of `SidebarConfig` SSO fields; used by MSAL initialization and Direct Line token exchange.
 - **Panel**: Derived from `SidebarConfig` for each index (1–4); attributes: title, instructions, embed target (mode + value).
 - **SitePage**: Landing, Downloads, Agent; behaviors: chart/table, filters, CSV export; accessibility attributes.
@@ -211,7 +211,7 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ### User Story 4 — Android Cell Phone Simulator for Contact Center Demos (Priority: P2)
 
-A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.5.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
+A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.8.2) is embedded as a sidecar within the sidebar or run standalone. The optional `AndroidCellPhone_ACS.html` v3.1.0 variant adds separately deployed ACS real PSTN calling. Explicitly versioned simulated phone files remain intentional archives.
 
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 

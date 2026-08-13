@@ -1,4 +1,6 @@
-🚀 Generic Sidebar for Dynamics 365 — Release v2.0.0
+# Generic Sidebar for Dynamics 365 - v2 Integrated Pre-Release
+
+> **Source status:** This branch contains the integrated v2 source and is suitable for development and review. Broad release remains blocked by the open release-blocking findings in [the code review tracker](docs/sidebar-code-review-2026-08-11.md). `GenericSidebar_1_0_0_5.zip` is a historical package from the pre-integration baseline and is not an authoritative build of this source tree. A new solution package will be exported only after security remediation and release-candidate validation.
 The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps with **enterprise-grade Single Sign-On (SSO)** support.
 
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, theming, and SSO authentication—with **zero hardcoding** and **full backwards compatibility**.
@@ -9,13 +11,13 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 * Users authenticate once to Dynamics 365, then access Copilot agents seamlessly (no sign-in prompts).
 * MSAL 2.38.3 OAuth PKCE flow with silent token acquisition.
 * Session-scoped token caching — tokens cleared on browser close for security.
-* Graceful fallback — if SSO fails, standard canvas embeds continue working.
+* Fail-closed SSO - authentication or navigation failures show a secure retryable error state and never downgrade to the standard canvas.
 
 🛠 **Complete Admin Toolkit**
 * **ADMIN_SETUP_GUIDE.md** — Step-by-step configuration (10 sections, Entra app registration to end-to-end testing).
 * **SECURITY_GUIDE.md** — Token lifecycle, credential storage, HIPAA compliance, GCC/GCCH region support.
 * **TROUBLESHOOTING.md** — 26 error categories with root causes and remediation steps.
-* **Add-SidebarSSOFields.ps1** — PowerShell automation to extend Dataverse table with 8 SSO fields.
+* **Add-SidebarSSOFields.ps1** — PowerShell automation to extend Dataverse with seven browser-safe SSO fields.
 * **Configuration Validator Tool** — Admin preflight checks for SSO setup.
 
 📊 **Product-Grade Architecture**
@@ -110,8 +112,10 @@ See also:
 
 A self-contained HTML phone simulator used as a sidecar embed for contact center demos.
 
-**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.5.0**
+**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.8.2**
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
+
+For optional real PSTN calling, `Generic.AndroidCellPhone/AndroidCellPhone_ACS.html` provides the separately deployed ACS v3.1.0 experience. The explicitly versioned v2.6.0 and v2.8.2 files are intentional archives.
 
 ### Features
 * Samsung S25 Ultra chassis with realistic home screen, dock, status bar

@@ -3,7 +3,7 @@
 **Status:** FUNCTIONAL BASELINE — HOSTED SSO VALIDATION PENDING
 **Version:** 2.0.1
 **Created:** 2026-03-04
-**Updated:** 2026-08-05
+**Updated:** 2026-08-13
 **Release:** Enterprise SSO Integration with Complete Admin Toolkit
 
 ---
@@ -17,7 +17,7 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 ### In Scope (v2.0.0)
 
 - Sidebar initialization and pane lifecycle behavior
-- Dataverse-driven runtime configuration loading (including 8 new SSO fields)
+- Dataverse-driven runtime configuration loading (including seven browser-safe SSO fields)
 - Multi-panel rendering and tab behavior
 - Embed handling for URL, HTML, and Copilot Studio canvas sources
 - SSO authentication flow: MSAL token acquisition → Copilot token exchange → Direct Line connection
@@ -66,12 +66,12 @@ D365 Form (Parent)
 - **Zero Hardcoding:** Runtime configuration (Client IDs, Token Endpoints) comes from Dataverse
 - **Silent SSO:** Users log in once, then seamless re-authentication via token cache
 - **Token Caching:** sessionStorage for browser session, cleared on close
-- **Fallback:** Non-SSO embeds unaffected; optional adoption per environment
+- **Failure policy:** Non-SSO embeds remain unaffected; SSO-enabled configurations fail closed to a retryable error resource
 - **Multi-Region:** Commercial, GCC, and GCCH guidance is documented; validate the target cloud in hosted Dynamics before production use
 - **Security:** PKCE, no token logging, and immediate URL parameter stripping; query-token handoff is a documented residual risk
 
 **Admin Deployment:**
-- Dataverse `sidebar_genericsidebar` table extended with 8 SSO fields
+- Dataverse `sidebar_genericsidebar` table extended with seven browser-safe SSO fields; no browser client secret is stored
 - One-time Entra app registration per tenant (reused across all environments)
 - PowerShell automation script: `Add-SidebarSSOFields.ps1`
 - Configuration validator tool: `sidebar_sso_config_validator.html`
@@ -83,7 +83,8 @@ D365 Form (Parent)
 
 ### Android Cell Phone Simulator (Samsung S25 Ultra)
 
-- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (v2.5.0)
+- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (v2.8.2 simulated)
+- **Optional ACS file:** `Generic.AndroidCellPhone/AndroidCellPhone_ACS.html` (v3.1.0 real PSTN calling)
 - **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 - Embeddable phone simulator for contact center demos
 - Outgoing/incoming call flows via `localStorage.genericSimCall`

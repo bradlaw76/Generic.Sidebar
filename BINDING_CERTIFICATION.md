@@ -33,7 +33,7 @@
 - All spec files updated to reflect v2.4.0 features
 
 ### 2026-03-06 — v2.5.0 Settings Screen & Standalone Profile Editing
-- AndroidCellPhone.html upgraded to v2.5.0 (prior version archived as AndroidCellPhone_v2.4.0.html)
+- At certification time, AndroidCellPhone.html was upgraded to v2.5.0 (that prior version remains archived as AndroidCellPhone_v2.4.0.html); the integrated pre-release source now uses v2.8.2.
 - Replaced Demo Control Panel overlay with full Settings screen (accessible via gear icon or Ctrl+Shift+D)
 - Standalone profile & transcript editing: add, edit, delete profiles with localStorage persistence
 - D365 mode: profile list is read-only (managed in Dataverse)

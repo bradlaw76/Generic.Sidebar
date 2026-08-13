@@ -66,7 +66,7 @@
 - ✔ Table headers use `scope="col"`
 - ✔ External links include `rel="noopener noreferrer"`
 
-### Android Cell Phone Simulator (AndroidCellPhone.html v2.5.0)
+### Android Cell Phone Simulator (AndroidCellPhone.html v2.8.2)
 
 #### Home Screen & Navigation
 - ✔ Home screen renders clock, date, wallpaper, app grid, and dock

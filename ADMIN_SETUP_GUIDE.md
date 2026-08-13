@@ -204,8 +204,7 @@ $fields = @(
     @{ logicalName = "sidebar_auth_api_scope"; displayName = "API Scope"; type = "String"; maxLength = 200 },
     @{ logicalName = "sidebar_auth_token_endpoint"; displayName = "Token Endpoint"; type = "String"; maxLength = 500 },
     @{ logicalName = "sidebar_auth_redirect_uri"; displayName = "Redirect URI"; type = "String"; maxLength = 300 },
-    @{ logicalName = "sidebar_auth_scopes"; displayName = "Additional Scopes"; type = "String"; maxLength = 500 },
-   @{ logicalName = "sidebar_auth_client_secret"; displayName = "Client Secret (Deprecated)"; type = "String"; maxLength = 256 }
+   @{ logicalName = "sidebar_auth_scopes"; displayName = "Additional Scopes"; type = "String"; maxLength = 500 }
 )
 
 foreach ($field in $fields) {
@@ -244,7 +243,8 @@ Write-Host "SSO fields added successfully!"
    | `sidebar_auth_token_endpoint` | Token Endpoint | Text | 500 | No (if SSO enabled: Yes) | From Copilot Studio Direct Line |
    | `sidebar_auth_redirect_uri` | Redirect URI | Text | 300 | No | Default: `https://<org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
    | `sidebar_auth_scopes` | Additional Scopes | Text | 500 | No | Space-separated (e.g., `Sites.Read.All User.Read`) |
-   | `sidebar_auth_client_secret` | Client Secret (Deprecated) | Text | 256 | No | Leave blank. Browser SSO uses public-client PKCE; server-side service credentials belong in a server-side secret store. |
+
+   Do not add a browser-facing client-secret field. Generic Sidebar uses public-client PKCE; service credentials belong only in server-side secret stores.
 
 4. **Click Save** after adding each field
 
@@ -270,7 +270,6 @@ Write-Host "SSO fields added successfully!"
    | **Token Endpoint** | From Step 4 | `https://...powerplatform...directline/token...` |
    | **Redirect URI** | Your D365 org URL + canvas web resource | `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
    | **Additional Scopes** | (Optional) | Leave blank or add: `Sites.Read.All` |
-   | **Client Secret** | (Optional) | Leave blank unless using service principal auth |
 
 3. **Save the record**
 

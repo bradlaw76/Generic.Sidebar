@@ -2,11 +2,11 @@
   "system": {
     "name": "Generic.Sidebar",
     "version": "2.1.0",
-    "status": "ACTIVE",
+    "status": "PRE_RELEASE",
     "type": "hybrid"
   },
   "purpose": {
-    "summary": "A flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps. Configure a single Dataverse table row to control instructions, embeds, icons, and theming — no custom HTML/JS per form. Includes sidecar components: Android Cell Phone Simulator (Samsung S25 Ultra, v2.5.0 — settings screen, standalone profile editing, lock screen, camera, browser, call flows) and Genesys Softphone for contact center demos. See Generic.AndroidCellPhone/DOCUMENTATION.md for full phone simulator technical docs."
+    "summary": "Integrated pre-release source for a table-driven Dynamics 365 side pane with optional fail-closed Copilot Studio SSO, linked agents, packaged-form guidance, and automated validation. Sidecars include the simulated Android Cell Phone v2.8.2, optional ACS real-calling phone v3.1.0, and Genesys contact-center capabilities. Broad distribution remains blocked by the release findings in docs/sidebar-code-review-2026-08-11.md."
   },
   "registry": {
     "indexUrl": "https://github.com/bradlaw76/SpeckKit-Project-Development/blob/main/system-manifests/MANIFEST_INDEX.json.md",
