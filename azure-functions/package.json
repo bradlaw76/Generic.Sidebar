@@ -2,6 +2,7 @@
   "name": "acs-token-service",
   "version": "1.0.0",
   "description": "ACS token endpoint for Generic Sidebar phone simulator",
+  "license": "MIT",
   "dependencies": {
     "@azure/communication-identity": "^1.3.1"
   }

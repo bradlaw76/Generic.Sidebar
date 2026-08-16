@@ -157,6 +157,27 @@ A self-contained HTML phone simulator used as a sidecar embed for contact center
    <iframe ...></iframe> (Copilot or Canvas App)
    Raw HTML
 
+### Configure the Sidebar in the Admin App
+
+The **Generic Sidebar Configuration** table in the model-driven admin app controls what users see on every packaged `* Generic.Sidebar` form. The forms launch the sidebar; the configuration record supplies its title, panels, linked agents, and optional SSO settings.
+
+1. Open the model-driven app that contains the **Generic Sidebar Configuration** table.
+2. Open an existing configuration record or create a new record.
+3. Set **Default** (`sidebar_default`) to **Yes** for exactly one intended configuration record. This is the shared configuration loaded by the packaged forms.
+4. Configure up to four panels using the corresponding title, instructions, and embed fields:
+   * Panel 1: `sidebar_title1`, `sidebar_instructions`, `sidebar_embedcode`
+   * Panel 2: `sidebar_title2`, `sidebar_instructions2`, `sidebar_embedcode2`
+   * Panel 3: `sidebar_title3`, `sidebar_instructions3`, `sidebar_embedcode3`
+   * Panel 4: `sidebar_title4`, `sidebar_instructions4`, `sidebar_embedcode4`
+5. Use an embed field for a URL, `webresource:Name.html`, raw HTML, a Copilot Studio iframe, or a Canvas App embed.
+6. To use linked agents, create related **Generic Sidebar Agent** rows, set `sidebar_isactive = Yes`, leave the Dataverse record active, and choose the target tab through **Agent Menu Tab** (`sidebar_agentmenutab`).
+7. Enable and complete SSO fields only when the selected sidebar experience requires SSO. Keep browser client secrets out of configuration records.
+8. Save the configuration record, publish customizations when form or web-resource changes were made, and open a packaged form to test the result.
+
+Configuration edits normally do not require form rework or solution re-import. Updating the selected default configuration record changes the shared sidebar experience for all five packaged forms.
+
+For the single optional **Agent Menu Tab** administration field, including the exact Choice values and UI-only creation steps, see [Agent Menu Tab field setup](docs/agent-menu-tab-field-setup.md).
+
 Example of HTML Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
 
@@ -178,6 +199,40 @@ Packaged Form Wiring
 2. For additional custom forms you create later, add `sidebar_sidebar.js` and OnLoad handler `Generic_OpenSidebar`.
 3. Publish all customizations, then hard refresh (Ctrl/Cmd+Shift+R).
 
+## Packaged OOB Forms
+
+Generic Sidebar can be delivered as a solution-managed experience for the following out-of-box tables:
+
+| Table | Logical name | Packaged form |
+| --- | --- | --- |
+| Case | `incident` | `Case Generic.Sidebar` |
+| Account | `account` | `Account Generic.Sidebar` |
+| Contact | `contact` | `Contact Generic.Sidebar` |
+| Lead | `lead` | `Lead Generic.Sidebar` |
+| Opportunity | `opportunity` | `Opportunity Generic.Sidebar` |
+
+Each is a new standard main form that calls the existing `Generic_OpenSidebar` entry point on form load. The OOB primary forms remain intact; administrators choose whether to expose the Generic.Sidebar form through app designer or form order.
+
+The sidebar behavior remains shared and configuration-driven: forms reuse the default `sidebar_genericsidebar` record maintained in the Generic Sidebar Configuration admin app, including panel layout, linked-agent selection, and SSO/non-SSO routing behavior. No form-specific embed code or runtime routing is required.
+
+Implementation and release artifacts:
+
+* [Packaged forms implementation guide](docs/packaged-generic-sidebar-forms-implementation.md)
+* [Packaged forms release sign-off](docs/packaged-generic-sidebar-forms-release-signoff.md)
+* [Agent Menu Tab field setup](docs/agent-menu-tab-field-setup.md)
+* [Admin validation checklist](ADMIN_VALIDATION_CHECKLIST.md)
+
+## Presentation Summary
+
+Use this six-part narrative when presenting the feature:
+
+1. **Opportunity:** provide one consistent Generic Sidebar experience across records teams already use.
+2. **Change:** move from per-form JavaScript setup to solution-packaged forms.
+3. **Scope:** deliver standard forms for Case, Account, Contact, Lead, and Opportunity.
+4. **Architecture:** every packaged form calls `Generic_OpenSidebar`, which loads the shared Dataverse configuration and existing sidebar runtime.
+5. **Governance:** package forms directly in the solution; validate handler wiring, runtime behavior, SSO behavior, and OOB primary-form safety.
+6. **Decision:** approve creation, sandbox validation, and managed-solution release of the five forms.
+
 📋 Known Limitations
 * External sites may block embedding (X-Frame-Options / CSP).
 * sidebar_acknowledged is optional; banner skipped if missing.
@@ -186,3 +241,7 @@ Packaged Form Wiring
 ⚠️ Disclaimer
 This kit is provided as-is. It is intended primarily for demo / proof-of-concept purposes.
 Before production use, admins must acknowledge the disclaimer via the welcome banner (sets sidebar_acknowledged = Yes).
+
+## License
+
+Generic Sidebar is licensed under the [MIT License](LICENSE).

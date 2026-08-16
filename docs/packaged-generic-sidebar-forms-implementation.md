@@ -59,6 +59,24 @@ After solution import:
 2. Admins can select these forms in app designer or table form order as desired.
 3. No script is required to attach sidebar JS to these packaged forms.
 
+## Configuration admin app behavior
+
+The packaged forms do not contain their own panel or embed configuration. They all call `Generic_OpenSidebar`, which resolves the shared default record from `sidebar_genericsidebar`.
+
+Administrators use the model-driven app that exposes the **Generic Sidebar Configuration** table to manage that shared experience:
+
+1. Create or open a `sidebar_genericsidebar` record.
+2. Mark exactly one intended record as default with `sidebar_default = Yes`.
+3. Configure up to four shared panels through `sidebar_title1` through `sidebar_title4`, the matching instruction fields, and the matching embed-code fields.
+4. Add active `sidebar_genericsidebaragent` child rows when an agent picker is needed.
+5. Set `sidebar_agentmenutab` to select the panel slot used by the active linked-agent picker; use `None` or blank to retain legacy embeds.
+6. Configure SSO fields only for SSO-enabled sidebar scenarios; browser client secrets must not be stored on the record.
+7. Save the record and validate from any packaged Generic.Sidebar form.
+
+Configuration changes affect every packaged form that uses the shared default record and normally do not require a form edit, web-resource deployment, or solution re-import.
+
+For the optional `sidebar_agentmenutab` field, its exact local Choice values, and UI-only creation steps, see [agent-menu-tab-field-setup.md](agent-menu-tab-field-setup.md).
+
 ## Validation checklist summary
 
 For each packaged form:

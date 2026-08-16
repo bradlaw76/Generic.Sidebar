@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "dependencies": {
     "@microsoft/power-apps": "^1.2.12"
   }
