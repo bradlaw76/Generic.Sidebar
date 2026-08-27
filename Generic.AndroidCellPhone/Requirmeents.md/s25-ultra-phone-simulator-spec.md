@@ -78,23 +78,16 @@ state: RINGING
 
 to simulate an incoming call.
 
-The Android simulator must instead write:
+The current Android 2.8.2 simulator writes:
+
+```text
+
+state: RINGING
+startTime: null
 
 ```
 
-state: OUTGOING
-
-```
-
-or optionally:
-
-```
-
-state: CONNECTED
-
-```
-
-depending on the demo scenario.
+A compatible softphone transitions the shared payload to `CONNECTED` and assigns `startTime` when the agent answers.
 
 ---
 
@@ -111,8 +104,8 @@ callerName: "FDA Safety Info Assistant",
 queueName: "Safety Recall",
 phoneNumber: "888-463-6332",
 contactId: "GUID",
-state: "CONNECTED",
-startTime: "2026-03-05T16:10:00Z",
+state: "RINGING",
+startTime: null,
 ringtoneUrl: "",
 muteRingtone: false,
 popMode: 687940001,
@@ -474,8 +467,8 @@ callerName: contact.fullname,
 queueName: config.queueName,
 phoneNumber: contact.telephone1,
 contactId: contact.contactid,
-state: "CONNECTED",
-startTime: new Date().toISOString(),
+state: "RINGING",
+startTime: null,
 transcriptEnabled: config.transcriptEnabled,
 transcriptText: config.transcriptText,
 transcriptIntervalSeconds: config.transcriptIntervalSeconds,

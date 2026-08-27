@@ -2,8 +2,19 @@
 
 **Feature Branch**: `main`  
 **Created**: 2026-02-17  
+**Updated**: 2026-08-27
 **Status**: Draft  
 **Input**: Configuration-driven sidebar UX demo for Dynamics 365; public site pages for docs and stats.
+
+## Deployment Scope
+
+This specification distinguishes three independently deployed and validated layers:
+
+1. **Generic Sidebar Core** is the base Dynamics 365 solution. `GenericSidebar_1_0_0_5.zip` contains `sidebar_*` components only and MUST NOT include or depend on Android Phone Simulator, Genesys Softphone Simulator, GenericSoftphone, or `gensoft_*` components.
+2. **Android Phone Simulator** 2.8.2 is an optional add-in deployed standalone or as a separate web resource. Its optional Dynamics mode may use the separately deployed GenericSoftphone schema.
+3. **Genesys Softphone Simulator** is an optional add-in deployed separately. It may interoperate with Android through `localStorage.genericSimCall`; its current file contains conflicting version identifiers (component header 1.0.0 and embedded UI marker 1.7.1), which must not be guessed or silently normalized.
+
+Core acceptance and certification exclude both add-ins. Add-in validation cannot satisfy Core release gates.
 
 ## User Scenarios & Testing (mandatory)
 
@@ -24,7 +35,7 @@ Admins create or update a `sidebar_genericsidebar` record to control title, inst
 
 ### User Story 2 — User Switches Panels and Toggles Zoom (Priority: P2)
 
-Users switch among up to four configured panels via tabs. For phone or Genesys embeds, the user can toggle zoom to fit the content. **Chat state and other iframe content is preserved when switching tabs.**
+Users switch among up to four configured panels via tabs. For configured embeds that benefit from scaling, the user can toggle zoom to fit the content. **Chat state and other iframe content is preserved when switching tabs.** Optional phone or Genesys add-ins are examples of generic embed content, not Core dependencies.
 
 **Why this priority**: Improves usability and supports varied embed types; secondary to core rendering.
 
@@ -120,10 +131,10 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-025**: The sidebar MUST auto-detect when the pop-out window is closed externally and restore the embedded iframe.
 - **FR-026**: HTML content containing `<iframe src="...">` MUST have the URL extracted via regex for pop-out capability.
 - **FR-030**: Non-zoomed iframes MUST display with subtle visual framing (margin, border, border-radius) for visual separation.
-- **FR-031**: Zoomed iframes (Genesys/phone) MUST NOT have visual framing; zoom CSS MUST override framing styles.
+- **FR-031**: Zoomed iframes MUST NOT have visual framing; zoom CSS MUST override framing styles.
 - **FR-032**: Raw HTML embeds (no iframe) MUST have `ensureFullHeightHtml()` applied for proper scrolling.
 - **FR-033**: Iframe widget embeds (Copilot, Canvas Apps) MUST NOT have `ensureFullHeightHtml()` applied; widgets control their own layout.
-- **FR-034**: Auto-zoom MUST be triggered by title keywords ("phone", "genesys") regardless of embed type.
+- **FR-034**: Auto-zoom MUST be triggered by configured title keywords (currently "phone" and "genesys") regardless of embed type. This generic rendering behavior MUST NOT create a package dependency on either add-in.
 
 - **FR-027**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
 - **FR-028**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
@@ -172,11 +183,13 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ---
 
-## Sidecar Components
+## Optional Add-in Requirements
 
-### User Story 4 — Android Cell Phone Simulator for Contact Center Demos (Priority: P2)
+The requirements below are outside Generic Sidebar Core. They have independent deployment, acceptance, and certification lifecycles.
 
-A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.5.0) is embedded as a sidecar within the sidebar or run standalone. It enables realistic call scenarios for contact center demonstrations.
+### User Story 4 - Android Phone Simulator for Contact Center Demos (Optional)
+
+A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` 2.8.2) can be configured as external Core content or run standalone. It is not included in and is not required by the base Core solution.
 
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
@@ -193,8 +206,9 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.5.0) i
 6. Given the phone loads, When the lock screen is displayed, Then swipe-to-unlock or power button dismisses it and reveals the home screen.
 7. Given the camera app is opened, When webcam access is granted, Then a live viewfinder renders; When denied, Then a graceful fallback viewfinder appears.
 
-#### Functional Requirements (Sidecar)
-- **FR-S01**: The phone simulator MUST communicate via `localStorage.genericSimCall` with `state: CONNECTED` (outgoing) and `state: RINGING` (incoming).
+#### Android Functional Requirements
+
+- **FR-S01**: The phone simulator MUST initiate outgoing calls through `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`. It MUST listen for incoming `RINGING` payloads. A compatible softphone may transition a call to `CONNECTED` and assign `startTime` when answered.
 - **FR-S02**: The simulator MUST operate in dual mode — D365 (Xrm.WebApi) and Standalone (fallback JSON).
 - **FR-S03**: Settings screen MUST be accessible via Ctrl+Shift+D keyboard shortcut and Settings gear icon on the home screen.
 - **FR-S03a**: In standalone mode, profiles and transcripts MUST be editable inline with changes persisted to localStorage (genericSimProfiles key).
@@ -202,15 +216,33 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` v2.5.0) i
 - **FR-S04**: Browser screen MUST use sandboxed iframe with DuckDuckGo as the search engine fallback.
 - **FR-S05**: Sites that refuse iframe embedding MUST show a blocked indicator with an "Open in New Tab" escape hatch.
 - **FR-S06**: The synthesized ringtone MUST use Web Audio API and MUST not leave orphaned audio resources when stopped.
-- **FR-S07**: Genesys Softphone.html MUST NOT be modified — all integration is via localStorage contract.
+- **FR-S07**: Genesys Softphone.html is a separate optional add-in; interoperability MUST use the localStorage contract and MUST NOT create a Core package dependency.
 - **FR-S08**: The phone MUST display a lock screen on initial load with swipe-to-unlock gesture and power button lock/unlock.
 - **FR-S09**: The camera screen MUST request webcam access via `getUserMedia`, render a live viewfinder, and provide a graceful fallback when permissions are denied.
 - **FR-S10**: The camera MUST include shutter flash animation and front/rear camera flip toggle.
 - **FR-S11**: The camera MUST stop all media streams when navigating away from the camera screen (no orphaned streams).
 
-### Dataverse Schema — GenericSoftphone Solution (v1.0.0.11)
+### Optional Add-in Dataverse Schema - GenericSoftphone 1.0.0.11
 
 - **Table 1**: `gensoft_genericsoftphone` — 13 columns (ringtone, transcript, pop mode, wallpaper, etc.)
 - **Table 2**: `gensoft_demo_profile` — 7 columns (queue, caller name, caller phone, scenario, config lookup)
 - **Deployment**: `specs/main/scripts/create-dataverse-schema.ps1` — 3-phase script (ReviewOnly → Apply → SampleData)
 - **Schema spec**: `specs/main/dataverse-schema.md`
+
+These tables and scripts belong to optional add-in deployment only. They MUST NOT be added to `GenericSidebar_1_0_0_5.zip` or treated as Core prerequisites.
+
+### Genesys Softphone Simulator Requirements (Optional)
+
+- **FR-G01**: Genesys MUST be deployed separately from Generic Sidebar Core.
+- **FR-G02**: Genesys MAY use the separately deployed GenericSoftphone schema for configuration, transcript completion, and screen-pop behavior.
+- **FR-G03**: Genesys MAY interoperate with Android 2.8.2 through `localStorage.genericSimCall` when both components share a browser origin.
+- **FR-G04**: Genesys MUST accept an outgoing Android payload in `RINGING` state with `startTime: null`; answering transitions it to `CONNECTED` and assigns `startTime`.
+- **FR-G05**: The component header 1.0.0 and embedded UI marker 1.7.1 discrepancy MUST be resolved before Genesys add-in certification.
+
+## Compatibility Matrix
+
+| Core version evidence | Add-in version evidence | Supported boundary | Certification scope |
+| --- | --- | --- | --- |
+| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android 2.8.2 | Standalone or separately configured Core panel content | Android only |
+| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Current Genesys file (1.0.0 header / 1.7.1 UI marker) | Separately configured Core panel content | Genesys only after version reconciliation |
+| Core not required for direct add-in event exchange | Android 2.8.2 + current Genesys file | Same-origin `localStorage.genericSimCall` interoperability | Joint add-in interoperability |

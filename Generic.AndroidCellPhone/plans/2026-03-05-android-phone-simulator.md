@@ -1767,7 +1767,7 @@ function endCall() {
 **Step 4: Verify in browser**
 
 - After 3-second calling delay → In-call screen shows contact name, running timer, and transcript lines appearing one-by-one
-- Open browser DevTools → Application → localStorage → confirm `genericSimCall` key exists with `state: "CONNECTED"` and correct contact data
+- Open browser DevTools → Application → localStorage → confirm `genericSimCall` exists with `state: "RINGING"`, `startTime: null`, and the expected call data; answering in a compatible softphone changes it to `CONNECTED`
 - Transcript toggle button hides/shows the transcript panel
 - Skip button reveals full transcript immediately
 - End call button → clears localStorage, returns to home
