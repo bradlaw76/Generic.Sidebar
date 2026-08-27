@@ -2,5 +2,8 @@
   "license": "MIT",
   "dependencies": {
     "@microsoft/power-apps": "^1.2.12"
+  },
+  "devDependencies": {
+    "pptxgenjs": "^4.0.1"
   }
 }
