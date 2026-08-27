@@ -155,7 +155,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T050 [US4] Implement localStorage integration contract — write `genericSimCall` payload with state CONNECTED (outgoing) and RINGING (incoming) in Generic.AndroidCellPhone/AndroidCellPhone.html (FR-S01)
+- [x] T050 [US4] Implement localStorage integration contract — Android 2.8.2 writes outgoing `RINGING` with `startTime: null`, listens for incoming `RINGING`, and accepts a compatible softphone's answer transition to `CONNECTED` (FR-S01)
 - [ ] T051 [US4] Implement dual-mode operation — detect `Xrm.WebApi` for D365 mode, use fallback JSON for standalone in Generic.AndroidCellPhone/AndroidCellPhone.html (FR-S02)
 - [ ] T052 [US4] Implement Settings screen — accessible via Ctrl+Shift+D and gear icon on home screen in Generic.AndroidCellPhone/AndroidCellPhone.html (FR-S03)
 - [ ] T053 [US4] Implement standalone profile editing — inline edit with localStorage persistence (`genericSimProfiles` key) in Generic.AndroidCellPhone/AndroidCellPhone.html (FR-S03a)

@@ -2,18 +2,18 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Architecture PowerPoint Generator
 FILE:         scripts/generate-generic-sidebar-architecture-pptx.js
-VERSION:      1.0.3
+VERSION:      1.0.4
 AUTHOR:       Generic Sidebar Team
-LAST UPDATED: 2026-08-18
+LAST UPDATED: 2026-08-27
 ENVIRONMENT:  Node.js / PptxGenJS
 APP URL:      Not applicable
 
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Generates an editable, single-slide PowerPoint reference architecture for the
-Generic Sidebar solution. The slide captures the reusable host, runtime,
-configuration, and optional adapter boundaries without flattening them.
+Generates an editable, single-slide PowerPoint reference architecture for
+Generic Sidebar Core and its separately deployed optional add-ins. The slide
+captures the reusable host, runtime, configuration, and add-in boundaries.
 
 -----------------------------------------------------------------------------
 ARCHITECTURE
@@ -73,6 +73,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.4  2026-08-27  Name Android and Genesys as separate optional add-ins outside Core
 v1.0.3  2026-08-18  Reroute configuration read line around admin text
 v1.0.2  2026-08-18  Normalize connector geometry for valid PowerPoint XML
 v1.0.1  2026-08-18  Await package generation before the Node process exits
@@ -216,7 +217,7 @@ addText("Reusable Reference Architecture", 3.13, 0.29, 5.0, 0.3, {
   fontSize: 18,
   color: C.muted
 });
-addText("Configuration-driven side panes for Dynamics 365 and model-driven apps", 0.5, 0.66, 8.2, 0.23, {
+addText("Independent Core solution with separately deployed optional add-ins", 0.5, 0.66, 8.2, 0.23, {
   fontSize: 10.5,
   color: C.muted
 });
@@ -243,10 +244,10 @@ addBoundary("1  HOST APPLICATION", 1.78, 1.62, 2.95, 4.72, C.blue,
   "Host application boundary containing the model-driven form, launcher, and Dynamics side pane lifecycle.");
 addBoundary("2  GENERIC SIDEBAR RUNTIME", 5.05, 1.62, 3.65, 4.72, C.green,
   "Generic Sidebar runtime boundary containing configuration loading, routing policy, and the experience host.");
-addBoundary("3  ADMINISTRATION AND DATA", 9.02, 1.62, 3.8, 2.48, C.orange,
-  "Administration and Dataverse configuration boundary.");
-addBoundary("4  OPTIONAL EXPERIENCE ADAPTERS", 9.02, 4.34, 3.8, 2.0, C.purple,
-  "Optional identity, Copilot Studio, web sidecar, Azure Function, and Azure Communication Services adapters.");
+addBoundary("3  CORE ADMINISTRATION AND DATA", 9.02, 1.62, 3.8, 2.48, C.orange,
+  "Generic Sidebar Core administration and sidebar-prefixed Dataverse configuration boundary.");
+addBoundary("4  OPTIONAL ADD-INS / ADAPTERS", 9.02, 4.34, 3.8, 2.0, C.purple,
+  "Separately deployed Android and Genesys add-ins plus optional identity, Copilot Studio, Azure Function, and Azure Communication Services adapters.");
 
 addBox("Agent / App user", [], 0.5, 2.48, 0.95, 0.68, C.gray, C.grayFill, {
   compact: true,
@@ -269,7 +270,7 @@ addBox("Linked Agent rows", ["0..N active agents", "Metadata + endpoint"], 11.02
 
 addBox("Microsoft Entra ID", ["MSAL user token"], 9.37, 4.82, 1.32, 0.62, C.purple, C.purpleFill, { titleSize: 8.8, bodySize: 7.7 });
 addBox("Copilot Studio", ["Token exchange + chat"], 11.03, 4.82, 1.4, 0.62, C.purple, C.purpleFill, { titleSize: 9.0, bodySize: 7.7 });
-addBox("Web / phone sidecars", [], 9.37, 5.6, 1.32, 0.42, C.purple, C.purpleFill, { compact: true, titleSize: 8.0, shadow: false });
+addBox("Android / Genesys add-ins", [], 9.37, 5.6, 1.32, 0.42, C.purple, C.purpleFill, { compact: true, titleSize: 7.4, shadow: false });
 addBox("Azure Function + ACS", [], 11.03, 5.6, 1.4, 0.42, C.purple, C.purpleFill, { compact: true, titleSize: 8.0, shadow: false });
 
 addArrow(1.45, 2.82, 0.73, -0.24, C.gray);
@@ -321,7 +322,7 @@ This slide presents the reusable Generic Sidebar architecture.
 
 The required runtime path moves from a model-driven form through Generic_OpenSidebar and Xrm.App.sidePanes into the shared runtime. The runtime reads the default sidebar_genericsidebar row and active linked-agent rows, applies routing policy, and renders the configured experience.
 
-Orange dashed lines represent runtime configuration reads. Purple dashed lines represent optional adapters, including Entra ID, Copilot Studio, web or phone sidecars, Azure Functions, and Azure Communication Services.
+Orange dashed lines represent Core runtime configuration reads. Purple dashed lines represent separately deployed optional adapters and add-ins, including Entra ID, Copilot Studio, Android Phone, Genesys Softphone, Azure Functions, and Azure Communication Services. Android, Genesys, GenericSoftphone, and gensoft_* components are not members or dependencies of the base Core solution package.
 
 The reuse contract is to keep the launcher and runtime stable while changing experiences through governed Dataverse configuration and narrowly scoped adapters.
 `);

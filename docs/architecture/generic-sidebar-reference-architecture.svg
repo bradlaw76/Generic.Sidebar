@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1780" height="1060" viewBox="0 0 1780 1060" role="img" aria-labelledby="diagram-title diagram-desc">
   <title id="diagram-title">Generic Sidebar reusable reference architecture</title>
-  <desc id="diagram-desc">High-level architecture showing the Dynamics 365 host, Generic Sidebar runtime, Dataverse administration, and optional identity and communication adapters.</desc>
+  <desc id="diagram-desc">High-level architecture showing the independently installable Generic Sidebar Core and separately deployed optional Android, Genesys, identity, and communication adapters.</desc>
   <defs>
     <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#495057"/></marker>
     <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#0078d4"/></marker>
@@ -24,7 +24,7 @@
 
   <rect width="1780" height="1060" fill="#ffffff"/>
   <text x="70" y="62" class="title">Generic Sidebar - Reusable Reference Architecture</text>
-  <text x="72" y="93" class="subtitle">Configuration-driven side panes for Dynamics 365 and model-driven apps</text>
+  <text x="72" y="93" class="subtitle">Independent Core solution with separately deployed optional add-ins</text>
 
   <rect x="70" y="120" width="1640" height="58" class="leaf" fill="#cfe4fa" stroke="#0078d4"/>
   <text x="890" y="155" class="box-title">REUSE CONTRACT   Stable host launcher  +  table-driven configuration  +  pluggable experiences  +  optional identity/service adapters</text>
@@ -79,7 +79,7 @@
   <path d="M950 590 L950 660" class="flow" stroke="#107c10" marker-end="url(#arrow-green)"/>
 
   <rect x="1250" y="220" width="460" height="380" class="container" stroke="#f7630c"/>
-  <text x="1280" y="260" class="section">3  ADMINISTRATION AND DATA</text>
+  <text x="1280" y="260" class="section">3  CORE ADMINISTRATION AND DATA</text>
 
   <rect x="1300" y="295" width="170" height="100" class="leaf" fill="#fff4ce" stroke="#f7630c"/>
   <text x="1385" y="326" class="box-title">Maker / Admin</text>
@@ -102,7 +102,7 @@
   <text x="1320" y="335" class="small">read at runtime</text>
 
   <rect x="1250" y="640" width="460" height="270" class="container" stroke="#5c2d91"/>
-  <text x="1280" y="680" class="section">4  OPTIONAL EXPERIENCE ADAPTERS</text>
+  <text x="1280" y="680" class="section">4  OPTIONAL ADD-INS / ADAPTERS</text>
 
   <rect x="1290" y="720" width="170" height="80" class="leaf" fill="#e8daef" stroke="#5c2d91"/>
   <text x="1375" y="752" class="box-title">Microsoft Entra ID</text>
@@ -113,7 +113,7 @@
   <text x="1585" y="778" class="small">Token exchange + chat</text>
 
   <rect x="1290" y="825" width="170" height="60" class="leaf" fill="#e8daef" stroke="#5c2d91"/>
-  <text x="1375" y="861" class="small">Web / phone sidecars</text>
+  <text x="1375" y="861" class="small">Android / Genesys add-ins</text>
 
   <rect x="1500" y="825" width="170" height="60" class="leaf" fill="#e8daef" stroke="#5c2d91"/>
   <text x="1585" y="861" class="small">Azure Function + ACS</text>
@@ -125,6 +125,6 @@
 
   <line x1="70" y1="938" x2="1710" y2="938" stroke="#d2d0ce" stroke-width="1"/>
   <text x="70" y="970" class="note"><tspan font-weight="700">FLOW:</tspan> user opens record -> form launches pane -> runtime reads Dataverse -> policy selects route -> configured experience renders</text>
-  <text x="70" y="998" class="note"><tspan font-weight="700">REUSE:</tspan> keep the launcher and runtime stable; add or change experiences through configuration rows and narrowly scoped adapters</text>
+  <text x="70" y="998" class="note"><tspan font-weight="700">PACKAGE:</tspan> Core contains sidebar_* only; Android, Genesys, GenericSoftphone, and gensoft_* components deploy separately</text>
   <text x="70" y="1026" class="note"><tspan font-weight="700">SECURITY BOUNDARY:</tspan> validate configured URLs/HTML, grant least-privilege iframe capabilities, and fail closed when an enabled identity route fails</text>
 </svg>

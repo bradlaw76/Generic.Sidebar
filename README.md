@@ -1,9 +1,26 @@
-🚀 Generic Sidebar for Dynamics 365 — Release v2.0.0
-The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps with **enterprise-grade Single Sign-On (SSO)** support.
+# Generic Sidebar for Dynamics 365
+
+Generic Sidebar Core provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps with enterprise Single Sign-On (SSO) support.
 
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, theming, and SSO authentication—with **zero hardcoding** and **full backwards compatibility**.
 
-✨ What's New in v2.0.0 — **Enterprise SSO Integration**
+## Deployment Layers
+
+This repository contains three separate deployment layers. They share integration contracts, not a single solution package or certification result.
+
+| Layer | Current version evidence | Deployment boundary |
+| --- | --- | --- |
+| **Generic Sidebar Core** | Solution `1.0.0.5`; active web resources `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0 | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. |
+| **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.8.2 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
+| **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.8.2 through `localStorage.genericSimCall`. Never add it to the base Core package. |
+
+The historical SSO release label `v2.0.0`, specification versions, solution package version, and individual web-resource versions identify different artifacts. They are intentionally reported separately rather than being overwritten with one arbitrary version.
+
+### Base Package Verification
+
+On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without extraction or modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only.
+
+## Historical Release v2.0.0: Enterprise SSO Integration
 
 🔐 **Single Sign-On (SSO) for Copilot Studio**
 * Users authenticate once to Dynamics 365, then access Copilot agents seamlessly (no sign-in prompts).
@@ -63,7 +80,7 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 
 ---
 
-## � Getting Started with SSO (v2.0.0)
+## Getting Started with SSO (v2.0.0)
 
 If you're deploying Generic Sidebar with Copilot Studio agents:
 
@@ -106,11 +123,11 @@ See also:
 
 ---
 
-## �📱 Android Cell Phone Simulator (Samsung S25 Ultra)
+## Optional Add-in: Android Phone Simulator
 
-A self-contained HTML phone simulator used as a sidecar embed for contact center demos.
+A self-contained Samsung S25 Ultra HTML phone simulator used for contact center demos. It is not part of Generic Sidebar Core and its deployment or validation does not certify Core.
 
-**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.5.0**
+**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.8.2**
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
 ### Features
@@ -125,11 +142,19 @@ A self-contained HTML phone simulator used as a sidecar embed for contact center
 * Camera screen with live webcam viewfinder (getUserMedia), shutter flash, front/rear flip, graceful fallback
 * Fallback wallpaper, default Insurance Inquiry transcript
 
-### Dataverse Schema
+### Optional Add-in Dataverse Schema
 * **Table 1:** `gensoft_genericsoftphone` — softphone configuration (ringtone, transcript, pop mode, wallpaper)
 * **Table 2:** `gensoft_demo_profile` — pre-built demo profiles (queue/caller/scenario presets)
 * **Solution:** GenericSoftphone v1.0.0.11 (Unmanaged)
 * **Deployment script:** `specs/main/scripts/create-dataverse-schema.ps1`
+
+These `gensoft_*` components belong to the optional add-in deployment. They are not prerequisites or members of `GenericSidebar_1_0_0_5.zip`.
+
+## Optional Add-in: Genesys Softphone Simulator
+
+The current Genesys simulator is stored at `SidecarItems/Genesys Softphone/Genesys Softphone.html` and is deployed separately from Generic Sidebar Core. Its D365 demo configuration uses the separate `gensoft_*` schema. It can also receive Android Phone Simulator events through `localStorage.genericSimCall`; Android 2.8.2 initiates outgoing calls as `RINGING` with `startTime: null`, and Genesys changes the call to `CONNECTED` when answered.
+
+See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/README.md) for requirements, deployment, validation, and compatibility.
 
 ---
 
@@ -221,6 +246,12 @@ Implementation and release artifacts:
 * [Packaged forms release sign-off](docs/packaged-generic-sidebar-forms-release-signoff.md)
 * [Agent Menu Tab field setup](docs/agent-menu-tab-field-setup.md)
 * [Admin validation checklist](ADMIN_VALIDATION_CHECKLIST.md)
+
+## GitHub Pages Publishing Boundary
+
+The current workflow at `.github/workflows/static.yml` uploads `path: '.'`, so GitHub Pages publishes the entire checked-out repository rather than only the intended public site. This includes internal specifications, scripts, tests, archives, and certification documents.
+
+The recommended future approach is to assemble a site-only `dist/` directory containing `index.html`, `downloads/`, approved `pages/` content, and only the public assets those pages require, then configure `actions/upload-pages-artifact` with `path: dist`. A direct site-directory artifact is also acceptable if the public files are consolidated first. This task does not change the workflow or deployment behavior; workflow scoping requires separate authorization and validation.
 
 ## Presentation Summary
 

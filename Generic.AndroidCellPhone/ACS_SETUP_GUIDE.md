@@ -1,13 +1,36 @@
-# Android Cell Phone Simulator — ACS Real Calling Setup Guide
+<!--
+=============================================================================
+DOCUMENT:     Android Phone Simulator - ACS Real Calling Setup Guide
+FILE:         Generic.AndroidCellPhone/ACS_SETUP_GUIDE.md
+VERSION:      1.1.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-08-27
+ENVIRONMENT:  Markdown (GitHub / Docs)
+
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Deployment guidance for the optional ACS real-calling Android add-in.
+
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v1.1.0  2026-08-27  Clarify add-in deployment and Core package boundary
+=============================================================================
+-->
+
+# Android Phone Simulator - ACS Real Calling Setup Guide
 
 ## Overview
 
-The Android Cell Phone Simulator has two versions:
+The Android Phone Simulator has two separately deployed variants. Both are optional add-ins; neither is part of or required by `GenericSidebar_1_0_0_5.zip`, and neither should be added to the base Generic Sidebar Core solution.
 
 | Version | File | Calling | Dependencies |
 |---------|------|---------|--------------|
 | **v2.8.2** (Simulated) | `AndroidCellPhone.html` | localStorage only | None — fully self-contained |
 | **v3.1.0** (ACS Real Calling) | `AndroidCellPhone_ACS.html` | Real PSTN via Azure Communication Services | Azure subscription required |
+
+The version numbers in this guide identify Android add-in files, not Generic Sidebar Core or its solution package. ACS deployment and validation cannot be used as Core certification evidence.
 
 ---
 
@@ -49,7 +72,7 @@ Add fields to the phone Settings UI, saved to localStorage:
 If empty, ACS calling is disabled — pure simulated mode.
 
 #### Option B: Dataverse Config (Enterprise)
-Add columns to `gensoft_genericsoftphone`:
+Add columns to the separately deployed `gensoft_genericsoftphone` add-in table:
 
 | Column | Schema Name | Type |
 |--------|-------------|------|

@@ -28,7 +28,7 @@ Sits alongside the existing:
 ## Architecture Contract (Non-Negotiables)
 
 - localStorage key: `genericSimCall` — must not change
-- Payload format: identical to existing simulator, with `state: "CONNECTED"` instead of `RINGING`
+- Current payload contract (Android 2.8.2): `state: "RINGING"` with `startTime: null`; a compatible softphone writes `CONNECTED` when answered
 - Auth: all Dataverse reads via `Xrm.WebApi` — never bypassed
 - Do not modify `Genesys Softphone.html`
 - All changes additive only
@@ -143,8 +143,8 @@ localStorage still gets written in standalone mode — Genesys Softphone open in
 
 1. User taps contact → `CALLING` screen, ringback tone starts
 2. After 3 seconds → `IN_CALL` screen, tone stops
-3. Payload written to `localStorage.genericSimCall` at connect (step 2)
-4. `Genesys Softphone.html` detects storage change and renders call
+3. Payload written to `localStorage.genericSimCall` as RINGING with a null start time (step 2)
+4. `Genesys Softphone.html` detects storage change, renders the ringing call, and owns the answer transition
 
 ### Payload Format
 
@@ -154,8 +154,8 @@ localStorage still gets written in standalone mode — Genesys Softphone open in
   queueName: config.queueName,
   phoneNumber: contact.telephone1,
   contactId: contact.contactid,
-  state: "CONNECTED",
-  startTime: new Date().toISOString(),
+  state: "RINGING",
+  startTime: null,
   ringtoneUrl: "",
   muteRingtone: false,
   popMode: config.popMode,

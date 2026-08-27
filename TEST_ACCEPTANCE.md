@@ -1,13 +1,25 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.3.0
+**Version:** 1.4.0
+**Updated:** 2026-08-27
 
 ---
 
-## Acceptance Tests
+## Acceptance Scope
 
-### Sidebar Core (sidebar_sidebar.html + sidebar_sidebar.js)
+Acceptance is evaluated separately for each deployment layer. Passing Android Phone Simulator, Genesys Softphone Simulator, or joint interoperability tests MUST NOT be represented as Generic Sidebar Core certification. Add-in failures do not change the Core result unless they expose a defect in Core's generic embed contract.
+
+| Scope | Package/deployment | Certification boundary |
+| --- | --- | --- |
+| Generic Sidebar Core | `GenericSidebar_1_0_0_5.zip` | Core requirements only; excludes Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
+| Repository public site | GitHub Pages content | Site publishing and accessibility only; not Dynamics solution certification |
+| Android Phone Simulator add-in | `AndroidCellPhone.html` 2.8.2, deployed separately | Android behavior and optional Dataverse mode only |
+| Genesys Softphone Simulator add-in | Current checked-in Genesys file, deployed separately | Genesys behavior and optional Android interoperability only |
+
+## Generic Sidebar Core Acceptance
+
+### Core Runtime (`sidebar_sidebar.html` 2.15.5 + `sidebar_sidebar.js` 2.6.0)
 
 - ✔ `Generic_OpenSidebar` registers on `window` within 5 seconds of page load
 - ✔ Sidebar opens via `Xrm.App.sidePanes.createPane` with configurable width and title
@@ -47,6 +59,8 @@
 - ☐ Hosted Dynamics: published Copilot agent completes Direct Line token exchange and opens chat
 - ☐ Hosted Dynamics: users without configuration-write rights cannot acknowledge or change sidebar configuration
 
+## Repository Site Acceptance
+
 ### GitHub Pages Site
 
 - ✔ Landing page loads and renders release chart from GitHub API
@@ -58,7 +72,7 @@
 - ✔ Agent page displays download badge with live count
 - ✔ Copilot page shows fallback message if iframe fails to load
 
-### Accessibility
+### Site Accessibility
 
 - ✔ All pages have `<html lang="en">`
 - ✔ Skip-to-content link present on all GitHub Pages
@@ -66,27 +80,34 @@
 - ✔ Table headers use `scope="col"`
 - ✔ External links include `rel="noopener noreferrer"`
 
-### Android Cell Phone Simulator (AndroidCellPhone.html v2.5.0)
+## Optional Add-in Acceptance: Android Phone Simulator
 
-#### Home Screen & Navigation
+**Component version:** `AndroidCellPhone.html` 2.8.2
+**Deployment:** Standalone HTML or separately deployed Dynamics web resource; never part of the base Core solution.
+
+### Home Screen & Navigation
+
 - ✔ Home screen renders clock, date, wallpaper, app grid, and dock
 - ✔ Phone app icon navigates to phone screen with recent/contacts/keypad tabs
 - ✔ Chrome icon (home grid + dock) opens browser screen
 - ✔ Back arrow from browser returns to home and resets iframe
 
-#### Outgoing Calls
-- ✔ Tapping a contact writes `localStorage.genericSimCall` with `state: CONNECTED`
+### Outgoing Calls
+
+- ✔ Tapping a contact writes `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`
 - ✔ Calling screen shows avatar, name, and calling animation
 - ✔ In-call screen renders with mute/speaker/keypad/hold buttons
 - ✔ End call transitions to ended screen with duration display
 
-#### Incoming Calls
+### Incoming Calls
+
 - ✔ Incoming call detected via `localStorage` listener (`state: RINGING`)
 - ✔ Incoming screen shows caller info with accept/decline buttons
 - ✔ Synthesized ringtone plays (440+480 Hz, 2s on / 4s off) when no ringtone URL and not muted
 - ✔ Accepting transitions to in-call screen; declining returns to home
 
-#### Settings Screen (Ctrl+Shift+D or Home Grid Icon)
+### Settings Screen (Ctrl+Shift+D or Home Grid Icon)
+
 - ✔ Settings screen opens/closes with Ctrl+Shift+D keyboard shortcut
 - ✔ Settings screen opens via Settings gear icon on home app grid
 - ✔ Mode badge displays "Standalone" or "Dataverse" based on Xrm detection
@@ -96,7 +117,8 @@
 - ✔ Transcript toggle enables/disables transcript streaming during calls
 - ✔ Browser URL field pre-configures the Chrome browser target URL
 
-#### Standalone Profile Editing (Settings Screen)
+### Standalone Profile Editing (Settings Screen)
+
 - ✔ Edit pencil icon appears on each profile in standalone mode only (hidden in D365)
 - ✔ Add Profile button appears at bottom of profile list in standalone mode only
 - ✔ Inline profile editor opens with fields: name, contact, queue, case title, transcript enabled, interval, transcript text
@@ -106,7 +128,8 @@
 - ✔ Profiles survive page reload via localStorage persistence
 - ✔ D365 mode: no edit/add/delete buttons visible — profiles are read-only
 
-#### Browser Screen
+### Browser Screen
+
 - ✔ URL bar accepts typed URLs and Enter key triggers navigation
 - ✔ Plain text searches via DuckDuckGo (iframe-friendly)
 - ✔ `www.` prefixed URLs auto-prepend `https://`
@@ -116,26 +139,32 @@
 - ✔ Pre-configured URL from Settings auto-loads on Chrome icon tap
 - ✔ Navigating home resets browser (clears iframe and URL bar)
 
-#### Dual Mode (D365 / Standalone)
+### Dual Mode (D365 / Standalone)
+
 - ✔ D365 mode loads config via `Xrm.WebApi.retrieveMultipleRecords`
 - ✔ Standalone mode uses FALLBACK_CONFIG, FALLBACK_CONTACTS, FALLBACK_PROFILES
 - ✔ Fallback wallpaper URL renders as home screen background
 - ✔ Default transcript text streams during in-call when transcript enabled
 
-#### Dataverse Schema (GenericSoftphone Solution)
+### Dataverse Schema (GenericSoftphone Solution)
+
+These checks apply only when the optional Android Dataverse mode is deployed. They are not Core prerequisites or Core certification evidence.
+
 - ✔ Table `gensoft_genericsoftphone` has 13 columns matching schema spec
 - ✔ Table `gensoft_demo_profile` has 7 columns matching schema spec
 - ✔ 3 sample demo profiles inserted (Insurance Inquiry, Billing Dispute, Prescription Refill)
 - ✔ Both tables added as solution components to GenericSoftphone solution
 
-#### Lock Screen
+### Lock Screen
+
 - ✔ Lock screen displays on initial load with wallpaper background and swipe hint
 - ✔ Swipe-to-unlock gesture (drag up) dismisses lock screen and reveals home screen
 - ✔ Power button (right side) toggles lock screen on/off
 - ✔ Lock screen clock and date update in real time
 - ✔ Wallpaper from config/fallback renders as lock screen background
 
-#### Camera Screen
+### Camera Screen
+
 - ✔ Camera app opens from home screen app grid
 - ✔ getUserMedia requests webcam access on camera open
 - ✔ Live viewfinder renders when webcam permission granted
@@ -144,3 +173,23 @@
 - ✔ Front/rear camera flip toggle switches camera facing mode
 - ✔ Media streams stop cleanly when navigating away from camera (no orphaned streams)
 - ✔ Camera does not request permissions until explicitly opened
+
+## Optional Add-in Acceptance: Genesys Softphone Simulator
+
+**Component version:** unresolved metadata in the current file (component header 1.0.0; embedded UI marker 1.7.1).
+**Deployment:** Separate demo web resource; never part of the base Core solution.
+
+- ☐ Current Genesys version identifier is reconciled before certification
+- ☐ Genesys loads as separately configured web content without a Core package dependency
+- ☐ A `RINGING` payload with `startTime: null` renders the ringing state
+- ☐ Answering changes the payload to `CONNECTED` and assigns `startTime`
+- ☐ Transcript playback and configured screen-pop behavior complete in hosted Dynamics
+- ☐ Add-in users have the required permissions for separately deployed `gensoft_*` components
+
+## Optional Android and Genesys Interoperability
+
+- ☐ Android 2.8.2 and the current Genesys file run under the same browser origin so storage events can be exchanged
+- ☐ Android outgoing call writes `RINGING` with `startTime: null`
+- ☐ Genesys receives the Android event and remains `RINGING` until answered
+- ☐ Genesys answer transitions the shared payload to `CONNECTED` and sets `startTime`
+- ☐ Interoperability evidence is recorded as add-in validation, not Generic Sidebar Core certification
