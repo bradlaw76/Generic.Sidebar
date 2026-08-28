@@ -43,7 +43,7 @@ The package was inspected in memory on 2026-08-27. No Android, Genesys, Softphon
 
 ### Layer 2: Optional Android Phone Simulator Add-in
 
-- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (2.8.2)
+- **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` (2.6.0)
 - **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 - Independently deployed as standalone HTML or a separate Dynamics web resource; it is never added to the base Core package.
 - Embeddable phone simulator for contact center demos
@@ -63,7 +63,7 @@ The package was inspected in memory on 2026-08-27. No Android, Genesys, Softphon
 - Independently deployed and never added to the base Core package.
 - Call handling, transcript streaming, CRM writeback via Xrm.WebApi
 - Writes `gensoft_transcriptcompleted = true` on transcript completion
-- Optionally interoperates with Android 2.8.2 via `localStorage.genericSimCall`: Android writes outgoing `RINGING` with `startTime: null`; Genesys transitions to `CONNECTED` when answered.
+- Optionally interoperates with Android 2.6.0 via `localStorage.genericSimCall`: after about three seconds Android enters its own local in-call state, writes outgoing `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys may independently consume the event and transition its shared call to `CONNECTED` when answered; Android does not observe or wait for that transition.
 
 ### Optional Add-in Dataverse Schema
 
@@ -79,9 +79,9 @@ The GenericSoftphone solution and all `gensoft_*` components support optional ad
 
 | Generic Sidebar Core | Optional add-in | Compatibility statement | Validation scope |
 | --- | --- | --- | --- |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android Phone 2.8.2 | Compatible as standalone content or as a separately deployed web resource configured in a Core panel. No package-level dependency. | Android acceptance and certification only |
+| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android Phone 2.6.0 | Compatible as standalone content or as a separately deployed web resource configured in a Core panel. No package-level dependency. | Android acceptance and certification only |
 | Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Current Genesys file (header 1.0.0; embedded marker 1.7.1) | Compatible as separately deployed web content. Version metadata must be resolved before Genesys certification. | Genesys acceptance and certification only |
-| Not required for direct interoperability | Android 2.8.2 + current Genesys file | Compatible through `localStorage.genericSimCall` in the same browser origin; current outgoing contract begins at `RINGING` with null `startTime`. | Joint add-in interoperability validation |
+| Not required for direct interoperability | Android 2.6.0 + current Genesys file | Compatible through `localStorage.genericSimCall` in the same browser origin; Android writes `RINGING` with null `startTime`, while Genesys independently owns its answer flow. | Joint add-in interoperability validation |
 
 ## Requirements
 

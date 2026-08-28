@@ -78,7 +78,7 @@ state: RINGING
 
 to simulate an incoming call.
 
-The current Android 2.8.2 simulator writes:
+The current Android 2.6.0 simulator writes:
 
 ```text
 

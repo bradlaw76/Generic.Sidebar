@@ -2,7 +2,7 @@
 =============================================================================
 DOCUMENT:     Genesys Softphone Simulator Add-in Guide
 FILE:         SidecarItems/Genesys Softphone/README.md
-VERSION:      1.0.0
+VERSION:      1.1.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-27
 ENVIRONMENT:  Markdown (GitHub / Docs)
@@ -16,6 +16,7 @@ Genesys Softphone Simulator add-in.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.1.0  2026-08-27  Align Android version and independent call-state behavior with the checked-in runtime
 v1.0.0  2026-08-27  Initial add-in boundary and compatibility guide
 =============================================================================
 -->
@@ -50,7 +51,7 @@ No `gensoft_*` requirement is inherited by Generic Sidebar Core.
 
 ## Android Interoperability
 
-Android Phone Simulator 2.8.2 can initiate a same-origin event through `localStorage.genericSimCall`:
+Android Phone Simulator 2.6.0 can initiate a same-origin event through `localStorage.genericSimCall`. After about three seconds on its Calling screen, Android enters its own local in-call state, writes the event, and starts its transcript immediately:
 
 ```json
 {
@@ -59,13 +60,13 @@ Android Phone Simulator 2.8.2 can initiate a same-origin event through `localSto
 }
 ```
 
-The current Genesys runtime accepts `RINGING`. When the agent answers, Genesys changes the shared payload to `CONNECTED` and assigns `startTime`. The integration requires both components to share a browser origin; being displayed by the same Generic Sidebar Core instance does not by itself overcome cross-origin localStorage isolation.
+The current Genesys runtime may independently accept `RINGING` and manage its own ringing and answer flow. When the agent answers, Genesys changes the shared payload to `CONNECTED` and assigns `startTime`. Android 2.6.0 does not observe or wait for that update. The integration requires both components to share a browser origin; being displayed by the same Generic Sidebar Core instance does not by itself overcome cross-origin localStorage isolation.
 
 ## Compatibility Matrix
 
 | Genesys version evidence | Generic Sidebar Core | Android Phone | Compatibility statement |
 | --- | --- | --- | --- |
-| Current checked-in file: header 1.0.0 / UI marker 1.7.1 | Solution 1.0.0.5; separately configured content only | 2.8.2 | Interface-compatible through the `RINGING` to `CONNECTED` localStorage contract; validate and reconcile version metadata before certification |
+| Current checked-in file: header 1.0.0 / UI marker 1.7.1 | Solution 1.0.0.5; separately configured content only | 2.6.0 | Interface-compatible through independent Android `RINGING` publication and Genesys answer handling; validate and reconcile version metadata before certification |
 
 ## Validation
 

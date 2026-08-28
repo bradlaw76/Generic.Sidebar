@@ -28,7 +28,7 @@ Sits alongside the existing:
 ## Architecture Contract (Non-Negotiables)
 
 - localStorage key: `genericSimCall` — must not change
-- Current payload contract (Android 2.8.2): `state: "RINGING"` with `startTime: null`; a compatible softphone writes `CONNECTED` when answered
+- Current payload contract (Android 2.6.0): `state: "RINGING"` with `startTime: null`; a compatible softphone may independently write `CONNECTED` when answered, and Android does not observe that update
 - Auth: all Dataverse reads via `Xrm.WebApi` — never bypassed
 - Do not modify `Genesys Softphone.html`
 - All changes additive only

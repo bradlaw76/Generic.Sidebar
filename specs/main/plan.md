@@ -14,7 +14,7 @@ Maintain an independently installable, configuration-driven Generic Sidebar Core
 | Layer | Required assets | Excluded from layer |
 | --- | --- | --- |
 | Generic Sidebar Core | `GenericSidebar_1_0_0_5.zip`, `sidebar_*` Dataverse and web-resource components | Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
-| Android Phone Simulator add-in | `Generic.AndroidCellPhone/AndroidCellPhone.html` 2.8.2; optional separate GenericSoftphone schema for Dynamics mode | Base Core solution package |
+| Android Phone Simulator add-in | `Generic.AndroidCellPhone/AndroidCellPhone.html` 2.6.0; optional separate GenericSoftphone schema for Dynamics mode | Base Core solution package |
 | Genesys Softphone Simulator add-in | `SidecarItems/Genesys Softphone/Genesys Softphone.html`; optional separate GenericSoftphone schema | Base Core solution package |
 
 The base package boundary was verified read-only on 2026-08-27. No package rebuild, import, deployment, publication, or overwrite is part of this plan.
@@ -30,7 +30,7 @@ The base package boundary was verified read-only on 2026-08-27. No package rebui
 **Language/Version**: HTML5, CSS3, JavaScript (ES6+); PowerShell scripts for agent context  
 **Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only)  
 **Storage**: Core uses Dataverse table `sidebar_genericsidebar`; optional add-ins may separately use `gensoft_*` tables and `localStorage.genericSimCall`
-**Testing**: Automated characterization tests under `tests/` plus layer-specific manual acceptance in `TEST_ACCEPTANCE.md`
+**Testing**: Layer-specific manual acceptance in `TEST_ACCEPTANCE.md`; documentation integrity validation uses `git diff --check`, exact conflict-marker scans, local Markdown link checks, and JSON parsing for `SYSTEM_MANIFEST.json.md`
 **Target Platform**: Dynamics 365 model-driven apps (side pane), GitHub Pages  
 **Project Type**: web (Dynamics 365 web resources + static website)  
 **Performance Goals**: NEEDS CLARIFICATION  
@@ -93,7 +93,7 @@ specs/main/
     └── requirements.md
 
 Generic.AndroidCellPhone/
-├── AndroidCellPhone.html          # Optional Samsung S25 Ultra simulator (2.8.2)
+├── AndroidCellPhone.html          # Optional Samsung S25 Ultra simulator (2.6.0)
 ├── AndroidCellPhone_v2.4.0.html   # Archived v2.4.0 (lock screen, camera, Demo Panel)
 ├── DOCUMENTATION.md               # Comprehensive technical documentation
 ├── plans/

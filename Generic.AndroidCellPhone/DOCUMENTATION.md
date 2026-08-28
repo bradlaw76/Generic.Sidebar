@@ -2,7 +2,7 @@
 =============================================================================
 DOCUMENT:     Android Phone Simulator - Full Documentation
 FILE:         Generic.AndroidCellPhone/DOCUMENTATION.md
-VERSION:      1.1.0
+VERSION:      1.2.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-27
 ENVIRONMENT:  Markdown (GitHub / Docs)
@@ -17,6 +17,7 @@ integration as a web resource, softphone interop, and demo control panel.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.2.0  2026-08-27  Align version, call behavior, compatibility, and validation with the checked-in runtime
 v1.1.0  2026-08-27  Clarify optional deployment boundary, version compatibility, and RINGING outgoing contract
 v1.0.0  2026-03-06  Initial documentation created
 =============================================================================
@@ -26,7 +27,7 @@ v1.0.0  2026-03-06  Initial documentation created
 
 **Component:** Samsung S25 Ultra Android Phone Simulator  
 **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html`  
-**Component Version:** 2.8.2
+**Component Version:** 2.6.0
 **Deployment Layer:** Optional add-in; not included in Generic Sidebar Core
 **Author:** Generic.Sidebar Team  
 **Last Updated:** 2026-08-27
@@ -69,7 +70,7 @@ The simulator serves as a **visual phone UI** that places outgoing calls and han
 
 | Capability | Description |
 |---|---|
-| Outgoing calls | User selects a contact → phone dials → writes `RINGING` with `startTime: null`; a compatible softphone may answer and write `CONNECTED` |
+| Outgoing calls | User selects a contact → phone shows Calling → after about three seconds enters its local in-call state, writes `RINGING` with `startTime: null`, and starts its transcript; a compatible softphone may independently answer and write `CONNECTED` |
 | Incoming calls | Listens for `RINGING` payloads from the Generic Call Simulator → shows incoming call screen |
 | Transcript streaming | Plays back scripted conversations line-by-line during calls |
 | Dual mode | Works both inside Dynamics 365 (Dataverse-driven) and standalone (file://, any browser) |
@@ -121,7 +122,7 @@ The simulator serves as a **visual phone UI** that places outgoing calls and han
 | Element | Value | Notes |
 |---|---|---|
 | **localStorage Key** | `genericSimCall` | Shared event bus — must never change |
-| **Outgoing Payload State** | `RINGING` | Phone writes RINGING with `startTime: null`; Genesys writes CONNECTED when answered |
+| **Outgoing Payload State** | `RINGING` | Phone writes RINGING with `startTime: null` after entering its own local in-call state; Genesys may independently write CONNECTED when answered, but Android 2.6.0 does not observe or wait for that update |
 | **Incoming Payload State** | `RINGING` | Phone listens for RINGING from call simulator |
 | **Auth Model** | `Xrm.WebApi` | All Dataverse reads go through Xrm — never bypassed |
 | **Payload Format** | JSON (see §7) | Identical to existing simulator payload structure |
@@ -442,14 +443,14 @@ function navTo(key, back) {
 }
 ```
 
-9. **Genesys Softphone** detects the `storage` event and renders the call card as RINGING
-10. When the agent answers, Genesys writes `CONNECTED` and assigns `startTime`; the phone detects that state
-11. Transcript playback begins after answer, with the phone retaining its existing fallback timer
+9. Android starts its own transcript immediately after writing the shared payload; it does not wait for an agent answer
+10. **Genesys Softphone** may independently detect the `storage` event and render its own call card as RINGING
+11. When the agent answers, Genesys writes `CONNECTED` and assigns `startTime`; Android 2.6.0 does not observe or wait for that shared-state change
 12. **End Call** clears localStorage, shows the Ended screen, and returns to Home
 
 ### Why Outgoing State Starts as RINGING
 
-The Android phone represents the customer's device initiating a call. The current integration contract leaves the agent-side call unanswered until the softphone accepts it, so Android writes `RINGING` with `startTime: null`. Genesys owns the answer transition and writes `CONNECTED` with a real start time.
+The Android phone represents the customer's device initiating a call. After about three seconds on its Calling screen, Android 2.6.0 enters its own local in-call state, writes `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys may independently consume that event, own its ringing and answer flow, and write `CONNECTED` with a real start time. Android does not observe or wait for that Genesys update.
 
 ---
 
@@ -784,14 +785,12 @@ These rules are **inviolable** and must be preserved across all future changes:
 | --- | --- |
 | Standalone simulated mode | Modern browser with localStorage; camera and audio features require corresponding browser APIs and user permission |
 | Dynamics simulated mode | Separately deployed HTML web resource, user access to configured Dataverse records, and optional separately deployed GenericSoftphone 1.0.0.11 schema |
-| ACS real-calling variant | Separate `AndroidCellPhone_ACS.html` 3.1.0 deployment plus the Azure resources and controls documented in `ACS_SETUP_GUIDE.md` |
 
 ### Compatibility Matrix
 
 | Android version | Generic Sidebar Core | Genesys interoperability | Status |
 | --- | --- | --- | --- |
-| 2.8.2 | Solution 1.0.0.5; compatible as standalone or separately configured panel content | Current checked-in Genesys file accepts `RINGING` and can transition it to `CONNECTED` | Interface-compatible; validate add-in separately |
-| 3.1.0 ACS variant | No Core package dependency; configure separately | Not required for ACS calling | Separate optional deployment |
+| 2.6.0 | Solution 1.0.0.5; compatible as standalone or separately configured panel content | Current checked-in Genesys file accepts `RINGING` and can independently transition it to `CONNECTED`; Android does not observe that transition | Interface-compatible; validate add-in separately |
 
 The current Genesys file reports component header 1.0.0 and embedded UI marker 1.7.1. This document does not choose between them; reconcile that metadata before claiming a certified add-in version pair.
 

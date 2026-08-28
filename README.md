@@ -9,8 +9,8 @@ This repository contains three separate deployment layers. They share integratio
 | Layer | Current version evidence | Deployment boundary |
 | --- | --- | --- |
 | **Generic Sidebar Core** | Solution `1.0.0.5`; active web resources `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0 | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. |
-| **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.8.2 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
-| **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.8.2 through `localStorage.genericSimCall`. Never add it to the base Core package. |
+| **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.6.0 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
+| **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.6.0 through `localStorage.genericSimCall`. Never add it to the base Core package. |
 
 The historical SSO release label `v2.0.0`, specification versions, solution package version, and individual web-resource versions identify different artifacts. They are intentionally reported separately rather than being overwritten with one arbitrary version.
 
@@ -55,7 +55,7 @@ On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without extr
 
 A self-contained Samsung S25 Ultra HTML phone simulator used for contact center demos. It is not part of Generic Sidebar Core and its deployment or validation does not certify Core.
 
-**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.8.2**
+**File:** `Generic.AndroidCellPhone/AndroidCellPhone.html` — **Version 2.6.0**
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
 ### Features
@@ -80,7 +80,7 @@ These `gensoft_*` components belong to the optional add-in deployment. They are 
 
 ## Optional Add-in: Genesys Softphone Simulator
 
-The current Genesys simulator is stored at `SidecarItems/Genesys Softphone/Genesys Softphone.html` and is deployed separately from Generic Sidebar Core. Its D365 demo configuration uses the separate `gensoft_*` schema. It can also receive Android Phone Simulator events through `localStorage.genericSimCall`; Android 2.8.2 initiates outgoing calls as `RINGING` with `startTime: null`, and Genesys changes the call to `CONNECTED` when answered.
+The current Genesys simulator is stored at `SidecarItems/Genesys Softphone/Genesys Softphone.html` and is deployed separately from Generic Sidebar Core. Its D365 demo configuration uses the separate `gensoft_*` schema. It can also independently receive Android Phone Simulator events through `localStorage.genericSimCall`; Android 2.6.0 enters its own local in-call state after about three seconds, writes `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys manages its own ringing and answer flow and may change the shared call to `CONNECTED`; Android does not observe or wait for that change.
 
 See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/README.md) for requirements, deployment, validation, and compatibility.
 

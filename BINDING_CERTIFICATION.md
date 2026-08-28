@@ -1,7 +1,7 @@
 # Generic.Sidebar - Layered Binding Certification
 
 **Overall Status:** NOT CERTIFIED
-**Certification Document Version:** 0.3.0
+**Certification Document Version:** 0.4.0
 **Core Spec:** `SPEC.md` 2.1.0
 **Updated:** 2026-08-27
 **Certification Date:** -
@@ -30,7 +30,7 @@ The verified package is solution `GenericSidebar` version 1.0.0.5. Its observed 
 ## Android Phone Simulator Add-in Certification
 
 **Status:** NOT CERTIFIED
-**Observed component version:** 2.8.2
+**Observed component version:** 2.6.0
 
 - [x] Add-in is documented as optional and separately deployable
 - [x] Outgoing contract documented as `state: "RINGING"` with `startTime: null`

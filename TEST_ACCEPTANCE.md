@@ -1,7 +1,7 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.3.0
+**Version:** 1.4.0
 **Updated:** 2026-08-27
 
 ---
@@ -14,7 +14,7 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 | --- | --- | --- |
 | Generic Sidebar Core | `GenericSidebar_1_0_0_5.zip` | Core requirements only; excludes Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
 | Repository public site | GitHub Pages content | Site publishing and accessibility only; not Dynamics solution certification |
-| Android Phone Simulator add-in | `AndroidCellPhone.html` 2.8.2, deployed separately | Android behavior and optional Dataverse mode only |
+| Android Phone Simulator add-in | `AndroidCellPhone.html` 2.6.0, deployed separately | Android behavior and optional Dataverse mode only |
 | Genesys Softphone Simulator add-in | Current checked-in Genesys file, deployed separately | Genesys behavior and optional Android interoperability only |
 
 ## Generic Sidebar Core Acceptance
@@ -70,7 +70,7 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 
 ## Optional Add-in Acceptance: Android Phone Simulator
 
-**Component version:** `AndroidCellPhone.html` 2.8.2
+**Component version:** `AndroidCellPhone.html` 2.6.0
 **Deployment:** Standalone HTML or separately deployed Dynamics web resource; never part of the base Core solution.
 
 ### Home Screen & Navigation
@@ -84,7 +84,8 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 
 - ✔ Tapping a contact writes `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`
 - ✔ Calling screen shows avatar, name, and calling animation
-- ✔ In-call screen renders with mute/speaker/keypad/hold buttons
+- ✔ After about three seconds, Android enters its local in-call state and renders mute/speaker/keypad/hold buttons
+- ✔ Android starts its own transcript immediately after entering local in-call; it does not wait for Genesys to answer or write `CONNECTED`
 - ✔ End call transitions to ended screen with duration display
 
 ### Incoming Calls
@@ -176,8 +177,9 @@ These checks apply only when the optional Android Dataverse mode is deployed. Th
 
 ## Optional Android and Genesys Interoperability
 
-- ☐ Android 2.8.2 and the current Genesys file run under the same browser origin so storage events can be exchanged
+- ☐ Android 2.6.0 and the current Genesys file run under the same browser origin so storage events can be exchanged
 - ☐ Android outgoing call writes `RINGING` with `startTime: null`
 - ☐ Genesys receives the Android event and remains `RINGING` until answered
 - ☐ Genesys answer transitions the shared payload to `CONNECTED` and sets `startTime`
+- ☐ Android remains independent of the Genesys answer transition and does not observe or wait for `CONNECTED`
 - ☐ Interoperability evidence is recorded as add-in validation, not Generic Sidebar Core certification

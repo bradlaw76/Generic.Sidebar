@@ -11,7 +11,7 @@
 This specification distinguishes three independently deployed and validated layers:
 
 1. **Generic Sidebar Core** is the base Dynamics 365 solution. `GenericSidebar_1_0_0_5.zip` contains `sidebar_*` components only and MUST NOT include or depend on Android Phone Simulator, Genesys Softphone Simulator, GenericSoftphone, or `gensoft_*` components.
-2. **Android Phone Simulator** 2.8.2 is an optional add-in deployed standalone or as a separate web resource. Its optional Dynamics mode may use the separately deployed GenericSoftphone schema.
+2. **Android Phone Simulator** 2.6.0 is an optional add-in deployed standalone or as a separate web resource. Its optional Dynamics mode may use the separately deployed GenericSoftphone schema.
 3. **Genesys Softphone Simulator** is an optional add-in deployed separately. It may interoperate with Android through `localStorage.genericSimCall`; its current file contains conflicting version identifiers (component header 1.0.0 and embedded UI marker 1.7.1), which must not be guessed or silently normalized.
 
 Core acceptance and certification exclude both add-ins. Add-in validation cannot satisfy Core release gates.
@@ -189,7 +189,7 @@ The requirements below are outside Generic Sidebar Core. They have independent d
 
 ### User Story 4 - Android Phone Simulator for Contact Center Demos (Optional)
 
-A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` 2.8.2) can be configured as external Core content or run standalone. It is not included in and is not required by the base Core solution.
+A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` 2.6.0) can be configured as external Core content or run standalone. It is not included in and is not required by the base Core solution.
 
 **Documentation:** `Generic.AndroidCellPhone/DOCUMENTATION.md`
 
@@ -208,7 +208,7 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` 2.8.2) ca
 
 #### Android Functional Requirements
 
-- **FR-S01**: The phone simulator MUST initiate outgoing calls through `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`. It MUST listen for incoming `RINGING` payloads. A compatible softphone may transition a call to `CONNECTED` and assign `startTime` when answered.
+- **FR-S01**: After about three seconds on its Calling screen, the phone simulator MUST enter its own local in-call state, write `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`, and start its transcript immediately. It MUST listen for incoming `RINGING` payloads. A compatible softphone may independently transition the shared call to `CONNECTED` and assign `startTime` when answered; Android 2.6.0 does not observe or wait for that update.
 - **FR-S02**: The simulator MUST operate in dual mode — D365 (Xrm.WebApi) and Standalone (fallback JSON).
 - **FR-S03**: Settings screen MUST be accessible via Ctrl+Shift+D keyboard shortcut and Settings gear icon on the home screen.
 - **FR-S03a**: In standalone mode, profiles and transcripts MUST be editable inline with changes persisted to localStorage (genericSimProfiles key).
@@ -235,7 +235,7 @@ These tables and scripts belong to optional add-in deployment only. They MUST NO
 
 - **FR-G01**: Genesys MUST be deployed separately from Generic Sidebar Core.
 - **FR-G02**: Genesys MAY use the separately deployed GenericSoftphone schema for configuration, transcript completion, and screen-pop behavior.
-- **FR-G03**: Genesys MAY interoperate with Android 2.8.2 through `localStorage.genericSimCall` when both components share a browser origin.
+- **FR-G03**: Genesys MAY interoperate with Android 2.6.0 through `localStorage.genericSimCall` when both components share a browser origin.
 - **FR-G04**: Genesys MUST accept an outgoing Android payload in `RINGING` state with `startTime: null`; answering transitions it to `CONNECTED` and assigns `startTime`.
 - **FR-G05**: The component header 1.0.0 and embedded UI marker 1.7.1 discrepancy MUST be resolved before Genesys add-in certification.
 
@@ -243,6 +243,6 @@ These tables and scripts belong to optional add-in deployment only. They MUST NO
 
 | Core version evidence | Add-in version evidence | Supported boundary | Certification scope |
 | --- | --- | --- | --- |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android 2.8.2 | Standalone or separately configured Core panel content | Android only |
+| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android 2.6.0 | Standalone or separately configured Core panel content | Android only |
 | Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Current Genesys file (1.0.0 header / 1.7.1 UI marker) | Separately configured Core panel content | Genesys only after version reconciliation |
-| Core not required for direct add-in event exchange | Android 2.8.2 + current Genesys file | Same-origin `localStorage.genericSimCall` interoperability | Joint add-in interoperability |
+| Core not required for direct add-in event exchange | Android 2.6.0 + current Genesys file | Same-origin `localStorage.genericSimCall` interoperability with independent Android publication and Genesys answer handling | Joint add-in interoperability |

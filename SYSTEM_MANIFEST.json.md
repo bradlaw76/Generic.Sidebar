@@ -31,7 +31,7 @@
     "androidPhoneAddIn": {
       "name": "Android Phone Simulator",
       "optional": true,
-      "version": "2.8.2",
+      "version": "2.6.0",
       "file": "Generic.AndroidCellPhone/AndroidCellPhone.html",
       "deployment": "Standalone HTML or separately deployed Dynamics web resource",
       "corePackageMember": false,
@@ -49,9 +49,9 @@
   },
   "compatibility": {
     "coreSolution": "1.0.0.5",
-    "androidPhone": "2.8.2 - compatible as standalone or externally configured Core content; validation remains add-in scoped",
+    "androidPhone": "2.6.0 - compatible as standalone or externally configured Core content; validation remains add-in scoped",
     "genesysSoftphone": "Current checked-in file - compatible as externally configured Core content; version metadata must be reconciled before add-in certification",
-    "androidGenesysInterop": "Android 2.8.2 writes outgoing RINGING with null startTime; the current Genesys file accepts RINGING and transitions to CONNECTED when answered"
+    "androidGenesysInterop": "After about three seconds Android 2.6.0 enters its local in-call state, writes outgoing RINGING with null startTime, and starts its transcript immediately; Genesys may independently accept RINGING and transition the shared call to CONNECTED when answered, but Android does not observe or wait for that update"
   },
   "registry": {
     "indexUrl": "https://github.com/bradlaw76/SpeckKit-Project-Development/blob/main/system-manifests/MANIFEST_INDEX.json.md",
