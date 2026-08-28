@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{e0806af3-908d-f011-b4cc-001dd809c74f}</WebResourceId>
+  <Name>sidebar_welcome</Name>
+  <DisplayName>Welcome Page</DisplayName>
+  <Description>Welcome Page</Description>
+  <LanguageCode>0</LanguageCode>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0.0.1</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/sidebar_welcomeE0806AF3-908D-F011-B4CC-001DD809C74F</FileName>
+</WebResource>

@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{469a1c80-d3aa-4f7f-b44c-8be3827a3ae8}</formid>
+    <IntroducedVersion>1.0.0.1</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form headerdensity="HighWithControls">
+      <tabs>
+        <tab verticallayout="true" id="{bac88e63-ed24-42f3-92a5-61b681d4f8dc}" IsUserDefined="1">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="75%">
+              <sections>
+                <section showlabel="false" showbar="false" IsUserDefined="0" id="{11a19955-e79c-4b9e-aa24-ffedc140adf5}" celllabelposition="Top" columns="11">
+                  <labels>
+                    <label description="General" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{db7943e9-cf23-4f4a-a9a1-4ff48493d248}">
+                        <labels>
+                          <label description="TItle" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_title" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sidebar_title" />
+                      </cell>
+                      <cell id="{bce51ceb-2614-4ff3-afe3-129a1c543b8f}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Default" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_default" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="sidebar_default" disabled="false" uniqueid="{bbc937f9-3b3e-4d2e-be9c-0ca5673874e3}" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{da03169f-b0e5-4399-9592-23a5c32ee438}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Quick Notes" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_quicknotes" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_quicknotes" disabled="false" />
+                      </cell>
+                      <cell id="{a5ec014e-ebf6-4371-83e3-9b4f5ecac3be}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="File Type / Embed Coder Type" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_filetype" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="sidebar_filetype" disabled="false" uniqueid="{9482fd06-ff04-46b8-9126-e663699a2356}" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{cb951468-1f19-422a-ad3b-048fa9e9864e}" locklevel="0" colspan="2" rowspan="1">
+                        <labels>
+                          <label description="Instructions" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_instructions" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_instructions" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{615ea266-2db0-41bb-9b09-978085bf9c8b}" locklevel="0" colspan="2" rowspan="10">
+                        <labels>
+                          <label description="Embed code" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_embedcode" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_embedcode" disabled="false" />
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+                <section name="null_section_3" id="67cf0c0c-8e74-4391-916e-1215cbd8586a" IsUserDefined="0" locklevel="0" showlabel="false" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="111" labelwidth="115">
+                  <labels>
+                    <label description="New Section" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell locklevel="0" id="{ef4563f0-96d1-43ca-82ec-d99e4ee8e667}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                      <cell locklevel="0" id="{2a13b14a-faff-4e60-aa87-62fe52d2017b}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                      <cell locklevel="0" id="{86a04346-da67-4f5f-9dab-38ec4cb33575}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4e05a214-b1f5-40cc-b0ae-48cd3cd597df}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                      <cell id="{ca030df7-3a70-4b3d-a512-f447f3bae33d}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Created On" languagecode="1033" />
+                        </labels>
+                        <control id="createdon" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="createdon" disabled="false" />
+                      </cell>
+                      <cell id="{4b8f63b6-1c9d-4257-81b4-6e3ac6624fda}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Modified By" languagecode="1033" />
+                        </labels>
+                        <control id="modifiedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="modifiedby" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+            <column width="25%">
+              <sections>
+                <section name="_section_552" id="1b934c0a-8540-4c8f-9994-9c399def6d87" IsUserDefined="0" locklevel="0" showlabel="false" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="New Section" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{52768ba1-930a-4bd6-9c18-dad4a8aa879a}" rowspan="15" colspan="1">
+                        <labels>
+                          <label description="Note Text" languagecode="1033" />
+                        </labels>
+                        <control id="notescontrol" classid="{06375649-C143-495E-A496-C962E5B4488E}" disabled="false">
+                          <parameters>
+                            <UClientActivities>email,task,chat</UClientActivities>
+                            <UClientDisplayActivityUsing>defaultfields</UClientDisplayActivityUsing>
+                            <UClientActivityCardMap>appointment:4201:,campaignactivity:4402:,campaignresponse:4401:,email:4202:,fax:4204:,incidentresolution:4206:,letter:4207:,opportunityclose:4208:,orderclose:4209:,phonecall:4210:,quoteclose:4211:,recurringappointmentmaster:4251:,serviceappointment:4214:,socialactivity:4216:,task:4212:,adx_alertsubscription:10773:,adx_inviteredemption:10778:,adx_portalcomment:10827:,chat:10856:,chat_conversationactivity:11746:,cmop_productstatus:11450:,msdyn_bookingalert:10442:,msdyn_ocliveworkitem:10628:,msdyn_ocoutboundmessage:10724:,msdyn_ocsession:10645:,msfp_alert:10319:,msfp_surveyinvite:10329:,msfp_surveyresponse:10331:,pims_eventcapabilitycriticaltask:10910:,</UClientActivityCardMap>
+                            <UClientActivitiesConfigurationJSON>{"appointment":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"campaignactivity":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"incidentresolution":{"showTopDate":true,"showStatus":false,"canCreate":false,"createUsing":"default","openUsing":"default"},"opportunityclose":{"showTopDate":true,"showStatus":false,"canCreate":false,"createUsing":"default","openUsing":"default"},"orderclose":{"showTopDate":true,"showStatus":false,"canCreate":false,"createUsing":"default","openUsing":"default"},"phonecall":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"quoteclose":{"showTopDate":true,"showStatus":false,"canCreate":false,"createUsing":"default","openUsing":"default"},"pims_eventcapabilitycriticaltask":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"msfp_surveyresponse":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"msfp_surveyinvite":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"msfp_alert":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"msdyn_ocsession":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"msdyn_ocoutboundmessage":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"msdyn_ocliveworkitem":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"recurringappointmentmaster":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"socialactivity":{"showTopDate":true,"showStatus":true,"canCreate":false,"createUsing":"default","openUsing":"default"},"adx_alertsubscription":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"cmop_productstatus":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"msdyn_bookingalert":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"adx_portalcomment":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"adx_inviteredemption":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"},"chat_conversationactivity":{"showTopDate":true,"showStatus":true,"canCreate":true,"createUsing":"default","openUsing":"default"}}</UClientActivitiesConfigurationJSON>
+                            <UClientModules>Notes</UClientModules>
+                            <UClientNotesConfigurationJSON>{"alwaysAuthorNotes":true}</UClientNotesConfigurationJSON>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+        <tab name="tab_2" id="80d005ed-d06c-4f60-ba0e-bb39c2f9b674" IsUserDefined="0" locklevel="0" showlabel="true">
+          <labels>
+            <label description="Configuration" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="50%">
+              <sections>
+                <section name="tab_2_section_4" id="b324f586-0294-4bdb-9cb5-c399ccd609be" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="Sidebar Colors" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell id="{621b7d8c-fe57-4ef4-8472-12595821809c}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="primary color" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_primarycolor" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_primarycolor" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c3c783ff-ddd5-4f34-96dc-e1ce40362c64}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="text color" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_textcolor" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_textcolor" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{584dc7ba-5cfa-4667-a541-9c55d4cdfab3}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="link color" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_linkcolor" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_linkcolor" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_1" id="eab69ac9-31c6-4431-aa86-da76659f00ab" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="IFRAM Format" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell id="{95ef40f3-f64f-4c15-aac5-fc173c556be9}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="iframe allow" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_iframeallow" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_iframeallow" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1e0fedab-d8a7-41ad-854a-eaac24282275}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="iframe height" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_iframeheight" classid="{C6D124CA-7EDA-4A60-AEA9-7FB8D318B68F}" datafieldname="sidebar_iframeheight" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3592709e-a78f-4386-a700-ef4bc2cfc6bb}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="iframe style" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_iframestyle" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_iframestyle" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{51a2f168-6a17-45bc-b442-c53d16816aa5}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="iframe theme" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_iframetheme" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="sidebar_iframetheme" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a00ff08d-8482-4a9a-86e5-3d2a4768eae0}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="iframe width" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_iframewidth" classid="{C6D124CA-7EDA-4A60-AEA9-7FB8D318B68F}" datafieldname="sidebar_iframewidth" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+            <column width="50%">
+              <sections>
+                <section name="tab_2_section_2" id="8e6aaf31-4bde-4ad3-be4b-80c679b3ff14" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="Options" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell id="{e22e4ecb-fe4d-4760-a124-2093fe4f01d4}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="icon" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_icon" classid="{7E548B0D-209C-477B-9DCD-F0F44472381D}" datafieldname="sidebar_icon" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8adcd231-6349-4a4d-9e1c-6fa1ee7eb1f9}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="sidebar icon" languagecode="1033" />
+                        </labels>
+                        <control id="sidebar_sidebaricon" classid="{71716B6C-711E-476C-8AB8-5D11542BFB47}" datafieldname="sidebar_sidebaricon" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_5" id="24602666-6770-4603-8d09-b09f1bb581ee" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="New Section" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <header id="{16825d58-5e8b-487f-95e5-953c5839d754}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{4dbefc6f-0201-4199-8000-0b96fbcbc350}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{38371946-50c1-408d-91ea-6bb9640c1cdf}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{74e6de94-7f21-4dab-85f2-bb5f21b0d2d7}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{d6c65783-4ac5-4213-9b2d-831b12d94596}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{30b93c06-d72a-412d-a4ab-afcc275c98c9}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{7f5e5bf9-c499-4697-9ea1-323ac50170f1}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{0659c646-8081-4f9b-9b9c-3c60aed8e6c8}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="0" FallbackForm="true">
+        <Everyone />
+      </DisplayConditions>
+      <controlDescriptions>
+        <controlDescription forControl="{bbc937f9-3b3e-4d2e-be9c-0ca5673874e3}">
+          <customControl id="{67FAC785-CD58-4F9F-ABB3-4B7DDC6ED5ED}">
+            <parameters>
+              <datafieldname>sidebar_default</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.FieldControls.ToggleControl">
+            <parameters>
+              <value type="TwoOptions">sidebar_default</value>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.FieldControls.ToggleControl">
+            <parameters>
+              <value type="TwoOptions">sidebar_default</value>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.FieldControls.ToggleControl">
+            <parameters>
+              <value type="TwoOptions">sidebar_default</value>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{9482fd06-ff04-46b8-9126-e663699a2356}">
+          <customControl id="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}">
+            <parameters>
+              <datafieldname>sidebar_filetype</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.FieldControls.OptionSetWrapper">
+            <parameters>
+              <boundProperty type="OptionSet">sidebar_filetype</boundProperty>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.FieldControls.OptionSetWrapper">
+            <parameters>
+              <boundProperty type="OptionSet">sidebar_filetype</boundProperty>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.FieldControls.OptionSetWrapper">
+            <parameters>
+              <boundProperty type="OptionSet">sidebar_filetype</boundProperty>
+            </parameters>
+          </customControl>
+        </controlDescription>
+      </controlDescriptions>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

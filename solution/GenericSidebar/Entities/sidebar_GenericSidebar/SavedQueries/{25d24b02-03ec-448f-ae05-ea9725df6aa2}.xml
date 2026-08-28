@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{25d24b02-03ec-448f-ae05-ea9725df6aa2}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sidebar_title" select="1" icon="1" preview="1">
+        <row name="result" id="sidebar_genericsidebarid">
+          <cell name="sidebar_title" width="164" />
+          <cell name="sidebar_quicknotes" width="300" />
+          <cell name="sidebar_filetype" width="100" />
+          <cell name="sidebar_default" width="100" />
+          <cell name="sidebar_embedcode" width="230" />
+          <cell name="sidebar_defaultstartdate" width="142" />
+          <cell name="sidebar_daysactive" width="110" />
+          <cell name="createdon" width="125" />
+          <cell name="ownerid" width="100" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sidebar_genericsidebar">
+          <attribute name="sidebar_genericsidebarid" />
+          <attribute name="sidebar_title" />
+          <attribute name="createdon" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+          <attribute name="sidebar_default" />
+          <attribute name="sidebar_embedcode" />
+          <attribute name="sidebar_filetype" />
+          <attribute name="sidebar_daysactive" />
+          <attribute name="ownerid" />
+          <order attribute="sidebar_default" descending="true" />
+          <attribute name="sidebar_quicknotes" />
+          <attribute name="sidebar_defaultstartdate" />
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.1</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Generic.Sidebar" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

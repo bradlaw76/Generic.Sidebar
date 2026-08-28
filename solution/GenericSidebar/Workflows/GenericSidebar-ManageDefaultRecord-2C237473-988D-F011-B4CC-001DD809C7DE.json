@@ -1,0 +1,140 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedcommondataserviceforapps_5c9c4"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_row_is_added,_modified_or_deleted": {
+          "metadata": {
+            "operationMetadataId": "f3b162c0-3a4c-4141-af69-75e3d19d2d05"
+          },
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "sidebar_genericsidebar",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "sidebar_default eq true\n"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@and(   equals(triggerBody()?['sidebar_default'], true),   equals(triggerBody()?['sidebar_defaultstartdate'], null) )"
+            }
+          ]
+        }
+      },
+      "actions": {
+        "List_rows": {
+          "runAfter": {
+            "Update_a_row_-_Update_Default_Start_Date": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "9646f259-1df1-41ec-9ec5-f3a045f95714"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sidebar_genericsidebars",
+              "$select": "sidebar_genericsidebarid,sidebar_default",
+              "$filter": "sidebar_default eq true and sidebar_genericsidebarid ne @{triggerOutputs()?['body/sidebar_genericsidebarid']}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Apply_to_each_-_Other_Records_set_as_default": {
+          "foreach": "@outputs('List_rows')?['body/value']",
+          "actions": {
+            "Update_a_row": {
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "79227f21-2a85-4084-957c-2e8f02d52e6d"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateOnlyRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "sidebar_genericsidebars",
+                  "recordId": "@items('Apply_to_each_-_Other_Records_set_as_default')?['sidebar_genericsidebarid']",
+                  "item/sidebar_default": false,
+                  "item/sidebar_defaultstartdate": "@null"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "List_rows": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "17a3e53a-a4a9-429b-89af-e3c094e5655f"
+          },
+          "type": "Foreach"
+        },
+        "Update_a_row_-_Update_Default_Start_Date": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "3c49c66e-dbba-409d-ac78-e8711785de49"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sidebar_genericsidebars",
+              "recordId": "@triggerOutputs()?['body/sidebar_genericsidebarid']",
+              "item/sidebar_defaultstartdate": "@utcNow()"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  },
+  "schemaVersion": "1.0.0.0"
+}

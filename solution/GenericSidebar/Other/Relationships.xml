@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<EntityRelationships xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <EntityRelationship Name="business_unit_sidebar_genericsidebar" />
+  <EntityRelationship Name="lk_sidebar_genericsidebar_createdby" />
+  <EntityRelationship Name="lk_sidebar_genericsidebar_modifiedby" />
+  <EntityRelationship Name="owner_sidebar_genericsidebar" />
+  <EntityRelationship Name="team_sidebar_genericsidebar" />
+  <EntityRelationship Name="user_sidebar_genericsidebar" />
+</EntityRelationships>

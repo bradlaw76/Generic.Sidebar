@@ -1,0 +1,16 @@
+{
+  "name": "generic-sidebar-core-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated validation for the Generic Sidebar Core runtime and solution package.",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "validate:runtime": "node scripts/validate-runtime.mjs"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "3.2.7",
+    "jsdom": "26.1.0",
+    "vitest": "3.2.7"
+  }
+}

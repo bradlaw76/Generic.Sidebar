@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agent Productivity Pane (Generic Sidebar) | Welcome</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --primary:#0078d4; --primary-dark:#005a9e;
+      --text:#323130; --muted:#605e5c;
+      --bg:#faf9f8; --card:#ffffff; --neutral:#f3f2f1; --border:#edebe9;
+      --info-bg:#f0f6ff; --info-border:#005a9e;
+      --warn-bg:#fff8e1; --warn-border:#f59e0b;
+      --ok-bg:#e8f5e9; --ok-border:#2e7d32;
+    }
+    body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",sans-serif;line-height:1.6;margin:0;padding:24px;color:var(--text);background:var(--bg)}
+    .container{max-width:980px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px 32px;box-shadow:0 1.2px 3.6px rgba(0,0,0,.05),0 6.4px 14.4px rgba(0,0,0,.05)}
+    .page-header{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    h1,h2,h3{font-weight:600;color:var(--text);margin-top:2.2em}
+    h1{margin-top:0;font-size:28px;color:var(--primary-dark)}
+    h2{font-size:22px;border-bottom:2px solid var(--neutral);padding-bottom:8px}
+    h3{font-size:18px;margin-bottom:.35em}
+    p,ul,ol{color:var(--muted);margin-bottom:1em}
+    ul{padding-left:20px} li{margin:.4em 0}
+    code{background:var(--neutral);padding:2px 6px;border-radius:4px;font-family:Consolas,"Courier New",monospace}
+    pre{background:var(--neutral);padding:12px;border-radius:6px;border:1px solid var(--border);white-space:pre-wrap;word-wrap:break-word}
+    .info,.warn,.ok{padding:12px 16px;margin:1.2em 0;border-radius:6px}
+    .info{background:var(--info-bg);border-left:4px solid var(--info-border)}
+    .warn{background:var(--warn-bg);border-left:4px solid var(--warn-border)}
+    .ok{background:var(--ok-bg);border-left:4px solid var(--ok-border)}
+    .diagram{display:flex;align-items:center;justify-content:center;padding:16px;background:#fafafa;border:1px dashed var(--border);border-radius:8px;margin:1.2em 0;gap:10px;flex-wrap:wrap}
+    .step{background:var(--neutral);border:1px solid var(--border);padding:6px 12px;border-radius:16px;font-size:14px;font-weight:600}
+    .arrow{color:#9aa0a6}
+    .kv {display:grid;grid-template-columns:220px 1fr;gap:6px 12px;align-items:start}
+    .kv code{display:inline-block}
+    details{background:#fcfcfc;border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin:.8em 0}
+    details summary{cursor:pointer;font-weight:600}
+    .small{font-size:12px;color:#777}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef6ff;color:#0b5aa6;border:1px solid #d6e6ff;font-size:12px;font-weight:600}
+    .button{display:inline-block;margin-top:10px;padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px}
+    .button:hover{background:var(--primary-dark)}
+  </style>
+  <script>
+    async function acknowledgeDisclaimer() {
+      try {
+        if (!parent.Xrm || !parent.Xrm.WebApi) {
+          alert("Xrm.WebApi not available in this context.");
+          return;
+        }
+
+        // Retrieve the default row
+        const result = await parent.Xrm.WebApi.retrieveMultipleRecords("sidebar_genericsidebar", "?$select=sidebar_genericsidebarid&$filter=sidebar_default eq true");
+
+        if (result.entities.length === 0) {
+          alert("No default configuration row found.");
+          return;
+        }
+
+        const rowId = result.entities[0].sidebar_genericsidebarid;
+
+        await parent.Xrm.WebApi.updateRecord("sidebar_genericsidebar", rowId, {
+          "sidebar_acknowledged": true
+        });
+
+        document.getElementById("ackBanner").innerHTML =
+          "<div class='ok'><strong>✔ Acknowledged:</strong> Demo disclaimer has been accepted for this environment.</div>";
+      } catch (e) {
+        console.error("Failed to update disclaimer flag", e);
+        alert("Error updating disclaimer flag: " + e.message);
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">Dynamics 365 Customer Service</div>
+    <h1>Agent Productivity Pane (Generic Sidebar)</h1>
+
+    <!-- Admin-only disclaimer banner -->
+    <div id="ackBanner" class="warn">
+      ⚠ This solution is provided for demo purposes only. Use at your own risk.
+      <br />
+      <button class="button" onclick="acknowledgeDisclaimer()">Acknowledge & Continue</button>
+    </div>
+
+    <p>
+      This kit renders a configurable side pane in model-driven apps. It reads one row from
+      <strong>Generic Sidebar</strong> (<code>sidebar_genericsidebar</code>) where <em>Default = Yes</em>,
+      then displays <strong>Instructions</strong> and an <strong>Embed</strong> (Copilot, Web Resource, Power Apps Canvas App, or URL).
+      No code changes are needed to swap content—just flip the Default row.
+    </p>
+
+    <h2>How It Works</h2>
+    <div class="diagram">
+      <span class="step">Form OnLoad / Ribbon</span><span class="arrow">→</span>
+      <span class="step">Query Default Row</span><span class="arrow">→</span>
+      <span class="step">Open Side Pane</span><span class="arrow">→</span>
+      <span class="step">Render Instructions + Embed</span>
+    </div>
+
+    <h2>Quick Start</h2>
+    <ol>
+      <li>Create (or ensure) exactly one row in <code>sidebar_genericsidebar</code> with <strong>sidebar_default = Yes</strong>.</li>
+      <li>Set:
+        <ul>
+          <li><code>sidebar_title</code> — pane header title.</li>
+          <li><code>sidebar_instructions</code> — rich text band (bullets/headings supported).</li>
+          <li><code>sidebar_embedcode</code> — either a <em>URL</em>, <em>webresource:Name.html</em>, a full <em>&lt;iframe&gt;</em> snippet, or a <em>Canvas App embed</em>.</li>
+        </ul>
+      </li>
+      <li>Add the JS web resource to your form and set On Load handler → <code>Generic_OpenSidebar</code>.</li>
+      <li>Publish all customizations. Hard refresh (Ctrl+Shift+R).</li>
+    </ol>
+
+    <h2>Table & Fields</h2>
+    <div class="kv">
+      <div>Table</div><div><code>sidebar_genericsidebar</code></div>
+      <div>Title</div><div><code>sidebar_title</code> (text)</div>
+      <div>Instructions</div><div><code>sidebar_instructions</code> (Rich Text)</div>
+      <div>Embed Code</div><div><code>sidebar_embedcode</code> (multiline text)</div>
+      <div>Default</div><div><code>sidebar_default</code> (Two Options)</div>
+      <div>Acknowledged (optional)</div><div><code>sidebar_acknowledged</code> (Two Options; demo notice flag)</div>
+      <div>Icon (optional)</div><div><code>sidebar_sidebaricon</code> (URL)</div>
+      <div>IFrame Allow</div><div><code>sidebar_iframeallow</code> (text)</div>
+      <div>IFrame Style</div><div><code>sidebar_iframestyle</code> (text; CSS)</div>
+      <div>IFrame Width/Height</div><div><code>sidebar_iframewidth</code>, <code>sidebar_iframeheight</code></div>
+      <div>Theme Colors</div><div><code>sidebar_primarycolor</code>, <code>sidebar_textcolor</code>, <code>sidebar_linkcolor</code></div>
+      <div>File Type</div><div><code>sidebar_filetype</code> (Option Set; e.g., Copilot)</div>
+    </div>
+
+    <h2>Embed Options</h2>
+    <h3>1) Copilot Studio Bot</h3>
+    <pre><code>&lt;iframe src="https://.../webchat?__version__=2" frameborder="0" style="width:100%;height:100%"&gt;&lt;/iframe&gt;</code></pre>
+
+    <h3>2) External Website</h3>
+    <pre><code>https://learn.microsoft.com/en-us/dynamics365/customer-service/</code></pre>
+
+    <h3>3) Internal Web Resource</h3>
+    <pre><code>webresource:va_AgentResources.html</code></pre>
+
+    <h3>4) Power Apps Canvas App</h3>
+    <pre><code>&lt;iframe src="https://apps.powerapps.com/play/appId=YOUR_APPID" style="width:100%;height:100%" frameborder="0"&gt;&lt;/iframe&gt;</code></pre>
+
+    <h3>5) Raw HTML Snippet</h3>
+    <pre><code>&lt;h2&gt;Quick Links&lt;/h2&gt;
+&lt;ul&gt;&lt;li&gt;Internal Knowledge Base&lt;/li&gt;&lt;li&gt;Case Escalation Policy&lt;/li&gt;&lt;/ul&gt;</code></pre>
+
+    <div class="info">
+      <strong>Tip:</strong> Use one method per row. To switch experiences (e.g., Copilot vs. Canvas App), create separate rows and toggle which is <em>Default</em>.
+    </div>
+
+    <h2>Power Automate: Enforce a Single Default</h2>
+    <p>Flow ensures only one row is default at a time by flipping others to <em>No</em> when a new Default is set.</p>
+
+    <h2>Troubleshooting</h2>
+    <ul>
+      <li>“Method does not exist” → Ensure <code>Generic_OpenSidebar</code> is published and attached.</li>
+      <li>Blank pane → Ensure one row has <code>sidebar_default = Yes</code>.</li>
+      <li>Odd bullets → Rich Text field normalizes them.</li>
+      <li>External site blocked → Host may disallow iframe (X-Frame-Options).</li>
+    </ul>
+
+    <p class="small">© Generic Sidebar kit — configurable, table-driven side pane for model-driven apps.</p>
+  </div>
+</body>
+</html>
