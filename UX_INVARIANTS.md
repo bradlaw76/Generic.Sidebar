@@ -1,7 +1,8 @@
 # Generic.Sidebar — UX Invariants
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.3.0
+**Last Updated:** 2026-08-27
 
 ---
 
@@ -23,10 +24,12 @@ These UX behaviors must NEVER break across releases:
 - **Switching between tabs must preserve iframe content state (chat messages, form inputs, scroll position) — iframes must be hidden/shown, not destroyed/recreated.**
 - **Navigating between D365 records must not reload the sidebar if the same configuration is already loaded.**
 
-### Android Cell Phone Simulator (AndroidCellPhone.html)
+### Optional Add-In Invariants: Android Phone and Genesys Softphone
+
+The invariants in this section apply only when the optional Android Phone or Genesys Softphone add-ins are deployed; they are not Generic Sidebar Core requirements.
 
 - The localStorage key `genericSimCall` must NEVER change — it is the integration contract between the phone simulator and the Genesys Softphone.
-- Outgoing calls must write `state: CONNECTED` to localStorage; incoming calls must listen for `state: RINGING`.
+- Android initiates outgoing calls by writing `state: RINGING` with `startTime: null` to localStorage. A compatible Genesys Softphone owns the answered transition to `CONNECTED` and assigns `startTime`. Incoming calls continue to use and listen for `state: RINGING` as applicable.
 - All Dataverse reads must use `Xrm.WebApi` — never bypass or hard-code URLs.
 - Standalone mode must always work with embedded fallback data (FALLBACK_CONFIG, FALLBACK_CONTACTS, FALLBACK_PROFILES) when Xrm is unavailable.
 - The Settings screen must always be accessible via Ctrl+Shift+D or the Settings gear icon on the home screen.
