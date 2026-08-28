@@ -25,7 +25,7 @@ Generic Sidebar Core, Android Phone Simulator, and Genesys Softphone Simulator a
 - [ ] Open release-blocking Core security findings resolved
 - [ ] Core release reviewer approval recorded
 
-The verified package is solution `GenericSidebar` version 1.0.0.5. Its observed active web-resource versions are tracked independently as `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0. No solution package was rebuilt, overwritten, imported, deployed, or published during this verification.
+The verified installable package is solution `GenericSidebar` version 1.0.0.5. Its packaged HTML web resource has no embedded runtime version marker, and its packaged JavaScript is marked 2.3.0. The development sources are marked separately: `web resources/sidebar_sidebar.html` 2.14.0 and `web resources/sidebar_sidebar.js` 2.5.0. The packaged and source files differ functionally, so they are not one unified Core runtime version and Core certification remains blocked pending a separate runtime/package reconciliation. No solution package was rebuilt, overwritten, imported, deployed, or published during this verification.
 
 ## Android Phone Simulator Add-in Certification
 

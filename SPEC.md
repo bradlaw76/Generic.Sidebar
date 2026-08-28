@@ -35,7 +35,8 @@ Define the functional and non-functional behavior of Generic Sidebar Core as a c
 ### Layer 1: Generic Sidebar Core
 
 - Independently installable Dynamics 365 solution: `GenericSidebar_1_0_0_5.zip` (solution version 1.0.0.5, publisher prefix `sidebar`).
-- Core runtime versions are tracked independently: `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0.
+- The installable package and development source have separate runtime evidence. Package HTML has no embedded version marker and package JavaScript is marked 2.3.0; development source HTML is marked 2.14.0 and source JavaScript is marked 2.5.0.
+- The package and source differ functionally. The ZIP is authoritative for installed behavior, and source-only multi-panel, pop-out, and navigation-preservation behavior MUST NOT be used to certify solution 1.0.0.5 until a separate runtime/package reconciliation is completed.
 - Requires `sidebar_*` configuration and web-resource components only.
 - MUST NOT depend on or include Android Phone Simulator, Genesys Softphone Simulator, GenericSoftphone, or `gensoft_*` components.
 
@@ -63,7 +64,7 @@ The package was inspected in memory on 2026-08-27. No Android, Genesys, Softphon
 - Independently deployed and never added to the base Core package.
 - Call handling, transcript streaming, CRM writeback via Xrm.WebApi
 - Writes `gensoft_transcriptcompleted = true` on transcript completion
-- Optionally interoperates with Android 2.6.0 via `localStorage.genericSimCall`: after about three seconds Android enters its own local in-call state, writes outgoing `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys may independently consume the event and transition its shared call to `CONNECTED` when answered; Android does not observe or wait for that transition.
+- Optionally interoperates with Android 2.6.0 via `localStorage.genericSimCall`: after about three seconds Android enters its own local in-call state, writes outgoing `RINGING` with `startTime: null`, and starts scripted demo transcript playback locally. This is not transcript capture and does not indicate a confirmed connection. Genesys may independently consume the event and transition its shared call to `CONNECTED` when answered; Android does not observe or wait for that transition.
 
 ### Optional Add-in Dataverse Schema
 
@@ -79,8 +80,8 @@ The GenericSoftphone solution and all `gensoft_*` components support optional ad
 
 | Generic Sidebar Core | Optional add-in | Compatibility statement | Validation scope |
 | --- | --- | --- | --- |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android Phone 2.6.0 | Compatible as standalone content or as a separately deployed web resource configured in a Core panel. No package-level dependency. | Android acceptance and certification only |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Current Genesys file (header 1.0.0; embedded marker 1.7.1) | Compatible as separately deployed web content. Version metadata must be resolved before Genesys certification. | Genesys acceptance and certification only |
+| Solution 1.0.0.5; packaged HTML unversioned; packaged JS 2.3.0; development source HTML 2.14.0 and JS 2.5.0; package/source reconciliation blocked | Android Phone 2.6.0 | Compatible as standalone content or as a separately deployed web resource configured in a Core panel. No package-level dependency. | Android acceptance and certification only |
+| Solution 1.0.0.5; packaged HTML unversioned; packaged JS 2.3.0; development source HTML 2.14.0 and JS 2.5.0; package/source reconciliation blocked | Current Genesys file (header 1.0.0; embedded marker 1.7.1) | Compatible as separately deployed web content. Version metadata must be resolved before Genesys certification. | Genesys acceptance and certification only |
 | Not required for direct interoperability | Android 2.6.0 + current Genesys file | Compatible through `localStorage.genericSimCall` in the same browser origin; Android writes `RINGING` with null `startTime`, while Genesys independently owns its answer flow. | Joint add-in interoperability validation |
 
 ## Requirements

@@ -10,6 +10,8 @@
 
 Acceptance is evaluated separately for each deployment layer. Passing Android Phone Simulator, Genesys Softphone Simulator, or joint interoperability tests MUST NOT be represented as Generic Sidebar Core certification. Add-in failures do not change the Core result unless they expose a defect in Core's generic embed contract.
 
+No automated test implementation exists on the PR base or branch. The items below are manual validation and review criteria; existing check symbols describe expected criteria and are not automated test results or release evidence.
+
 | Scope | Package/deployment | Certification boundary |
 | --- | --- | --- |
 | Generic Sidebar Core | `GenericSidebar_1_0_0_5.zip` | Core requirements only; excludes Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
@@ -19,7 +21,9 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 
 ## Generic Sidebar Core Acceptance
 
-### Core Runtime (`sidebar_sidebar.html` 2.15.5 + `sidebar_sidebar.js` 2.6.0)
+### Core Development Source (HTML 2.14.0 + JavaScript 2.5.0)
+
+These criteria describe the checked-in development source. The installable solution 1.0.0.5 contains an unversioned HTML renderer and JavaScript marked 2.3.0 with materially different behavior. Validate the package separately; do not certify it from this source checklist.
 
 - ✔ `Generic_OpenSidebar` registers on `window` within 5 seconds of page load
 - ✔ Sidebar opens via `Xrm.App.sidePanes.createPane` with configurable width and title
@@ -85,7 +89,7 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 - ✔ Tapping a contact writes `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`
 - ✔ Calling screen shows avatar, name, and calling animation
 - ✔ After about three seconds, Android enters its local in-call state and renders mute/speaker/keypad/hold buttons
-- ✔ Android starts its own transcript immediately after entering local in-call; it does not wait for Genesys to answer or write `CONNECTED`
+- ✔ Android starts scripted demo transcript playback locally after entering local in-call; this is not transcript capture, does not indicate `CONNECTED`, and does not wait for Genesys to answer
 - ✔ End call transitions to ended screen with duration display
 
 ### Incoming Calls
@@ -179,7 +183,7 @@ These checks apply only when the optional Android Dataverse mode is deployed. Th
 
 - ☐ Android 2.6.0 and the current Genesys file run under the same browser origin so storage events can be exchanged
 - ☐ Android outgoing call writes `RINGING` with `startTime: null`
-- ☐ Genesys receives the Android event and remains `RINGING` until answered
-- ☐ Genesys answer transitions the shared payload to `CONNECTED` and sets `startTime`
+- ☐ Genesys independently consumes the Android `RINGING` event and manages its own ringing and answer flow
+- ☐ When answered, Genesys transitions the shared payload to `CONNECTED` and sets `startTime`
 - ☐ Android remains independent of the Genesys answer transition and does not observe or wait for `CONNECTED`
 - ☐ Interoperability evidence is recorded as add-in validation, not Generic Sidebar Core certification

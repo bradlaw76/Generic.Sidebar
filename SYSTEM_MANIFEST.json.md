@@ -15,10 +15,15 @@
       "solutionPackage": "GenericSidebar_1_0_0_5.zip",
       "solutionVersion": "1.0.0.5",
       "publisherPrefix": "sidebar",
-      "runtimeVersions": {
-        "sidebar_sidebar.html": "2.15.5",
-        "sidebar_sidebar.js": "2.6.0"
+      "sourceRuntimeVersions": {
+        "web resources/sidebar_sidebar.html": "2.14.0 title marker; component header 1.0.0",
+        "web resources/sidebar_sidebar.js": "2.5.0 runtime marker; component header 1.0.0"
       },
+      "packagedRuntimeVersions": {
+        "WebResources/sidebar_sidebarhtmlD3801FFD-F584-F011-B4CC-001DD8099980": "No embedded runtime version marker",
+        "WebResources/sidebar_sidebarjsD2CAC84A-F484-F011-B4CC-001DD8099980": "2.3.0 runtime marker"
+      },
+      "runtimeAlignment": "BLOCKED: packaged and source HTML/JavaScript differ functionally; the ZIP is authoritative for installed behavior and no unified Core runtime version is established",
       "requiredDataversePrefix": "sidebar_",
       "excludedComponents": [
         "Android Phone Simulator",
@@ -48,10 +53,10 @@
     }
   },
   "compatibility": {
-    "coreSolution": "1.0.0.5",
+    "coreSolution": "1.0.0.5; packaged HTML unversioned and packaged JavaScript 2.3.0; development source HTML 2.14.0 and JavaScript 2.5.0; package/source runtime reconciliation remains blocked",
     "androidPhone": "2.6.0 - compatible as standalone or externally configured Core content; validation remains add-in scoped",
     "genesysSoftphone": "Current checked-in file - compatible as externally configured Core content; version metadata must be reconciled before add-in certification",
-    "androidGenesysInterop": "After about three seconds Android 2.6.0 enters its local in-call state, writes outgoing RINGING with null startTime, and starts its transcript immediately; Genesys may independently accept RINGING and transition the shared call to CONNECTED when answered, but Android does not observe or wait for that update"
+    "androidGenesysInterop": "After about three seconds Android 2.6.0 enters its local in-call state, writes outgoing RINGING with null startTime, and starts scripted demo transcript playback locally; this is not transcript capture and does not indicate a confirmed connection. Genesys may independently accept RINGING and transition the shared call to CONNECTED when answered, but Android does not observe or wait for that update"
   },
   "registry": {
     "indexUrl": "https://github.com/bradlaw76/SpeckKit-Project-Development/blob/main/system-manifests/MANIFEST_INDEX.json.md",

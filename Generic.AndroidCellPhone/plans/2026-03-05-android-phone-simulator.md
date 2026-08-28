@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-> **Historical snapshot:** This 2026-03-05 implementation plan preserves the original design and embedded code examples, including the superseded `CONNECTED` payload. It is not an active runtime requirement. The checked-in `AndroidCellPhone.html` 2.6.0 shows Calling, enters its own local in-call state after about three seconds, writes `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys may independently manage its ringing and answer flow; Android does not observe or wait for a `CONNECTED` update. See `../DOCUMENTATION.md` and `../../UX_INVARIANTS.md` for the current contract.
+> **Historical snapshot:** This 2026-03-05 implementation plan preserves the original design and embedded code examples, including the superseded `CONNECTED` payload. It is not an active runtime requirement. The checked-in `AndroidCellPhone.html` 2.6.0 shows Calling, enters its own local in-call state after about three seconds, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback locally. That playback is not transcript capture and does not indicate a confirmed connection. Genesys may independently manage its ringing and answer flow; Android does not observe or wait for a `CONNECTED` update. See `../DOCUMENTATION.md` and `../../UX_INVARIANTS.md` for the current contract.
 
 **Goal:** Build `android_phone_simulator.html` — a single self-contained HTML/CSS/JS file that renders a high-fidelity Samsung S25 Ultra Android phone UI and writes outgoing call payloads to `localStorage.genericSimCall`, integrating with the existing `Genesys Softphone.html`.
 

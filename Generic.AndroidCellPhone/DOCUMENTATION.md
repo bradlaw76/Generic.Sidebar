@@ -70,7 +70,7 @@ The simulator serves as a **visual phone UI** that places outgoing calls and han
 
 | Capability | Description |
 |---|---|
-| Outgoing calls | User selects a contact → phone shows Calling → after about three seconds enters its local in-call state, writes `RINGING` with `startTime: null`, and starts its transcript; a compatible softphone may independently answer and write `CONNECTED` |
+| Outgoing calls | User selects a contact → phone shows Calling → after about three seconds enters its local in-call state, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback; a compatible softphone may independently answer and write `CONNECTED` |
 | Incoming calls | Listens for `RINGING` payloads from the Generic Call Simulator → shows incoming call screen |
 | Transcript streaming | Plays back scripted conversations line-by-line during calls |
 | Dual mode | Works both inside Dynamics 365 (Dataverse-driven) and standalone (file://, any browser) |
@@ -443,14 +443,14 @@ function navTo(key, back) {
 }
 ```
 
-9. Android starts its own transcript immediately after writing the shared payload; it does not wait for an agent answer
+9. Android starts scripted demo transcript playback locally after writing the shared payload; this is not transcript capture, does not indicate a confirmed connection, and does not wait for an agent answer
 10. **Genesys Softphone** may independently detect the `storage` event and render its own call card as RINGING
 11. When the agent answers, Genesys writes `CONNECTED` and assigns `startTime`; Android 2.6.0 does not observe or wait for that shared-state change
 12. **End Call** clears localStorage, shows the Ended screen, and returns to Home
 
 ### Why Outgoing State Starts as RINGING
 
-The Android phone represents the customer's device initiating a call. After about three seconds on its Calling screen, Android 2.6.0 enters its own local in-call state, writes `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys may independently consume that event, own its ringing and answer flow, and write `CONNECTED` with a real start time. Android does not observe or wait for that Genesys update.
+The Android phone represents the customer's device initiating a call. After about three seconds on its Calling screen, Android 2.6.0 enters its own local in-call state, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback locally. This is not transcript capture and does not indicate a confirmed connection. Genesys may independently consume that event, own its ringing and answer flow, and write `CONNECTED` with a real start time. Android does not observe or wait for that Genesys update.
 
 ---
 

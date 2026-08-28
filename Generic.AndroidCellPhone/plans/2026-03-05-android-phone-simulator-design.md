@@ -47,7 +47,7 @@ Vanilla JS state machine. Five screens co-exist in the DOM; only one is active a
 | `PHONE_APP` | Tabs: Recents, Contacts, Keypad |
 | `CONTACTS` | Scrollable list with avatars |
 | `CALLING` | Outgoing call animation, ringback tone |
-| `IN_CALL` | Connected state, transcript panel, controls |
+| `IN_CALL` | Local in-call display state, scripted transcript panel, controls; this does not confirm the shared call is `CONNECTED` |
 
 ### Flow
 

@@ -51,7 +51,7 @@ No `gensoft_*` requirement is inherited by Generic Sidebar Core.
 
 ## Android Interoperability
 
-Android Phone Simulator 2.6.0 can initiate a same-origin event through `localStorage.genericSimCall`. After about three seconds on its Calling screen, Android enters its own local in-call state, writes the event, and starts its transcript immediately:
+Android Phone Simulator 2.6.0 can initiate a same-origin event through `localStorage.genericSimCall`. After about three seconds on its Calling screen, Android enters its own local in-call state, writes the event, and starts scripted demo transcript playback locally. That playback is not transcript capture and does not indicate a confirmed connection:
 
 ```json
 {

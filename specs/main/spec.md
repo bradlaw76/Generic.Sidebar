@@ -137,7 +137,7 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-034**: Auto-zoom MUST be triggered by configured title keywords (currently "phone" and "genesys") regardless of embed type. This generic rendering behavior MUST NOT create a package dependency on either add-in.
 
 - **FR-027**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
-- **FR-028**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
+- **FR-028**: No automated test implementation exists on this branch. Current validation is manual through `TEST_ACCEPTANCE.md`; an automated unit/integration suite is proposed future work.
 - **FR-029**: Admin-only banner visibility rules [NEEDS CLARIFICATION: which roles or security groups control visibility?].
 
 ### Key Entities
@@ -178,8 +178,7 @@ Visitors can view the landing page with release statistics, a downloads page wit
 
 ## Clarifications Needed
 
-1. Automated testing scope — include unit/integration tests or rely on manual acceptance? [NEEDS CLARIFICATION]
-2. Admin banner visibility — specify roles/groups that control visibility. [NEEDS CLARIFICATION]
+1. Admin banner visibility — specify roles/groups that control visibility. [NEEDS CLARIFICATION]
 
 ---
 
@@ -208,7 +207,7 @@ A pre-built Samsung S25 Ultra phone simulator (`AndroidCellPhone.html` 2.6.0) ca
 
 #### Android Functional Requirements
 
-- **FR-S01**: After about three seconds on its Calling screen, the phone simulator MUST enter its own local in-call state, write `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`, and start its transcript immediately. It MUST listen for incoming `RINGING` payloads. A compatible softphone may independently transition the shared call to `CONNECTED` and assign `startTime` when answered; Android 2.6.0 does not observe or wait for that update.
+- **FR-S01**: After about three seconds on its Calling screen, the phone simulator MUST enter its own local in-call state, write `localStorage.genericSimCall` with `state: RINGING` and `startTime: null`, and start scripted demo transcript playback locally. This playback is not transcript capture and MUST NOT be presented as a confirmed connection. The simulator MUST listen for incoming `RINGING` payloads. A compatible softphone may independently transition the shared call to `CONNECTED` and assign `startTime` when answered; Android 2.6.0 does not observe or wait for that update.
 - **FR-S02**: The simulator MUST operate in dual mode — D365 (Xrm.WebApi) and Standalone (fallback JSON).
 - **FR-S03**: Settings screen MUST be accessible via Ctrl+Shift+D keyboard shortcut and Settings gear icon on the home screen.
 - **FR-S03a**: In standalone mode, profiles and transcripts MUST be editable inline with changes persisted to localStorage (genericSimProfiles key).
@@ -243,6 +242,6 @@ These tables and scripts belong to optional add-in deployment only. They MUST NO
 
 | Core version evidence | Add-in version evidence | Supported boundary | Certification scope |
 | --- | --- | --- | --- |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Android 2.6.0 | Standalone or separately configured Core panel content | Android only |
-| Solution 1.0.0.5; HTML 2.15.5; JS 2.6.0 | Current Genesys file (1.0.0 header / 1.7.1 UI marker) | Separately configured Core panel content | Genesys only after version reconciliation |
+| Solution 1.0.0.5; packaged HTML unversioned; packaged JS 2.3.0; development source HTML 2.14.0 and JS 2.5.0; package/source reconciliation blocked | Android 2.6.0 | Standalone or separately configured Core panel content | Android only |
+| Solution 1.0.0.5; packaged HTML unversioned; packaged JS 2.3.0; development source HTML 2.14.0 and JS 2.5.0; package/source reconciliation blocked | Current Genesys file (1.0.0 header / 1.7.1 UI marker) | Separately configured Core panel content | Genesys only after version reconciliation |
 | Core not required for direct add-in event exchange | Android 2.6.0 + current Genesys file | Same-origin `localStorage.genericSimCall` interoperability with independent Android publication and Genesys answer handling | Joint add-in interoperability |

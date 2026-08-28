@@ -8,7 +8,7 @@ This repository contains three separate deployment layers. They share integratio
 
 | Layer | Current version evidence | Deployment boundary |
 | --- | --- | --- |
-| **Generic Sidebar Core** | Solution `1.0.0.5`; active web resources `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0 | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. |
+| **Generic Sidebar Core** | Installable solution `1.0.0.5`: packaged HTML has no embedded version marker; packaged JS is marked 2.3.0. Development source: HTML 2.14.0; JS 2.5.0. | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. Packaged and source runtimes differ functionally and require separate reconciliation. |
 | **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.6.0 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
 | **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.6.0 through `localStorage.genericSimCall`. Never add it to the base Core package. |
 
@@ -16,7 +16,7 @@ The historical SSO release label `v2.0.0`, specification versions, solution pack
 
 ### Base Package Verification
 
-On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without extraction or modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only.
+On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only. The ZIP is authoritative for installed behavior; its single-content HTML renderer and 2.3.0 JavaScript differ from the multi-panel 2.14.0 HTML and 2.5.0 JavaScript development sources. Do not use source-only behavior to certify the installable package.
 
 ✨ What’s New in v1.0.5
 
@@ -80,7 +80,7 @@ These `gensoft_*` components belong to the optional add-in deployment. They are 
 
 ## Optional Add-in: Genesys Softphone Simulator
 
-The current Genesys simulator is stored at `SidecarItems/Genesys Softphone/Genesys Softphone.html` and is deployed separately from Generic Sidebar Core. Its D365 demo configuration uses the separate `gensoft_*` schema. It can also independently receive Android Phone Simulator events through `localStorage.genericSimCall`; Android 2.6.0 enters its own local in-call state after about three seconds, writes `RINGING` with `startTime: null`, and starts its transcript immediately. Genesys manages its own ringing and answer flow and may change the shared call to `CONNECTED`; Android does not observe or wait for that change.
+The current Genesys simulator is stored at `SidecarItems/Genesys Softphone/Genesys Softphone.html` and is deployed separately from Generic Sidebar Core. Its D365 demo configuration uses the separate `gensoft_*` schema. It can also independently receive Android Phone Simulator events through `localStorage.genericSimCall`; Android 2.6.0 enters its own local in-call state after about three seconds, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback locally. That playback is not transcript capture and does not indicate a confirmed connection. Genesys manages its own ringing and answer flow and may change the shared call to `CONNECTED`; Android does not observe or wait for that change.
 
 See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/README.md) for requirements, deployment, validation, and compatibility.
 
