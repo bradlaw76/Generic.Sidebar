@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.2.0
+VERSION:      1.3.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-30
 ENVIRONMENT:  Node.js | Vitest | jsdom
@@ -14,17 +14,19 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.3.0  2026-08-30  Verify four-panel capacity and portable module paths
 v1.2.0  2026-08-30  Verify configured height disables iframe flex growth
 v1.1.0  2026-08-30  Added legacy title and packaged schema regression coverage
 v1.0.0  2026-08-28  Added CORE-001 through CORE-014 acceptance coverage
 =============================================================================
 */
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const root = resolve(import.meta.dirname, "../..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const htmlSource = readFileSync(resolve(root, "web resources/sidebar_sidebar.html"), "utf8");
 const paneSource = readFileSync(resolve(root, "web resources/sidebar_sidebar.js"), "utf8");
 
@@ -94,12 +96,12 @@ describe("Generic Sidebar Core runtime reconciliation", () => {
     dom.window.close();
   });
 
-  it("CORE-002 three configured panels render in order", () => {
+  it("CORE-002 four configured panels render in order", () => {
     const { dom, window, runtime } = createHtmlRuntime();
-    const result = runtime.renderRuntime(panelRecord(3), "config-three");
-    expect(result.panels.map((panel) => panel.title)).toEqual(["Primary", "Panel 2", "Panel 3"]);
-    expect(window.document.querySelectorAll(".tab")).toHaveLength(3);
-    expect(window.document.querySelectorAll(".panel-frame")).toHaveLength(3);
+    const result = runtime.renderRuntime(panelRecord(4), "config-four");
+    expect(result.panels.map((panel) => panel.title)).toEqual(["Primary", "Panel 2", "Panel 3", "Panel 4"]);
+    expect(window.document.querySelectorAll(".tab")).toHaveLength(4);
+    expect(window.document.querySelectorAll(".panel-frame")).toHaveLength(4);
     dom.window.close();
   });
 

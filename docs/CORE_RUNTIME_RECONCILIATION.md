@@ -9,6 +9,8 @@
 
 Generic Sidebar solution 1.0.0.5 does not package the active Core source runtime. The package contains a single-panel HTML renderer with no embedded version marker and JavaScript marked 2.3.0, while the repository contains a multi-panel HTML renderer marked 2.14.0 and JavaScript marked 2.5.0. This reconciliation selects one canonical Core behavior, adds automated acceptance coverage, and establishes a reproducible PAC CLI packaging process.
 
+The canonical Core contract supports one through four configured panels. This limit comes from `SPEC.md`, `specs/main/spec.md` requirement FR-002, and `TEST_ACCEPTANCE.md`; it is implemented by the runtime, Dataverse schema, and main configuration form.
+
 The generated ZIP is authoritative for installed behavior. The build must use version-controlled unpacked solution source and `pac solution pack`; editing a ZIP directly is not supported.
 
 ## Capability Matrix
@@ -16,7 +18,7 @@ The generated ZIP is authoritative for installed behavior. The build must use ve
 | Capability | Current source behavior | Package 1.0.0.5 behavior | Selected canonical behavior | Implementation location | Acceptance test |
 | --- | --- | --- | --- | --- | --- |
 | Single-panel backward compatibility | Reads panel 1 from indexed fields with a `sidebar_title` fallback; hides tabs when only one panel has content. | Reads legacy `sidebar_title`, `sidebar_instructions`, and `sidebar_embedcode`; has no tabs. | A legacy panel 1 record renders unchanged and the tab row remains hidden. | `sidebar_sidebar.html`: `buildPanels`, `renderRuntime` | `CORE-001 single panel renders without tabs` |
-| Three-panel configuration | Reads the first three indexed title/instruction/embed field groups and creates all configured frames. | Supports only `sidebar_embedcode`. | Render exactly the three configured panels in field order without requiring panel 4. | `sidebar_sidebar.html`: `buildPanels`, `renderRuntime` | `CORE-002 three configured panels render in order` |
+| Four-panel capacity | Reads all four indexed title/instruction/embed field groups and creates every configured frame. Configurations may leave any trailing panel empty. | Supports only `sidebar_embedcode`. | Render all four supported panels in field order while continuing to support configurations with fewer panels. | `sidebar_sidebar.html`: `buildPanels`, `renderRuntime` | `CORE-002 four configured panels render in order` |
 | Tab switching | Buttons call `setActivePanel`; inactive frames are hidden. | Not supported. | Selecting a tab updates the active tab, instructions, controls, and visible frame without navigation. | `sidebar_sidebar.html`: `setActivePanel` | `CORE-003 tab switching changes visible panel` |
 | Iframe retention | Creates all panel iframes up front and changes `display`. | Creates one iframe for the single embed. | Create each configured iframe once; tab changes only visibility so embedded state is retained. | `sidebar_sidebar.html`: `createPanelFrame`, `setActivePanel` | `CORE-004 tab switching retains iframe instances` |
 | Active-panel persistence | Stores the selected panel index in per-config `sessionStorage`. | Not supported. | Restore a valid saved panel for the same configuration and fall back to panel 1 for missing or stale values. | `sidebar_sidebar.html`: `saveActivePanel`, `getInitialPanel` | `CORE-005 active panel persists per configuration` |

@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Core Runtime Static Validator
 FILE:         scripts/validate-runtime.mjs
-VERSION:      1.2.0
+VERSION:      1.3.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-30
 ENVIRONMENT:  Node.js
@@ -13,15 +13,17 @@ Validates runtime versions, matrix coverage, and required canonical symbols.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.3.0  2026-08-30  Support Node.js releases without import.meta.dirname
 v1.2.0  2026-08-30  Validate indexed controls on the main configuration form
 v1.1.0  2026-08-30  Validate every runtime-selected Dataverse column
 v1.0.0  2026-08-28  Added canonical Core runtime static validation
 =============================================================================
 */
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const html = readFileSync(resolve(root, "web resources/sidebar_sidebar.html"), "utf8");
 const javascript = readFileSync(resolve(root, "web resources/sidebar_sidebar.js"), "utf8");
 const matrix = readFileSync(resolve(root, "docs/CORE_RUNTIME_RECONCILIATION.md"), "utf8");
