@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      2.15.1
+VERSION:      2.15.2
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-30
 ENVIRONMENT:  HTML | JavaScript
@@ -489,6 +489,7 @@ NON-NEGOTIABLES (Architecture Contract)
     const height = positiveNumber(rec.sidebar_iframeheight);
     iframe.style.width = width ? `${width}px` : (iframe.style.width || "100%");
     iframe.style.height = height ? `${height}px` : (iframe.style.height || "100%");
+    iframe.style.flex = height ? `0 0 ${height}px` : (iframe.style.flex || "1 1 0%");
     const configuredAllow = typeof rec.sidebar_iframeallow === "string" ? rec.sidebar_iframeallow.trim() : "";
     iframe.setAttribute("allow", configuredAllow || DEFAULT_IFRAME_ALLOW);
     iframe.referrerPolicy = "strict-origin-when-cross-origin";

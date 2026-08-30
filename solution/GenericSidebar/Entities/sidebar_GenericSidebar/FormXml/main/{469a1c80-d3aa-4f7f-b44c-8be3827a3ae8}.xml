@@ -165,6 +165,53 @@
             </column>
           </columns>
         </tab>
+        <tab name="tab_panels" id="{8c0af0bf-08bb-4a68-86fb-667355a94399}" IsUserDefined="1" locklevel="0" showlabel="true">
+          <labels>
+            <label description="Panels" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="50%">
+              <sections>
+                <section name="panel_1_section" id="{10a88dba-bd67-44df-b8ad-dfbc50c14293}" IsUserDefined="1" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels><label description="Panel 1" languagecode="1033" /></labels>
+                  <rows>
+                    <row><cell id="{348d9501-c925-455c-81d5-3f961e6dc8dc}" locklevel="0"><labels><label description="Title" languagecode="1033" /></labels><control id="sidebar_title1_panel" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_title1" disabled="false" /></cell></row>
+                    <row><cell id="{ab6c4b70-96b8-4214-82d4-2cb270637e8f}" locklevel="0"><labels><label description="Instructions" languagecode="1033" /></labels><control id="sidebar_instructions_panel1" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_instructions" disabled="false" /></cell></row>
+                    <row><cell id="{e69d68eb-b61f-42a9-9a5e-a242d18de9bc}" locklevel="0"><labels><label description="Embed code" languagecode="1033" /></labels><control id="sidebar_embedcode_panel1" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_embedcode" disabled="false" /></cell></row>
+                  </rows>
+                </section>
+                <section name="panel_2_section" id="{62819922-f12c-4d13-b340-badf7dcfb3c1}" IsUserDefined="1" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels><label description="Panel 2" languagecode="1033" /></labels>
+                  <rows>
+                    <row><cell id="{d3cc154a-e8a2-4e13-b544-84732170fdbf}" locklevel="0"><labels><label description="Title" languagecode="1033" /></labels><control id="sidebar_title2_panel" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_title2" disabled="false" /></cell></row>
+                    <row><cell id="{46c4b31d-f128-4a22-af8f-348ec85985ed}" locklevel="0"><labels><label description="Instructions" languagecode="1033" /></labels><control id="sidebar_instructions2_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_instructions2" disabled="false" /></cell></row>
+                    <row><cell id="{3659344d-d5ef-48a4-a7df-07ef7506624b}" locklevel="0"><labels><label description="Embed code" languagecode="1033" /></labels><control id="sidebar_embedcode2_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_embedcode2" disabled="false" /></cell></row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+            <column width="50%">
+              <sections>
+                <section name="panel_3_section" id="{f060096f-01b5-4fa4-a720-a0832af09a25}" IsUserDefined="1" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels><label description="Panel 3" languagecode="1033" /></labels>
+                  <rows>
+                    <row><cell id="{48b69367-b9a8-4621-890a-bd2bd52e2d5b}" locklevel="0"><labels><label description="Title" languagecode="1033" /></labels><control id="sidebar_title3_panel" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_title3" disabled="false" /></cell></row>
+                    <row><cell id="{bc694873-b8ae-46de-b9f5-7e4d75a2ae55}" locklevel="0"><labels><label description="Instructions" languagecode="1033" /></labels><control id="sidebar_instructions3_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_instructions3" disabled="false" /></cell></row>
+                    <row><cell id="{4ffb5467-e0d5-40d5-9c95-c2e6212cb459}" locklevel="0"><labels><label description="Embed code" languagecode="1033" /></labels><control id="sidebar_embedcode3_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_embedcode3" disabled="false" /></cell></row>
+                  </rows>
+                </section>
+                <section name="panel_4_section" id="{f118770b-6c43-4cdb-9a67-8f180ee22f68}" IsUserDefined="1" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Top" columns="1" labelwidth="115">
+                  <labels><label description="Panel 4" languagecode="1033" /></labels>
+                  <rows>
+                    <row><cell id="{210c10e0-c932-43d2-8115-20af00237501}" locklevel="0"><labels><label description="Title" languagecode="1033" /></labels><control id="sidebar_title4_panel" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sidebar_title4" disabled="false" /></cell></row>
+                    <row><cell id="{0ea83490-d015-4faf-b66a-642960d8cab7}" locklevel="0"><labels><label description="Instructions" languagecode="1033" /></labels><control id="sidebar_instructions4_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_instructions4" disabled="false" /></cell></row>
+                    <row><cell id="{c8161072-d483-4e4f-a076-5b1abf1bdf33}" locklevel="0"><labels><label description="Embed code" languagecode="1033" /></labels><control id="sidebar_embedcode4_panel" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="sidebar_embedcode4" disabled="false" /></cell></row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
         <tab name="tab_2" id="80d005ed-d06c-4f60-ba0e-bb39c2f9b674" IsUserDefined="0" locklevel="0" showlabel="true">
           <labels>
             <label description="Configuration" languagecode="1033" />

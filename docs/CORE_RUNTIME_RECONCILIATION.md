@@ -2,7 +2,7 @@
 
 **Status:** Implementation baseline
 **Target solution:** `GenericSidebar_1_0_0_6.zip`
-**Canonical HTML runtime:** 2.15.1
+**Canonical HTML runtime:** 2.15.2
 **Canonical JavaScript runtime:** 2.6.0
 
 ## Purpose
@@ -37,6 +37,7 @@ The generated ZIP is authoritative for installed behavior. The build must use ve
 3. The build writes `GenericSidebar_1_0_0_6.zip` without changing `GenericSidebar_1_0_0_5.zip`.
 4. The verification script extracts the generated package to a temporary directory, proves packaged HTML/JavaScript content matches source after line-ending normalization, validates inventory exclusions, and reports SHA-256 hashes.
 5. The unpacked entity includes every indexed column selected by the runtime; static validation fails before packing if any selected panel column is absent.
+6. The main configuration form exposes all indexed panel columns; static validation fails if any indexed control is absent.
 
 ## Exclusions
 

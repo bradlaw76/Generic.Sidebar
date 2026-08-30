@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Core Solution Builder
 FILE:         scripts/build-core-solution.ps1
-VERSION:      1.1.0
+VERSION:      1.2.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-30
 ENVIRONMENT:  PowerShell | Power Platform CLI
@@ -14,6 +14,7 @@ uses Microsoft Power Platform CLI SolutionPackager to produce solution 1.0.0.6.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.2.0  2026-08-30  Require fixed-height flex correction in HTML 2.15.2
 v1.1.0  2026-08-30  Require schema-aligned HTML runtime 2.15.1
 v1.0.0  2026-08-28  Added reproducible PAC CLI Core solution packaging
 =============================================================================
@@ -42,8 +43,8 @@ foreach ($path in @($solutionXmlPath, $sourceHtml, $sourceJavaScript, $solutionH
     if (-not (Test-Path -LiteralPath $path)) { throw "Required build input is missing: $path" }
 }
 
-if ((Get-Content -Raw -LiteralPath $sourceHtml) -notmatch 'VERSION:\s+2\.15\.1') {
-    throw "Canonical HTML source must declare version 2.15.1."
+if ((Get-Content -Raw -LiteralPath $sourceHtml) -notmatch 'VERSION:\s+2\.15\.2') {
+    throw "Canonical HTML source must declare version 2.15.2."
 }
 if ((Get-Content -Raw -LiteralPath $sourceJavaScript) -notmatch 'VERSION:\s+2\.6\.0') {
     throw "Canonical JavaScript source must declare version 2.6.0."

@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.1.0
+VERSION:      1.2.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-08-30
 ENVIRONMENT:  Node.js | Vitest | jsdom
@@ -14,6 +14,7 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.2.0  2026-08-30  Verify configured height disables iframe flex growth
 v1.1.0  2026-08-30  Added legacy title and packaged schema regression coverage
 v1.0.0  2026-08-28  Added CORE-001 through CORE-014 acceptance coverage
 =============================================================================
@@ -185,6 +186,8 @@ describe("Generic Sidebar Core runtime reconciliation", () => {
     runtime.applyIframeOptions({ sidebar_iframewidth: 420, sidebar_iframeheight: 720 }, frame);
     expect(frame.style.width).toBe("420px");
     expect(frame.style.height).toBe("720px");
+    expect(frame.style.flexGrow).toBe("0");
+    expect(frame.style.flexBasis).toBe("720px");
     runtime.applyIframeOptions({ sidebar_iframewidth: -1, sidebar_iframeheight: "bad" }, frame);
     expect(frame.style.width).toBe("420px");
     expect(frame.style.height).toBe("720px");
