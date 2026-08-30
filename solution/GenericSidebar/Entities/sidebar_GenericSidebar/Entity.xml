@@ -1361,6 +1361,187 @@
             <Description description="" languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="sidebar_Title1">
+          <Type>nvarchar</Type>
+          <Name>sidebar_title1</Name>
+          <LogicalName>sidebar_title1</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>text</Format>
+          <MaxLength>100</MaxLength>
+          <Length>200</Length>
+          <displaynames><displayname description="Panel 1 title" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 1 title" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Title2">
+          <Type>nvarchar</Type>
+          <Name>sidebar_title2</Name>
+          <LogicalName>sidebar_title2</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>100</MaxLength><Length>200</Length>
+          <displaynames><displayname description="Panel 2 title" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 2 title" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Title3">
+          <Type>nvarchar</Type>
+          <Name>sidebar_title3</Name>
+          <LogicalName>sidebar_title3</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>100</MaxLength><Length>200</Length>
+          <displaynames><displayname description="Panel 3 title" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 3 title" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Title4">
+          <Type>nvarchar</Type>
+          <Name>sidebar_title4</Name>
+          <LogicalName>sidebar_title4</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>100</MaxLength><Length>200</Length>
+          <displaynames><displayname description="Panel 4 title" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 4 title" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Instructions2">
+          <Type>ntext</Type><Name>sidebar_instructions2</Name><LogicalName>sidebar_instructions2</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>richtext</Format><MaxLength>500</MaxLength>
+          <displaynames><displayname description="Panel 2 instructions" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 2 instructions" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Instructions3">
+          <Type>ntext</Type><Name>sidebar_instructions3</Name><LogicalName>sidebar_instructions3</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>richtext</Format><MaxLength>500</MaxLength>
+          <displaynames><displayname description="Panel 3 instructions" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 3 instructions" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Instructions4">
+          <Type>ntext</Type><Name>sidebar_instructions4</Name><LogicalName>sidebar_instructions4</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>richtext</Format><MaxLength>500</MaxLength>
+          <displaynames><displayname description="Panel 4 instructions" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 4 instructions" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Embedcode2">
+          <Type>ntext</Type><Name>sidebar_embedcode2</Name><LogicalName>sidebar_embedcode2</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>20000</MaxLength>
+          <displaynames><displayname description="Panel 2 embed code" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 2 embed code" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Embedcode3">
+          <Type>ntext</Type><Name>sidebar_embedcode3</Name><LogicalName>sidebar_embedcode3</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>20000</MaxLength>
+          <displaynames><displayname description="Panel 3 embed code" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 3 embed code" languagecode="1033" /></Descriptions>
+        </attribute>
+        <attribute PhysicalName="sidebar_Embedcode4">
+          <Type>ntext</Type><Name>sidebar_embedcode4</Name><LogicalName>sidebar_embedcode4</LogicalName><RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask><ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi><ValidForReadApi>1</ValidForReadApi><ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField><IsAuditEnabled>1</IsAuditEnabled><IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.6</IntroducedVersion><IsCustomizable>1</IsCustomizable><IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings><CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings><CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType><IsGlobalFilterEnabled>0</IsGlobalFilterEnabled><IsSortableEnabled>1</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings><CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret><AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable><IsFilterable>0</IsFilterable><IsRetrievable>0</IsRetrievable><IsLocalizable>0</IsLocalizable>
+          <Format>text</Format><MaxLength>20000</MaxLength>
+          <displaynames><displayname description="Panel 4 embed code" languagecode="1033" /></displaynames>
+          <Descriptions><Description description="Panel 4 embed code" languagecode="1033" /></Descriptions>
+        </attribute>
         <attribute PhysicalName="sidebar_TItle">
           <Type>nvarchar</Type>
           <Name>sidebar_title</Name>

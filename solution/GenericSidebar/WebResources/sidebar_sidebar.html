@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      2.15.0
+VERSION:      2.15.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-28
+LAST UPDATED: 2026-08-30
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -506,7 +506,7 @@ NON-NEGOTIABLES (Architecture Contract)
       if (!embed) return;
       panels.push({
         index,
-        title: (rec[titleField] || "").trim() || `Panel ${index}`,
+        title: (rec[titleField] || (index === 1 ? rec.sidebar_title : "") || "").trim() || `Panel ${index}`,
         instr: (rec[instructionField] || "").trim(),
         embed
       });
@@ -827,7 +827,7 @@ NON-NEGOTIABLES (Architecture Contract)
       if (!parent?.Xrm?.WebApi) throw new Error("Xrm.WebApi not available.");
       const select =
         "?$select=" +
-        "sidebar_title1,sidebar_instructions,sidebar_embedcode," +
+        "sidebar_title,sidebar_title1,sidebar_instructions,sidebar_embedcode," +
         "sidebar_title2,sidebar_instructions2,sidebar_embedcode2," +
         "sidebar_title3,sidebar_instructions3,sidebar_embedcode3," +
         "sidebar_title4,sidebar_instructions4,sidebar_embedcode4," +

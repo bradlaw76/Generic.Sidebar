@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.0.0
+VERSION:      1.1.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-28
+LAST UPDATED: 2026-08-30
 ENVIRONMENT:  Node.js | Vitest | jsdom
 
 OVERVIEW
@@ -14,6 +14,7 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.1.0  2026-08-30  Added legacy title and packaged schema regression coverage
 v1.0.0  2026-08-28  Added CORE-001 through CORE-014 acceptance coverage
 =============================================================================
 */
@@ -79,6 +80,16 @@ describe("Generic Sidebar Core runtime reconciliation", () => {
     runtime.renderRuntime(panelRecord(1), "config-one");
     expect(window.document.querySelectorAll(".panel-frame")).toHaveLength(1);
     expect(window.document.getElementById("tabRow").style.display).toBe("none");
+    dom.window.close();
+  });
+
+  it("CORE-001 preserves the legacy primary title", () => {
+    const { dom, runtime } = createHtmlRuntime();
+    const result = runtime.renderRuntime(panelRecord(1, {
+      sidebar_title: "Legacy title",
+      sidebar_title1: null
+    }), "config-legacy-title");
+    expect(result.panels[0].title).toBe("Legacy title");
     dom.window.close();
   });
 

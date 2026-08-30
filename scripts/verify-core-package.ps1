@@ -2,18 +2,19 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Core Package Verifier
 FILE:         scripts/verify-core-package.ps1
-VERSION:      1.0.0
+VERSION:      1.1.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-28
+LAST UPDATED: 2026-08-30
 ENVIRONMENT:  PowerShell | ZIP
 
 OVERVIEW
 -----------------------------------------------------------------------------
 Extracts the generated package to a temporary directory, validates Core-only
-inventory and solution metadata, proves runtime byte identity, and emits hashes.
+inventory and solution metadata, proves normalized runtime identity, and emits hashes.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.1.0  2026-08-30  Normalize runtime line endings before identity comparison
 v1.0.0  2026-08-28  Added Core package identity and inventory verification
 =============================================================================
 #>
@@ -28,6 +29,12 @@ $sourceJavaScript = Join-Path $root "web resources/sidebar_sidebar.js"
 $extractRoot = Join-Path ([IO.Path]::GetTempPath()) ("GenericSidebar-verify-" + [guid]::NewGuid().ToString("N"))
 
 if (-not (Test-Path -LiteralPath $package)) { throw "Package not found: $package" }
+
+function Get-NormalizedTextHash([string]$Path) {
+    $content = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($content)
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+}
 
 try {
     Expand-Archive -LiteralPath $package -DestinationPath $extractRoot
@@ -53,10 +60,10 @@ try {
     $packagedHtml = $packagedHtmlMatches[0]
     $packagedJavaScript = $packagedJavaScriptMatches[0]
 
-    $sourceHtmlHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceHtml).Hash
-    $sourceJavaScriptHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceJavaScript).Hash
-    $packagedHtmlHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagedHtml.FullName).Hash
-    $packagedJavaScriptHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagedJavaScript.FullName).Hash
+    $sourceHtmlHash = Get-NormalizedTextHash $sourceHtml
+    $sourceJavaScriptHash = Get-NormalizedTextHash $sourceJavaScript
+    $packagedHtmlHash = Get-NormalizedTextHash $packagedHtml.FullName
+    $packagedJavaScriptHash = Get-NormalizedTextHash $packagedJavaScript.FullName
     $packageHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $package).Hash
     if ($sourceHtmlHash -ne $packagedHtmlHash) { throw "Packaged HTML does not match canonical source." }
     if ($sourceJavaScriptHash -ne $packagedJavaScriptHash) { throw "Packaged JavaScript does not match canonical source." }
