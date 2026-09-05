@@ -37,7 +37,7 @@ The generated ZIP is authoritative for installed behavior. The build must use ve
 1. `solution/GenericSidebar` is produced once from solution 1.0.0.5 using `pac solution unpack` and then maintained as the version-controlled solution source.
 2. `scripts/build-core-solution.ps1` copies the canonical HTML and JavaScript into their mapped unpacked web-resource files, validates the Core-only inventory, validates solution version 1.0.0.7, and invokes `pac solution pack`.
 3. The build writes `GenericSidebar_1_0_0_7.zip`; the superseded 1.0.0.6 package is not retained as a current release artifact.
-4. The verification script extracts the generated package to a temporary directory, proves packaged HTML/JavaScript content is byte-for-byte identical to source, validates inventory exclusions, and reports SHA-256 hashes.
+4. The verification script extracts the generated package to a temporary directory, proves packaged HTML/JavaScript content is identical after text line-ending normalization, retains exact-byte checks for binary resources, validates inventory exclusions, and reports SHA-256 hashes.
 5. The unpacked entity includes every indexed column selected by the runtime; static validation fails before packing if any selected panel column is absent.
 6. The main configuration form exposes all indexed panel columns; static validation fails if any indexed control is absent.
 7. `CORE-015` extracts the committed ZIP and fails when any runtime-selected or filtered `sidebar_genericsidebar` field is absent from `customizations.xml`.

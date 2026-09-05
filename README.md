@@ -9,7 +9,7 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 
 * Packages the aligned one-through-four-panel runtime and its complete Dataverse field contract.
 * Includes 23 runtime-read fields and 47 packaged fields with zero missing.
-* Verifies committed-package schema coverage and byte-for-byte web-resource identity in repository tests.
+* Verifies committed-package schema coverage, normalized text-content identity, and exact binary identity in repository tests.
 
 ### Admin Acknowledgement Banner
 

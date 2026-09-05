@@ -2,18 +2,20 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Core Package Verifier
 FILE:         scripts/verify-core-package.ps1
-VERSION:      1.2.0
+VERSION:      1.3.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-09-04
+LAST UPDATED: 2026-09-05
 ENVIRONMENT:  PowerShell | ZIP
 
 OVERVIEW
 -----------------------------------------------------------------------------
 Extracts the generated package to a temporary directory, validates Core-only
-inventory and solution metadata, proves byte-for-byte runtime identity, and emits hashes.
+inventory and solution metadata, compares text with normalized line endings,
+compares binary resources byte-for-byte, and emits hashes.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.3.0  2026-09-05  Normalize text line endings while preserving exact binary checks
 v1.2.0  2026-09-04  Verify solution 1.0.0.7 and raw runtime bytes
 v1.1.0  2026-08-30  Normalize runtime line endings before identity comparison
 v1.0.0  2026-08-28  Added Core package identity and inventory verification
@@ -33,6 +35,102 @@ if (-not (Test-Path -LiteralPath $package)) { throw "Package not found: $package
 
 function Get-RawFileHash([string]$Path) {
     return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash
+}
+
+function Test-BytePrefix([byte[]]$Bytes, [byte[]]$Prefix) {
+    if ($Bytes.Length -lt $Prefix.Length) { return $false }
+    for ($index = 0; $index -lt $Prefix.Length; $index++) {
+        if ($Bytes[$index] -ne $Prefix[$index]) { return $false }
+    }
+    return $true
+}
+
+function Get-NormalizedText([string]$Path) {
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    $offset = 0
+    if (Test-BytePrefix $bytes ([byte[]](0xFF, 0xFE, 0x00, 0x00))) {
+        $encodingName = "utf-32-le-bom"
+        $encoding = [Text.UTF32Encoding]::new($false, $true, $true)
+        $offset = 4
+    }
+    elseif (Test-BytePrefix $bytes ([byte[]](0x00, 0x00, 0xFE, 0xFF))) {
+        $encodingName = "utf-32-be-bom"
+        $encoding = [Text.UTF32Encoding]::new($true, $true, $true)
+        $offset = 4
+    }
+    elseif (Test-BytePrefix $bytes ([byte[]](0xEF, 0xBB, 0xBF))) {
+        $encodingName = "utf-8-bom"
+        $encoding = [Text.UTF8Encoding]::new($false, $true)
+        $offset = 3
+    }
+    elseif (Test-BytePrefix $bytes ([byte[]](0xFF, 0xFE))) {
+        $encodingName = "utf-16-le-bom"
+        $encoding = [Text.UnicodeEncoding]::new($false, $true, $true)
+        $offset = 2
+    }
+    elseif (Test-BytePrefix $bytes ([byte[]](0xFE, 0xFF))) {
+        $encodingName = "utf-16-be-bom"
+        $encoding = [Text.UnicodeEncoding]::new($true, $true, $true)
+        $offset = 2
+    }
+    else {
+        $encodingName = "utf-8"
+        $encoding = [Text.UTF8Encoding]::new($false, $true)
+    }
+
+    try {
+        $content = $encoding.GetString($bytes, $offset, $bytes.Length - $offset)
+    }
+    catch {
+        throw "Text resource is not valid $encodingName`: $Path"
+    }
+
+    [pscustomobject]@{
+        Encoding = $encodingName
+        Content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    }
+}
+
+function Get-StringHash([string]$Content) {
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [Text.UTF8Encoding]::new($false).GetBytes($Content)
+        return [BitConverter]::ToString($sha256.ComputeHash($bytes)).Replace("-", "")
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+function Compare-Resource([string]$SourcePath, [string]$PackagedPath) {
+    $textExtensions = @(".css", ".htm", ".html", ".js", ".json", ".md", ".markdown", ".mjs", ".cjs", ".txt", ".xml")
+    $extension = [IO.Path]::GetExtension($SourcePath)
+    if ($textExtensions -contains $extension.ToLowerInvariant()) {
+        $source = Get-NormalizedText $SourcePath
+        $packaged = Get-NormalizedText $PackagedPath
+        if ($source.Encoding -cne $packaged.Encoding) {
+            throw "Packaged resource encoding does not match canonical source: $SourcePath"
+        }
+        if ($source.Content -cne $packaged.Content) {
+            throw "Packaged text does not match canonical source after line-ending normalization: $SourcePath"
+        }
+        return [pscustomobject]@{
+            Mode = "NormalizedText"
+            SourceHash = Get-StringHash $source.Content
+            PackagedHash = Get-StringHash $packaged.Content
+        }
+    }
+
+    $sourceHash = Get-RawFileHash $SourcePath
+    $packagedHash = Get-RawFileHash $PackagedPath
+    if ($sourceHash -cne $packagedHash) {
+        throw "Packaged binary does not match canonical source: $SourcePath"
+    }
+    return [pscustomobject]@{
+        Mode = "ExactBytes"
+        SourceHash = $sourceHash
+        PackagedHash = $packagedHash
+    }
 }
 
 try {
@@ -59,23 +157,21 @@ try {
     $packagedHtml = $packagedHtmlMatches[0]
     $packagedJavaScript = $packagedJavaScriptMatches[0]
 
-    $sourceHtmlHash = Get-RawFileHash $sourceHtml
-    $sourceJavaScriptHash = Get-RawFileHash $sourceJavaScript
-    $packagedHtmlHash = Get-RawFileHash $packagedHtml.FullName
-    $packagedJavaScriptHash = Get-RawFileHash $packagedJavaScript.FullName
+    $htmlComparison = Compare-Resource $sourceHtml $packagedHtml.FullName
+    $javaScriptComparison = Compare-Resource $sourceJavaScript $packagedJavaScript.FullName
     $packageHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $package).Hash
-    if ($sourceHtmlHash -ne $packagedHtmlHash) { throw "Packaged HTML does not match canonical source." }
-    if ($sourceJavaScriptHash -ne $packagedJavaScriptHash) { throw "Packaged JavaScript does not match canonical source." }
 
     [pscustomobject]@{
         SolutionName = $manifest.UniqueName
         SolutionVersion = $manifest.Version
         Managed = $manifest.Managed
         Inventory = $entries
-        SourceHtmlSha256 = $sourceHtmlHash
-        SourceJavaScriptSha256 = $sourceJavaScriptHash
-        PackagedHtmlSha256 = $packagedHtmlHash
-        PackagedJavaScriptSha256 = $packagedJavaScriptHash
+        HtmlComparisonMode = $htmlComparison.Mode
+        JavaScriptComparisonMode = $javaScriptComparison.Mode
+        SourceHtmlSha256 = $htmlComparison.SourceHash
+        SourceJavaScriptSha256 = $javaScriptComparison.SourceHash
+        PackagedHtmlSha256 = $htmlComparison.PackagedHash
+        PackagedJavaScriptSha256 = $javaScriptComparison.PackagedHash
         PackageSha256 = $packageHash
     } | ConvertTo-Json -Depth 4
 }
