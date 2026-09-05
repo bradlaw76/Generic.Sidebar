@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.3.0
+VERSION:      1.4.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-30
+LAST UPDATED: 2026-09-04
 ENVIRONMENT:  Node.js | Vitest | jsdom
 
 OVERVIEW
@@ -14,6 +14,7 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.4.0  2026-09-04  Verify committed package contains every runtime query field
 v1.3.0  2026-08-30  Verify four-panel capacity and portable module paths
 v1.2.0  2026-08-30  Verify configured height disables iframe flex growth
 v1.1.0  2026-08-30  Added legacy title and packaged schema regression coverage
@@ -23,12 +24,29 @@ v1.0.0  2026-08-28  Added CORE-001 through CORE-014 acceptance coverage
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import AdmZip from "adm-zip";
 import { JSDOM } from "jsdom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const htmlSource = readFileSync(resolve(root, "web resources/sidebar_sidebar.html"), "utf8");
 const paneSource = readFileSync(resolve(root, "web resources/sidebar_sidebar.js"), "utf8");
+
+function getRuntimeQueryFields(...sources) {
+  const fields = new Set();
+  for (const source of sources) {
+    const clauses = [
+      ...Array.from(source.matchAll(/const select\s*=\s*([\s\S]*?);/g), (match) => match[1]),
+      ...Array.from(source.matchAll(/\$filter=([^&`"']+)/g), (match) => match[1])
+    ];
+    for (const clause of clauses) {
+      for (const match of clause.matchAll(/\bsidebar_[a-z0-9_]+\b/gi)) {
+        fields.add(match[0].toLowerCase());
+      }
+    }
+  }
+  return fields;
+}
 
 function createHtmlRuntime() {
   const dom = new JSDOM(htmlSource, {
@@ -78,6 +96,20 @@ afterEach(() => {
 });
 
 describe("Generic Sidebar Core runtime reconciliation", () => {
+  it("CORE-015 committed package contains every runtime-selected or filtered field", () => {
+    const archive = new AdmZip(resolve(root, "GenericSidebar_1_0_0_7.zip"));
+    const customizations = archive.readAsText("customizations.xml");
+    const packagedFields = new Set(
+      Array.from(customizations.matchAll(/<attribute\s+PhysicalName="([^"]+)"/g), (match) => match[1].toLowerCase())
+    );
+    const runtimeFields = getRuntimeQueryFields(htmlSource, paneSource);
+    const missingFields = [...runtimeFields].filter((field) => !packagedFields.has(field)).sort();
+
+    expect(runtimeFields.size).toBe(23);
+    expect(packagedFields.size).toBe(47);
+    expect(missingFields).toEqual([]);
+  });
+
   it("CORE-001 single panel renders without tabs", () => {
     const { dom, window, runtime } = createHtmlRuntime();
     runtime.renderRuntime(panelRecord(1), "config-one");

@@ -2,24 +2,25 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Core Package Verifier
 FILE:         scripts/verify-core-package.ps1
-VERSION:      1.1.0
+VERSION:      1.2.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-30
+LAST UPDATED: 2026-09-04
 ENVIRONMENT:  PowerShell | ZIP
 
 OVERVIEW
 -----------------------------------------------------------------------------
 Extracts the generated package to a temporary directory, validates Core-only
-inventory and solution metadata, proves normalized runtime identity, and emits hashes.
+inventory and solution metadata, proves byte-for-byte runtime identity, and emits hashes.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.2.0  2026-09-04  Verify solution 1.0.0.7 and raw runtime bytes
 v1.1.0  2026-08-30  Normalize runtime line endings before identity comparison
 v1.0.0  2026-08-28  Added Core package identity and inventory verification
 =============================================================================
 #>
 [CmdletBinding()]
-param([string]$PackagePath = "GenericSidebar_1_0_0_6.zip")
+param([string]$PackagePath = "GenericSidebar_1_0_0_7.zip")
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -30,10 +31,8 @@ $extractRoot = Join-Path ([IO.Path]::GetTempPath()) ("GenericSidebar-verify-" + 
 
 if (-not (Test-Path -LiteralPath $package)) { throw "Package not found: $package" }
 
-function Get-NormalizedTextHash([string]$Path) {
-    $content = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
-    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($content)
-    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+function Get-RawFileHash([string]$Path) {
+    return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash
 }
 
 try {
@@ -41,7 +40,7 @@ try {
     [xml]$solutionXml = Get-Content -Raw -LiteralPath (Join-Path $extractRoot "solution.xml")
     $manifest = $solutionXml.ImportExportXml.SolutionManifest
     if ($manifest.UniqueName -ne "GenericSidebar") { throw "Unexpected solution name: $($manifest.UniqueName)" }
-    if ($manifest.Version -ne "1.0.0.6") { throw "Unexpected solution version: $($manifest.Version)" }
+    if ($manifest.Version -ne "1.0.0.7") { throw "Unexpected solution version: $($manifest.Version)" }
     if ($manifest.Managed -ne "0") { throw "Generated package must be unmanaged." }
 
     $entries = Get-ChildItem -LiteralPath $extractRoot -Recurse -File | ForEach-Object {
@@ -60,10 +59,10 @@ try {
     $packagedHtml = $packagedHtmlMatches[0]
     $packagedJavaScript = $packagedJavaScriptMatches[0]
 
-    $sourceHtmlHash = Get-NormalizedTextHash $sourceHtml
-    $sourceJavaScriptHash = Get-NormalizedTextHash $sourceJavaScript
-    $packagedHtmlHash = Get-NormalizedTextHash $packagedHtml.FullName
-    $packagedJavaScriptHash = Get-NormalizedTextHash $packagedJavaScript.FullName
+    $sourceHtmlHash = Get-RawFileHash $sourceHtml
+    $sourceJavaScriptHash = Get-RawFileHash $sourceJavaScript
+    $packagedHtmlHash = Get-RawFileHash $packagedHtml.FullName
+    $packagedJavaScriptHash = Get-RawFileHash $packagedJavaScript.FullName
     $packageHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $package).Hash
     if ($sourceHtmlHash -ne $packagedHtmlHash) { throw "Packaged HTML does not match canonical source." }
     if ($sourceJavaScriptHash -ne $packagedJavaScriptHash) { throw "Packaged JavaScript does not match canonical source." }

@@ -2,18 +2,19 @@
 =============================================================================
 COMPONENT:    Generic Sidebar Core Solution Builder
 FILE:         scripts/build-core-solution.ps1
-VERSION:      1.2.0
+VERSION:      1.3.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-30
+LAST UPDATED: 2026-09-04
 ENVIRONMENT:  PowerShell | Power Platform CLI
 
 OVERVIEW
 -----------------------------------------------------------------------------
 Synchronizes canonical Core runtime files into unpacked solution source and
-uses Microsoft Power Platform CLI SolutionPackager to produce solution 1.0.0.6.
+uses Microsoft Power Platform CLI SolutionPackager to produce solution 1.0.0.7.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.3.0  2026-09-04  Advance Core solution package to 1.0.0.7
 v1.2.0  2026-08-30  Require fixed-height flex correction in HTML 2.15.2
 v1.1.0  2026-08-30  Require schema-aligned HTML runtime 2.15.1
 v1.0.0  2026-08-28  Added reproducible PAC CLI Core solution packaging
@@ -21,7 +22,7 @@ v1.0.0  2026-08-28  Added reproducible PAC CLI Core solution packaging
 #>
 [CmdletBinding()]
 param(
-    [string]$OutputPath = "GenericSidebar_1_0_0_6.zip",
+    [string]$OutputPath = "GenericSidebar_1_0_0_7.zip",
     [switch]$SkipTests
 )
 
@@ -70,7 +71,7 @@ Copy-Item -LiteralPath $sourceJavaScript -Destination $solutionJavaScript -Force
 $manifest = $solutionXml.ImportExportXml.SolutionManifest
 if ($manifest.UniqueName -ne "GenericSidebar") { throw "Unexpected solution unique name: $($manifest.UniqueName)" }
 if ($manifest.Managed -ne "0") { throw "Only the unmanaged Generic Sidebar Core solution is supported." }
-$manifest.Version = "1.0.0.6"
+$manifest.Version = "1.0.0.7"
 $settings = [Xml.XmlWriterSettings]::new()
 $settings.Encoding = [Text.UTF8Encoding]::new($false)
 $settings.Indent = $true

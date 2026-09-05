@@ -2,6 +2,8 @@
   "system": {
     "name": "Generic.Sidebar",
     "version": "2.1.0",
+    "solutionVersion": "1.0.0.7",
+    "releaseArtifact": "GenericSidebar_1_0_0_7.zip",
     "status": "ACTIVE",
     "type": "hybrid"
   },

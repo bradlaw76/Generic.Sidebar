@@ -4,14 +4,14 @@ COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.js
 VERSION:      2.6.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-28
+LAST UPDATED: 2026-09-04
 ENVIRONMENT:  JavaScript
 PORTAL URL:   N/A
 
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Canonical Generic Sidebar Core pane controller aligned with solution 1.0.0.6.
+Canonical Generic Sidebar Core pane controller aligned with solution 1.0.0.7.
 
 -----------------------------------------------------------------------------
 ARCHITECTURE
@@ -64,6 +64,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.6.0  2026-09-04  Aligned unchanged runtime with solution 1.0.0.7
 v2.6.0  2026-08-28  Reconciled source and packaged Core navigation behavior
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
@@ -74,7 +75,7 @@ NON-NEGOTIABLES (Architecture Contract)
 - Changes must be additive unless explicitly approved.
 =============================================================================
 */
-// v2.6.0 - Canonical solution 1.0.0.6 pane lifecycle and navigation behavior.
+// v2.6.0 - Canonical solution 1.0.0.7 pane lifecycle and navigation behavior.
 
 (function () {
   const PANE_ID = "genericSidebarPane";
