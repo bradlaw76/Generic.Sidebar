@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppModule>
+  <UniqueName>sidebar_GenericSidebar</UniqueName>
+  <IntroducedVersion>1.0.0.1</IntroducedVersion>
+  <WebResourceId>98c31835-328f-f011-b4cc-001dd809c7de</WebResourceId>
+  <OptimizedFor></OptimizedFor>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <WelcomePageId>e0806af3-908d-f011-b4cc-001dd809c74f</WelcomePageId>
+  <FormFactor>1</FormFactor>
+  <ClientType>4</ClientType>
+  <NavigationType>0</NavigationType>
+  <AppModuleComponents>
+    <AppModuleComponent type="1" schemaName="sidebar_genericsidebar" />
+    <AppModuleComponent type="62" schemaName="sidebar_GenericSidebar" />
+  </AppModuleComponents>
+  <AppModuleRoleMaps>
+    <Role id="{627090ff-40a3-4053-8790-584edc5be201}" />
+    <Role id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+  </AppModuleRoleMaps>
+  <LocalizedNames>
+    <LocalizedName description="Generic.Sidebar" languagecode="1033" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description description="Holds code for custom sidebars. &#xA;&#xA;Generic.Sidebar" languagecode="1033" />
+  </Descriptions>
+  <appsettings>
+    <appsetting settingdefinitionid.uniquename="AppChannel">
+      <iscustomizable>1</iscustomizable>
+      <value>1</value>
+    </appsetting>
+    <appsetting settingdefinitionid.uniquename="EnablePowerBIQuickReport">
+      <iscustomizable>1</iscustomizable>
+      <value>false</value>
+    </appsetting>
+    <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotForApps">
+      <iscustomizable>1</iscustomizable>
+      <value>false</value>
+    </appsetting>
+    <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotInteractions">
+      <iscustomizable>1</iscustomizable>
+      <value>false</value>
+    </appsetting>
+    <appsetting settingdefinitionid.uniquename="msdyn_TimelineModernization">
+      <iscustomizable>1</iscustomizable>
+      <value>true</value>
+    </appsetting>
+    <appsetting settingdefinitionid.uniquename="NewLookOptOut">
+      <iscustomizable>1</iscustomizable>
+      <value>false</value>
+    </appsetting>
+  </appsettings>
+</AppModule>

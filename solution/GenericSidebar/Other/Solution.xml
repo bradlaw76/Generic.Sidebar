@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.25081.260" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25081.260" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.25081.00260">
+  <SolutionManifest>
+    <UniqueName>GenericSidebar</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Generic.Sidebar" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions />
+    <Version>1.0.0.7</Version>
+    <Managed>0</Managed>
+    <ConfigurationPage>sidebar_welcome</ConfigurationPage>
+    <Publisher>
+      <UniqueName>GenericSidebar</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Generic Sidebar" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="Generic Sidebar" languagecode="1033" />
+      </Descriptions>
+      <EMailAddress xsi:nil="true"></EMailAddress>
+      <SupportingWebsiteUrl xsi:nil="true"></SupportingWebsiteUrl>
+      <CustomizationPrefix>sidebar</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>17252</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="1" schemaName="incident" behavior="2" />
+      <RootComponent type="1" schemaName="sidebar_genericsidebar" behavior="0" />
+      <RootComponent type="29" id="{2c237473-988d-f011-b4cc-001dd809c7de}" behavior="0" />
+      <RootComponent type="431" schemaName="sidebar_genericsidebar sidebar_icon" behavior="0" />
+      <RootComponent type="432" schemaName="sidebar_genericsidebar" behavior="0" />
+      <RootComponent type="61" schemaName="sidebar_genericsidebarlogo" behavior="0" />
+      <RootComponent type="61" schemaName="sidebar_sidebar.html" behavior="0" />
+      <RootComponent type="61" schemaName="sidebar_sidebar.js" behavior="0" />
+      <RootComponent type="61" schemaName="sidebar_welcome" behavior="0" />
+      <RootComponent type="62" schemaName="sidebar_GenericSidebar" behavior="0" />
+      <RootComponent type="80" schemaName="sidebar_GenericSidebar" behavior="0" />
+    </RootComponents>
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="1" schemaName="incident" displayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="1" schemaName="incident" displayName="Case" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="knowledgearticleincident" displayName="Knowledge Article Incident" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="caseorigincode" displayName="Origin" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="casetypecode" displayName="Case Type" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="createdon" displayName="Created On" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="customerid" displayName="Customer" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="description" displayName="Description" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="entitlementid" displayName="Entitlement" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="escalatedon" displayName="Escalated On" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="incidentid" displayName="Case" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="isescalated" displayName="Is Escalated" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="msdyn_precreateattachmentsid" displayName="Pre Create Entity Attachments Id" parentSchemaName="incident" parentDisplayName="Case" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="msdyn_precreatenotesid" displayName="Pre Create Notes Id" parentSchemaName="incident" parentDisplayName="Case" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="ownerid" displayName="Owner" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="parentcaseid" displayName="Parent Case" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="prioritycode" displayName="Priority" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="productid" displayName="Product" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="productserialnumber" displayName="Serial Number" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="statuscode" displayName="Status Reason" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="subjectid" displayName="Subject" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="ticketnumber" displayName="Case Number" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="title" displayName="Case Title" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="2" schemaName="traversedpath" displayName="(Deprecated) Traversed Path" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="20" displayName="CSR Manager" solution="msdynce_Service (9.0.5.56)" id="{14584f73-03b6-4dec-abf6-512b59287dc1}" parentId="{1808b939-dd07-4ca7-aa99-ddd2734378f1}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="20" displayName="Customer service app access" solution="msdynce_Customerservicehub (9.0.5.0056)" id="{3dac4d9e-568c-e611-80d4-00155d42a122}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="20" displayName="Customer Service Representative" solution="msdynce_Service (9.0.5.56)" id="{f4086adc-64b3-475c-b879-360f04da1180}" parentId="{ecfd0b44-5720-45e3-ae68-417ddb0fb654}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="26" schemaName="Active Products Lookup View" displayName="Active Products Lookup View" parentSchemaName="product" parentDisplayName="Product" solution="msdynce_ProductManagement (9.0.4.0066)" id="{58afc3c5-8add-4552-98cb-473bc8f75619}">
+          <package appName="msdynce_ProductManagement" version="9.0.25081.10002">msdynce_ProductManagementAnchor (9.0.25081.10002)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="26" schemaName="All Cases" displayName="All Cases" parentSchemaName="incident" parentDisplayName="Case" solution="msdynce_Service (9.0.5.56)" id="{00000000-0000-0000-00aa-000010001030}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="26" schemaName="Associated Knowledge Records View" displayName="Associated Knowledge Records View" parentSchemaName="knowledgearticleincident" parentDisplayName="Knowledge Article Incident" solution="msdynce_Service (9.0.5.56)" id="{4ce7d553-9bba-4d8f-b209-899af9d3937c}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="26" schemaName="Valid Entitlements for Cases" displayName="Valid Entitlements for Cases" parentSchemaName="entitlement" parentDisplayName="Entitlement" solution="msdynce_Service (9.0.5.56)" id="{e7ea283b-0490-4956-939b-3325e0798fb8}">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="60" displayName="Enhanced full case form" parentDisplayName="Case" solution="msdyn_ModernCaseManagement (9.0.25081.2016)" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="ModernCaseManagement/Incident/msdyn_ModernCaseManagement.js" displayName="ModernCaseManagement/Incident/msdyn_ModernCaseManagement.js" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_CopilotCaseSummaryLibrary.js" displayName="msdyn_CopilotCaseSummaryLibrary.js" solution="msdyn_CSIntelligence (9.2.25081.1033)">
+          <package appName="Service Intelligence Package" version="9.2.25081.1033">msdyn_ServiceIntelligenceAnchor (9.2.25081.1033)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.CSIntelligence.CopilotCaseSummaryControl" displayName="MscrmControls.CSIntelligence.CopilotCaseSummaryControl" solution="msdyn_CSIntelligence (9.2.25081.1033)">
+          <package appName="Service Intelligence Package" version="9.2.25081.1033">msdyn_ServiceIntelligenceAnchor (9.2.25081.1033)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.CustomerService.DueOpenActivitiesControl" displayName="MscrmControls.CustomerService.DueOpenActivitiesControl" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.CustomerService.SelectionTreeViewControl" displayName="MscrmControls.CustomerService.SelectionTreeViewControl" solution="msdynce_ServiceManagementControlsExtension (9.1.25074.1003)">
+          <package appName="msdynce_ServiceLevelAgreement" version="9.0.25081.1002">msdynce_ServiceLevelAgreementAnchor (9.0.25081.1002)</package>
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.DatasetControls.AssociatedGridControl" displayName="MscrmControls.DatasetControls.AssociatedGridControl" solution="msdynce_ServicePatch201911 (9.0.25081.1005)">
+          <package appName="msdynce_Service" version="9.0.25081.1005">msdynce_ServiceAnchor (9.0.25081.1005)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.AttachmentListControl" displayName="MscrmControls.FieldControls.AttachmentListControl" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.NotesControl" displayName="MscrmControls.FieldControls.NotesControl" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.OptionSetWrapper" displayName="MscrmControls.FieldControls.OptionSetWrapper" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Information" parentDisplayName="Generic.Sidebar" id="{469a1c80-d3aa-4f7f-b44c-8be3827a3ae8}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.OptionSetWrapper" displayName="MscrmControls.FieldControls.OptionSetWrapper" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.QueueItemControl" displayName="MscrmControls.FieldControls.QueueItemControl" solution="msdyn_ModernCaseManagement (9.0.25081.2016)">
+          <package appName="ServiceExtended" version="9.0.25081.2016">msdyn_ServiceExtendedAnchor (9.0.25081.2016)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.FieldControls.ToggleControl" displayName="MscrmControls.FieldControls.ToggleControl" solution="BaseCustomControlsCore (9.0.2508.1014)">
+          <package appName="Base Custom Controls" version="9.0.2508.1014">BaseCustomControlsCore (9.0.2508.1014)</package>
+        </Required>
+        <Dependent type="60" displayName="Information" parentDisplayName="Generic.Sidebar" id="{469a1c80-d3aa-4f7f-b44c-8be3827a3ae8}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.RichTextEditor.RichTextEditorControl" displayName="MscrmControls.RichTextEditor.RichTextEditorControl" solution="msdyn_RichTextEditor (1.25074.2.7178)">
+          <package appName="msdynce_Activities" version="9.0.25081.250902001">msdynce_EnableUCIByDefault (9.0.25081.250902001)</package>
+          <package appName="msdyn_CustomControlsExtended" version="1.25074.2.4607">msdyn_TimelineExtended (1.25074.2.4607)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.SlaTimer.SlaTimerControl" displayName="MscrmControls.SlaTimer.SlaTimerControl" solution="msdynce_ServiceLevelAgreementExtension (9.0.25081.1002)">
+          <package appName="msdynce_ServiceLevelAgreement" version="9.0.25081.1002">msdynce_ServiceLevelAgreementAnchor (9.0.25081.1002)</package>
+        </Required>
+        <Dependent type="60" displayName="Enhanced full case form" parentDisplayName="Case" id="{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.15)" id.uniquename="AppChannel">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.21">PowerAppsAppFramework_Anchor (1.0.0.21)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="AppChannel" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="EnablePowerBIQuickReport" solution="SettingDefinitionsData (9.2.2507.2507161)" id.uniquename="EnablePowerBIQuickReport">
+          <package appName="AppModule" version="9.2.2507.2507161">AppModuleSolutionAnchor (9.2.2507.2507161)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=EnablePowerBIQuickReport" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="EnablePowerBIQuickReport" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotForApps" solution="msdyn_TimelineExtended (1.25074.2.4607)" id.uniquename="msdyn_TimelineCopilotForApps">
+          <package appName="msdyn_CustomControlsExtended" version="1.25074.2.4607">msdyn_TimelineExtended (1.25074.2.4607)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=msdyn_TimelineCopilotForApps" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="msdyn_TimelineCopilotForApps" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotInteractions" solution="msdyn_TimelineExtended (1.25074.2.4607)" id.uniquename="msdyn_TimelineCopilotInteractions">
+          <package appName="msdyn_CustomControlsExtended" version="1.25074.2.4607">msdyn_TimelineExtended (1.25074.2.4607)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=msdyn_TimelineCopilotInteractions" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="msdyn_TimelineCopilotInteractions" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="msdyn_TimelineModernization" solution="msdyn_TimelineExtended (1.25074.2.4607)" id.uniquename="msdyn_TimelineModernization">
+          <package appName="msdyn_CustomControlsExtended" version="1.25074.2.4607">msdyn_TimelineExtended (1.25074.2.4607)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=msdyn_TimelineModernization" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="msdyn_TimelineModernization" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="NewLookOptOut" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.15)" id.uniquename="NewLookOptOut">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.21">PowerAppsAppFramework_Anchor (1.0.0.21)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sidebar_GenericSidebar,settingdefinitionid.uniquename=NewLookOptOut" id.parentappmoduleid.uniquename="sidebar_GenericSidebar" id.settingdefinitionid.uniquename="NewLookOptOut" />
+      </MissingDependency>
+    </MissingDependencies>
+  </SolutionManifest>
+</ImportExportXml>
