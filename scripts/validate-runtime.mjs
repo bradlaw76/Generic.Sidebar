@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    Core Runtime Static Validator
 FILE:         scripts/validate-runtime.mjs
-VERSION:      1.3.0
+VERSION:      1.4.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-30
+LAST UPDATED: 2026-09-05
 ENVIRONMENT:  Node.js
 
 OVERVIEW
@@ -13,6 +13,7 @@ Validates runtime versions, matrix coverage, and required canonical symbols.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.4.0  2026-09-05  Require configured-width-aware HTML runtime 2.15.3
 v1.3.0  2026-08-30  Support Node.js releases without import.meta.dirname
 v1.2.0  2026-08-30  Validate indexed controls on the main configuration form
 v1.1.0  2026-08-30  Validate every runtime-selected Dataverse column
@@ -38,7 +39,7 @@ const indexedColumns = [
 
 const required = {
   html: [
-    "VERSION:      2.15.2",
+    "VERSION:      2.15.3",
     "buildPanels",
     "renderRuntime",
     "applyIframeOptions",
@@ -67,4 +68,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Static runtime validation passed: HTML 2.15.2, JavaScript 2.6.0, 14 matrix capabilities, 10 indexed columns and form controls.");
+console.log("Static runtime validation passed: HTML 2.15.3, JavaScript 2.6.0, 14 matrix capabilities, 10 indexed columns and form controls.");

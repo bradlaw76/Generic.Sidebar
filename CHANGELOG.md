@@ -6,7 +6,8 @@
 - Preserved one-panel compatibility and four-panel behavior.
 - Preserved the aligned schema contract: 23 runtime-read fields, 47 packaged fields, and zero missing fields.
 - Added a committed-ZIP regression test that compares runtime-selected and filtered fields with `customizations.xml`.
-- Strengthened package verification to require encoding-preserving text identity after line-ending normalization and exact binary identity.
+- Strengthened package verification to cover every metadata-mapped resource, requiring encoding-preserving text identity after line-ending normalization and exact binary identity.
+- Preserved configured iframe widths during automatic zoom and retained 320px only as the fallback width.
 - Removed the superseded `GenericSidebar_1_0_0_6.zip` release artifact.
 
 ## 1.0.0.6 - 2026-08-30

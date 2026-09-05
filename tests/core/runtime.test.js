@@ -2,7 +2,7 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.4.0
+VERSION:      1.5.0
 AUTHOR:       Generic.Sidebar Team
 LAST UPDATED: 2026-09-04
 ENVIRONMENT:  Node.js | Vitest | jsdom
@@ -14,6 +14,7 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.5.0  2026-09-05  Verify fallback and configured automatic zoom widths
 v1.4.0  2026-09-04  Verify committed package contains every runtime query field
 v1.3.0  2026-08-30  Verify four-panel capacity and portable module paths
 v1.2.0  2026-08-30  Verify configured height disables iframe flex growth
@@ -214,17 +215,53 @@ describe("Generic Sidebar Core runtime reconciliation", () => {
     dom.window.close();
   });
 
-  it("CORE-010 iframe dimensions honor valid configuration", () => {
+  it("CORE-010 uses the documented 320px zoom fallback", () => {
     const { dom, window, runtime } = createHtmlRuntime();
     const frame = window.document.createElement("iframe");
-    runtime.applyIframeOptions({ sidebar_iframewidth: 420, sidebar_iframeheight: 720 }, frame);
-    expect(frame.style.width).toBe("420px");
+    runtime.applyIframeOptions({}, frame);
+    expect(frame.style.width).toBe("100%");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-width")).toBe("320px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-scale")).toBe("1.5625");
+    dom.window.close();
+  });
+
+  it("CORE-010 configured iframe width controls zoom sizing", () => {
+    const { dom, window, runtime } = createHtmlRuntime();
+    const frame = window.document.createElement("iframe");
+    runtime.applyIframeOptions({ sidebar_iframewidth: 400, sidebar_iframeheight: 720 }, frame);
+    expect(frame.style.width).toBe("400px");
     expect(frame.style.height).toBe("720px");
     expect(frame.style.flexGrow).toBe("0");
     expect(frame.style.flexBasis).toBe("720px");
-    runtime.applyIframeOptions({ sidebar_iframewidth: -1, sidebar_iframeheight: "bad" }, frame);
-    expect(frame.style.width).toBe("420px");
-    expect(frame.style.height).toBe("720px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-width")).toBe("400px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-scale")).toBe("1.25");
+    dom.window.close();
+  });
+
+  it("CORE-010 configured width remains authoritative during automatic zoom", () => {
+    const { dom, runtime } = createHtmlRuntime();
+    const result = runtime.renderRuntime(panelRecord(1, {
+      sidebar_title1: "Phone",
+      sidebar_iframewidth: 400
+    }), "config-auto-zoom-width");
+    const frame = result.iframes[0];
+    expect(frame.classList.contains("force-zoom")).toBe(true);
+    expect(frame.style.width).toBe("400px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-width")).toBe("400px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-scale")).toBe("1.25");
+    expect(htmlSource).toContain("width: var(--sidebar-zoom-width, 320px) !important");
+    expect(htmlSource).toContain("min-width: var(--sidebar-zoom-width, 320px) !important");
+    expect(htmlSource).toContain("max-width: var(--sidebar-zoom-width, 320px) !important");
+    dom.window.close();
+  });
+
+  it("CORE-010 invalid iframe width falls back safely", () => {
+    const { dom, window, runtime } = createHtmlRuntime();
+    const frame = window.document.createElement("iframe");
+    runtime.applyIframeOptions({ sidebar_iframewidth: -1 }, frame);
+    expect(frame.style.width).toBe("100%");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-width")).toBe("320px");
+    expect(frame.style.getPropertyValue("--sidebar-zoom-scale")).toBe("1.5625");
     dom.window.close();
   });
 

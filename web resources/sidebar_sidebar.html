@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      2.15.2
+VERSION:      2.15.3
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-09-04
+LAST UPDATED: 2026-09-05
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -65,6 +65,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.15.3 2026-09-05  Honor configured iframe width during automatic zoom
 v2.15.2 2026-09-04  Aligned unchanged runtime with solution 1.0.0.7
 v2.15.0 2026-08-28  Reconciled source and packaged Core capabilities
 v1.0.0  2026-03-04  Added SpeckKit component header block
@@ -82,7 +83,7 @@ NON-NEGOTIABLES (Architecture Contract)
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sidebar v2.15.0 - Canonical Core Runtime</title>
+  <title>Sidebar v2.15.3 - Canonical Core Runtime</title>
 
   <style>
     :root {
@@ -316,12 +317,12 @@ NON-NEGOTIABLES (Architecture Contract)
 
     /* Zooming for Genesys / phone simulators - NO framing */
     .force-zoom {
-      width: 320px !important;
-      min-width: 320px !important;
-      max-width: 320px !important;
+      width: var(--sidebar-zoom-width, 320px) !important;
+      min-width: var(--sidebar-zoom-width, 320px) !important;
+      max-width: var(--sidebar-zoom-width, 320px) !important;
       height: 64% !important;
       transform-origin: 0 0;
-      transform: scale(1.56);
+      transform: scale(var(--sidebar-zoom-scale, 1.5625));
       margin: 0 !important;
       border: none !important;
       border-radius: 0 !important;
@@ -333,6 +334,8 @@ NON-NEGOTIABLES (Architecture Contract)
   const TABLE = "sidebar_genericsidebar";
   const COPILOT_FILE_TYPE_VALUE = 172520002;
   const DEFAULT_IFRAME_ALLOW = "clipboard-write; microphone; camera; autoplay; encrypted-media";
+  const DEFAULT_ZOOM_WIDTH = 320;
+  const ZOOM_TARGET_WIDTH = 500;
 
   function getParams() {
     const url = new URL(window.location.href);
@@ -488,9 +491,12 @@ NON-NEGOTIABLES (Architecture Contract)
     if (customStyle) iframe.style.cssText = customStyle;
     const width = positiveNumber(rec.sidebar_iframewidth);
     const height = positiveNumber(rec.sidebar_iframeheight);
+    const effectiveZoomWidth = width || DEFAULT_ZOOM_WIDTH;
     iframe.style.width = width ? `${width}px` : (iframe.style.width || "100%");
     iframe.style.height = height ? `${height}px` : (iframe.style.height || "100%");
     iframe.style.flex = height ? `0 0 ${height}px` : (iframe.style.flex || "1 1 0%");
+    iframe.style.setProperty("--sidebar-zoom-width", `${effectiveZoomWidth}px`);
+    iframe.style.setProperty("--sidebar-zoom-scale", String(ZOOM_TARGET_WIDTH / effectiveZoomWidth));
     const configuredAllow = typeof rec.sidebar_iframeallow === "string" ? rec.sidebar_iframeallow.trim() : "";
     iframe.setAttribute("allow", configuredAllow || DEFAULT_IFRAME_ALLOW);
     iframe.referrerPolicy = "strict-origin-when-cross-origin";

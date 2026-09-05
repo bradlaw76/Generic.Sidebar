@@ -9,7 +9,8 @@ Instead of writing custom HTML/JS each time, you configure a single Dataverse ta
 
 * Packages the aligned one-through-four-panel runtime and its complete Dataverse field contract.
 * Includes 23 runtime-read fields and 47 packaged fields with zero missing.
-* Verifies committed-package schema coverage, normalized text-content identity, and exact binary identity in repository tests.
+* Verifies every mapped package resource, using normalized text-content identity and exact binary identity.
+* Preserves configured iframe widths during automatic phone and Genesys panel zoom, with a safe 320px fallback.
 
 ### Admin Acknowledgement Banner
 
