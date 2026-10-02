@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "deployedOn": "2026-10-02",
+  "environmentUrl": "https://healthconnectcenter.crm.dynamics.com",
+  "solutionUniqueName": "GenericSidebar",
+  "appUniqueName": "sidebar_GenericSidebar",
+  "sourceCommit": "5ce128becb9d0f6b691847d404f6d3c674e02a7d",
+  "rollbackBranch": "backup/pre-react-sidebar-designer-20261002",
+  "rollbackCommit": "71ceadc2dc9f42b6c341fb18fb92f2a382bc6236",
+  "webResource": {
+    "id": "6f4ef48b-66be-f111-aaaf-0022482a0ee7",
+    "name": "sidebar_/designer/index.html",
+    "componentType": 61,
+    "contentSha256": "ae16f584918a8c57d7dc543cd9fc40d7bae68dc8b6edb5a64f46aaf4a9713d02",
+    "bytes": 683841
+  },
+  "navigation": {
+    "id": "sidebar_designer",
+    "sitemapId": "ac529465-90d0-f011-bbd2-000d3a16efb6",
+    "originalEntitySubareaId": "subarea_3a2c52e2",
+    "originalEntitySubareaPreserved": true,
+    "designerSubareaCount": 1
+  },
+  "verification": {
+    "published": true,
+    "directHttpStatus": 200,
+    "solutionMembershipVerified": true,
+    "postDeployDryRun": "no-op"
+  }
+}
