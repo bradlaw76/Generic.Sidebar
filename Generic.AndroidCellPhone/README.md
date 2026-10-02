@@ -2,9 +2,9 @@
 
 The Android Cell Phone Simulator is a self-contained Samsung S25 Ultra-style HTML application for contact-center demonstrations.
 
-**Current application:** `AndroidCellPhone.html`  
-**Current version:** 2.6.0  
-**Deployment relationship:** Optional embeddable application; not part of the Generic Sidebar core solution
+- **Current application:** `AndroidCellPhone.html`
+- **Current version:** 2.6.0
+- **Deployment relationship:** Optional embeddable application; not part of the Generic Sidebar core solution
 
 ## What It Does
 
