@@ -56,6 +56,9 @@ NON-NEGOTIABLES (Architecture Contract)
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+const { join } = require("node:path");
+const { runInNewContext } = require("node:vm");
 const { validateConfig, postExchange, createAuthMiddleware, createTokenProvider } =
   require("../web resources/sidebar_CopilotChatHost.js");
 
@@ -273,4 +276,116 @@ test("unexpected identity errors do not force interactive sign-in", async () => 
     interactive: async () => { assert.fail("Invalid registration must not trigger a popup."); }
   });
   await assert.rejects(provider());
+});
+
+function browserHarness(configuration, credentials = { token: "mock-conversation" }) {
+  const elements = new Map();
+  for (const id of ["status", "configuration", "start", "auth-controls", "sign-in",
+    "agent-sign-in", "setup", "chat"]) {
+    elements.set(id, { hidden: true, disabled: false, addEventListener(type, handler) { this[type] = handler; } });
+  }
+  let store;
+  let renders = 0;
+  let identityClients = 0;
+  let popups = 0;
+  let boundUser;
+  const forwarded = [];
+  const posted = [];
+  const fetched = [];
+  const events = {};
+  const window = {
+    location: { href: `${origin}/sidebar_CopilotChatHost.html`, origin, protocol: "https:" },
+    document: { getElementById: id => elements.get(id) },
+    crypto: { randomUUID: () => "test-conversation" },
+    addEventListener: (type, handler) => { events[type] = handler; },
+    fetch: async url => {
+      fetched.push(url);
+      return { ok: true, json: async () => credentials };
+    },
+    WebChat: {
+      createDirectLine: () => ({
+        end() {},
+        postActivity(activity) {
+          posted.push(activity);
+          return { subscribe(observer) { observer.next("mock-exchange-id"); return { unsubscribe() {} }; } };
+        }
+      }),
+      createStore(initial, middleware) {
+        store = middleware({ dispatch() {} })(action => forwarded.push(action));
+        return store;
+      },
+      renderWebChat(options) { renders++; boundUser = options.userID; }
+    },
+    msal: {
+      PublicClientApplication: class {
+        constructor() { identityClients++; }
+        async initialize() {}
+        getAllAccounts() { return []; }
+        getActiveAccount() { return null; }
+        async ssoSilent() { throw { errorCode: "interaction_required" }; }
+        acquireTokenPopup(request) {
+          popups++;
+          assert.deepEqual(Array.from(request.scopes), auth.scopes);
+          return Promise.resolve({ accessToken: "mock-popup-identity" });
+        }
+      }
+    }
+  };
+  runInNewContext(readFileSync(join(__dirname, "../web resources/sidebar_CopilotChatHost.js"), "utf8"),
+    { window, URL, AbortSignal, setTimeout, clearTimeout });
+  elements.get("configuration").value = JSON.stringify(configuration);
+  return {
+    elements, forwarded, posted, fetched, events,
+    start: () => elements.get("start").click(),
+    incoming: action => store(action),
+    renders: () => renders,
+    identityClients: () => identityClients,
+    popups: () => popups,
+    boundUser: () => boundUser
+  };
+}
+
+test("browser wiring stays idle until explicit Start and leaves anonymous chat free of MSAL", async () => {
+  const h = browserHarness(base);
+  assert.equal(h.fetched.length, 0);
+  assert.equal(h.renders(), 0);
+  await h.start();
+  assert.equal(h.renders(), 1);
+  assert.equal(h.fetched.length, 1);
+  assert.equal(h.identityClients(), 0);
+  assert.equal(h.elements.get("start").disabled, true);
+  assert.equal(h.boundUser(), "dl_test-conversation");
+  assert.equal(h.elements.get("setup").open, false);
+});
+
+test("browser wiring uses a broker's enhanced-auth bound ID for chat and exchange", async () => {
+  const h = browserHarness({ ...base, auth }, { token: "mock-conversation", userId: "dl_bound-user" });
+  await h.start();
+  assert.equal(h.identityClients(), 0);
+  h.incoming(card());
+  await flush();
+  assert.equal(h.identityClients(), 1);
+  assert.equal(h.popups(), 0);
+  assert.equal(h.elements.get("auth-controls").hidden, false);
+  h.elements.get("sign-in").onclick();
+  // Popup acquisition starts synchronously on the click, preserving its gesture.
+  assert.equal(h.popups(), 1);
+  await flush();
+  assert.equal(h.boundUser(), "dl_bound-user");
+  assert.equal(h.posted[0].from.id, "dl_bound-user");
+  assert.equal(h.forwarded.length, 0);
+  assert.equal(h.elements.get("auth-controls").hidden, true);
+});
+
+test("browser interactive fallback cancel releases the original agent card without a popup", async () => {
+  const h = browserHarness({ ...base, auth });
+  await h.start();
+  h.incoming(card());
+  await flush();
+  h.elements.get("agent-sign-in").onclick();
+  await flush();
+  assert.equal(h.popups(), 0);
+  assert.equal(h.posted.length, 0);
+  assert.equal(h.forwarded.length, 1);
+  assert.equal(h.elements.get("auth-controls").hidden, true);
 });
