@@ -236,6 +236,22 @@ administration workbench for the existing configuration and linked-agent
 tables. It adds one HTML web resource and one app navigation entry; it does not
 replace the standard forms or change the Dataverse schema.
 
+The designer is deployed in the Contact Center environment as:
+
+| Component | Value |
+| --- | --- |
+| App | `Generic.Sidebar` (`sidebar_GenericSidebar`) |
+| App ID | `a632a03f-146e-49c2-aa74-2a886566c6bd` |
+| Web resource | `sidebar_/designer/index.html` |
+| Web resource ID | `6f4ef48b-66be-f111-aaaf-0022482a0ee7` |
+| Navigation ID | `sidebar_designer` |
+
+Open **Sidebar Designer** from the model-driven app navigation, or use the
+[Dynamics-hosted designer route](https://healthconnectcenter.crm.dynamics.com/main.aspx?appid=a632a03f-146e-49c2-aa74-2a886566c6bd&pagetype=webresource&webresourceName=sidebar_%2fdesigner%2findex.html).
+The live page uses the signed-in user's Dataverse permissions. A screenshot or
+a page displaying the yellow **Demo data** badge is only a static/local
+demonstration and is not connected to Dataverse.
+
 Source, validation commands, dry-run deployment, and the separately gated
 rollback procedure are documented in
 [sidebar-designer/README.md](sidebar-designer/README.md).

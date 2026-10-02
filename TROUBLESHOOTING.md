@@ -1,7 +1,7 @@
 # Generic Sidebar SSO — Troubleshooting Guide
 
-**Version:** 2.0.1
-**Last Updated:** 2026-08-05
+**Version:** 2.1.0
+**Last Updated:** 2026-10-02
 **Quick Help:** Use `Ctrl+Shift+I` → **Console** tab to see debug messages
 
 ---
@@ -613,6 +613,56 @@ fetch('https://your-token-endpoint-url', {
 
 ---
 
+### J. React Sidebar Designer
+
+---
+
+#### **J1: Designer shows "Demo data" and a zero GUID**
+
+**What it means:** The page was opened with `?demo=1`, or the user is viewing
+the static visual-validation capture. Demo mode uses in-memory sample data and
+never reads or writes Dataverse.
+
+**How to fix:**
+1. Open the `Generic.Sidebar` model-driven app.
+2. Select **Sidebar Designer** from the app navigation.
+3. Remove `?demo=1` from any saved direct URL.
+4. Confirm the yellow badge is absent and a real configuration GUID appears.
+
+#### **J2: Nothing happens when clicking the designer image**
+
+**What it means:** An attached screenshot is being viewed rather than the
+deployed web resource.
+
+**How to fix:** Open the app navigation item or the Dynamics-hosted route
+documented in [sidebar-designer/README.md](sidebar-designer/README.md).
+
+#### **J3: "No Generic Sidebar configuration records are available"**
+
+**What it means:** No rows exist or the signed-in user cannot read
+`sidebar_genericsidebar`.
+
+**How to fix:** Verify that a configuration row exists and grant the user the
+required read privilege and row access. Do not add a demo-data fallback.
+
+#### **J4: Save changes is disabled**
+
+**What it means:** There are no unsaved changes, a save is already running, or
+Validation contains a blocking finding.
+
+**How to fix:** Make the intended edit, open **Validation**, and resolve every
+blocking error. Warnings do not block save.
+
+#### **J5: Save requires a reload because the record changed**
+
+**What it means:** An ETag precondition detected that another user or process
+updated a loaded configuration or agent.
+
+**How to fix:** Refresh the designer, review the latest values, and reapply the
+change. The designer intentionally does not force an overwrite.
+
+---
+
 ## Contact & Escalation
 
 - **Setup questions:** See [ADMIN_SETUP_GUIDE.md](ADMIN_SETUP_GUIDE.md)
@@ -622,6 +672,6 @@ fetch('https://your-token-endpoint-url', {
 
 ---
 
-**Version:** 2.0.1
-**Last Updated:** 2026-08-05
+**Version:** 2.1.0
+**Last Updated:** 2026-10-02
 **Still stuck?** Run [Configuration Validator](sidebar_sso_config_validator.html) and provide the output to support

@@ -1,7 +1,7 @@
 # Generic Sidebar — Admin Validation Checklist
 
-**Version:** 1.1.0
-**Last Updated:** 2026-08-06
+**Version:** 1.2.0
+**Last Updated:** 2026-10-02
 **Scope:** Generic Sidebar administration, packaged OOB forms, Dataverse configuration, linked-agent catalog, and SSO readiness.
 
 ## Validation boundary
@@ -62,6 +62,33 @@ Verify these files are tracked before importing web resources:
 7. Test an account without configuration-write privileges and confirm it cannot acknowledge or edit configuration.
 8. Record browser console errors without copying access tokens, Direct Line tokens, or full token endpoint query strings into tickets.
 
+## React Sidebar Designer validation
+
+1. Open **Sidebar Designer** from the `Generic.Sidebar` model-driven app
+   navigation or the documented Dynamics-hosted route.
+2. Confirm the yellow **Demo data** badge is absent and the selected
+   configuration has a real Dataverse GUID.
+3. Confirm Overview, Tab 1-4, Linked Agents, Appearance, and Validation are
+   selectable.
+4. Confirm the configuration selector loads existing
+   `sidebar_genericsidebar` rows available to the current user.
+5. Confirm Linked Agents loads only related
+   `sidebar_genericsidebaragent` rows and preserves their ordering.
+6. Change a non-production-safe test value, confirm **Save changes** becomes
+   enabled, save it, and verify the value after refresh.
+7. Confirm blocking validation findings prevent save and link to the affected
+   section.
+8. Confirm promoting a different default configuration leaves exactly one
+   default row.
+9. Confirm users without configuration-write privileges cannot persist
+   changes.
+10. Confirm a concurrent edit produces a reload-required conflict rather than
+    overwriting the newer row.
+11. Confirm the sandbox preview changes tabs without executing content in the
+    parent app origin.
+12. Re-run `deployment/deploy-sidebar-designer.ps1` without `-Apply` and
+    confirm the dry run reports no resource or sitemap operation.
+
 ## Packaged OOB form validation
 
 Validate that solution-packaged forms exist and run the sidebar automatically.
@@ -91,7 +118,12 @@ Primary-form safety check:
 
 1. Import updated web resources and publish customizations.
 2. Hard-refresh the model-driven app with `Ctrl+Shift+R`.
-3. If a regression occurs, restore the Git checkpoint, re-import the known-good resources, and publish.
+3. For a Sidebar Designer-only regression, run
+   `sidebar-designer/deployment/deploy-sidebar-designer.ps1 -Rollback -AllowDestructive`.
+   This removes only the owned navigation node and marked designer web
+   resource.
+4. For a Core regression, restore the Git checkpoint, re-import the known-good
+   resources, and publish.
 
 ## Evidence to retain
 
@@ -100,4 +132,5 @@ Primary-form safety check:
 - Screenshots proving the five packaged `* Generic.Sidebar` forms are present in the imported solution.
 - Form-level validation evidence for each packaged OOB form.
 - Validation date, environment, tester, and outcome.
+- Sidebar Designer build hash, deployment result JSON, and no-op dry-run output.
 - Sanitized console errors and screenshots; never retain bearer tokens.

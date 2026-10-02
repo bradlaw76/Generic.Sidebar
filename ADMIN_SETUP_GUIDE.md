@@ -1,7 +1,7 @@
 # Generic Sidebar SSO — Admin Setup Guide
 
-**Version:** 2.0.1
-**Last Updated:** 2026-08-05
+**Version:** 2.1.0
+**Last Updated:** 2026-10-02
 **Audience:** Dynamics 365 Administrators, Power Platform Administrators
 
 ---
@@ -350,6 +350,37 @@ For non-SSO agents, paste the Copilot Studio iframe snippet into `sidebar_embedc
 
 ---
 
+## Step 6B: Use the Optional React Sidebar Designer
+
+The React Sidebar Designer is an additive administration surface for the
+existing `sidebar_genericsidebar` and `sidebar_genericsidebaragent` tables. It
+does not replace the standard forms or create a second configuration store.
+
+1. Open the `Generic.Sidebar` model-driven app.
+2. Select **Sidebar Designer** in the app navigation.
+3. Select a configuration from the header.
+4. Edit record identity and behavior under **Overview**.
+5. Configure content under **Tab 1** through **Tab 4**.
+6. Add, edit, remove, or reorder child rows under **Linked Agents**.
+7. Configure colors and iframe behavior under **Appearance**.
+8. Resolve blocking findings under **Validation**.
+9. Select **Save changes**.
+
+The production page must be opened in the Dynamics host so it can use the
+signed-in user's `Xrm.WebApi` context. The live page shows real configuration
+GUIDs and does not display a **Demo data** badge. A page with that badge, or an
+attached screenshot of it, is a local/static demonstration and does not write
+to Dataverse.
+
+The designer uses Dataverse security, atomic batch saves, and ETag concurrency
+checks. A concurrency warning means another user changed a loaded row; refresh
+and review the latest values rather than forcing an overwrite.
+
+See [sidebar-designer/README.md](sidebar-designer/README.md) for deployment,
+verification, production identifiers, and rollback instructions.
+
+---
+
 ## Step 7: Test Configuration
 
 ### Use the Local Configuration Validator Tool:
@@ -473,6 +504,6 @@ For issues not covered in this guide:
 
 ---
 
-**Version:** 2.0.1
-**Last Updated:** 2026-08-05
+**Version:** 2.1.0
+**Last Updated:** 2026-10-02
 **Next Phase:** See [SECURITY_GUIDE.md](SECURITY_GUIDE.md) for advanced configuration

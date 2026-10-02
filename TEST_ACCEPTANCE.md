@@ -1,8 +1,8 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.4.0
-**Updated:** 2026-08-27
+**Version:** 1.5.0
+**Updated:** 2026-10-02
 
 ---
 
@@ -12,7 +12,8 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 
 | Scope | Package/deployment | Certification boundary |
 | --- | --- | --- |
-| Generic Sidebar Core | `GenericSidebar_1_0_0_5.zip` | Core requirements only; excludes Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
+| Generic Sidebar Core | `GenericSidebar_1_0_0_11.zip` | Core requirements only; excludes Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
+| React Sidebar Designer | `sidebar_/designer/index.html`, deployed additively | Administration workbench only; does not replace Core runtime, forms, tables, or records |
 | Repository public site | GitHub Pages content | Site publishing and accessibility only; not Dynamics solution certification |
 | Android Phone Simulator add-in | `AndroidCellPhone.html` 2.8.2, deployed separately | Android behavior and optional Dataverse mode only |
 | Genesys Softphone Simulator add-in | Current checked-in Genesys file, deployed separately | Genesys behavior and optional Android interoperability only |
@@ -58,6 +59,25 @@ Acceptance is evaluated separately for each deployment layer. Passing Android Ph
 - ☐ Hosted Dynamics: first-run Entra popup and subsequent silent token acquisition succeed
 - ☐ Hosted Dynamics: published Copilot agent completes Direct Line token exchange and opens chat
 - ☐ Hosted Dynamics: users without configuration-write rights cannot acknowledge or change sidebar configuration
+
+### React Sidebar Designer
+
+- ✔ Production artifact is one self-contained HTML web resource
+- ✔ Deployment adds only `sidebar_/designer/index.html` and the
+  `sidebar_designer` navigation node
+- ✔ Original Generic Sidebar entity navigation remains present
+- ✔ Demo mode requires explicit `?demo=1` and is visibly marked **Demo data**
+- ✔ Production mode does not silently fall back to sample records
+- ✔ Overview, Tab 1-4, Linked Agents, Appearance, and Validation are selectable
+- ✔ Save uses one atomic Dataverse `$batch` changeset
+- ✔ Existing configuration and agent updates include loaded ETags
+- ✔ HTTP 412 conflicts require refresh instead of overwriting concurrent edits
+- ✔ Promoting a default clears prior defaults in the same changeset
+- ✔ Preview iframe is sandboxed without `allow-same-origin`
+- ✔ Strict TypeScript, eight unit tests, and production build pass
+- ✔ Deployment dry run is a no-op after installation
+- ☐ Hosted Dynamics: authorized edits persist and reload correctly
+- ☐ Hosted Dynamics: read-only users cannot persist configuration changes
 
 ## Repository Site Acceptance
 

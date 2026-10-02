@@ -11,6 +11,48 @@ It is an additive component:
 - It appends one app navigation node: `sidebar_designer`.
 - The existing Generic Sidebar entity navigation remains unchanged.
 
+## Production deployment
+
+The current deployment is in the Contact Center environment:
+
+| Component | Value |
+| --- | --- |
+| Environment | `https://healthconnectcenter.crm.dynamics.com` |
+| App | `Generic.Sidebar` |
+| App unique name | `sidebar_GenericSidebar` |
+| App ID | `a632a03f-146e-49c2-aa74-2a886566c6bd` |
+| Web resource | `sidebar_/designer/index.html` |
+| Web resource ID | `6f4ef48b-66be-f111-aaaf-0022482a0ee7` |
+| Navigation ID | `sidebar_designer` |
+| Sitemap ID | `ac529465-90d0-f011-bbd2-000d3a16efb6` |
+
+Open the designer from the **Sidebar Designer** app navigation item or use the
+[Dynamics-hosted designer route](https://healthconnectcenter.crm.dynamics.com/main.aspx?appid=a632a03f-146e-49c2-aa74-2a886566c6bd&pagetype=webresource&webresourceName=sidebar_%2fdesigner%2findex.html).
+
+The production page:
+
+- Loads the existing configuration and linked-agent rows through `Xrm.WebApi`.
+- Uses the signed-in user's Dataverse table and row privileges.
+- Saves configuration and agent changes in one atomic Dataverse `$batch`
+  changeset.
+- Uses loaded row ETags and reports a reload-required conflict instead of
+  overwriting a concurrent update.
+- Prevents the active default configuration from being directly unset and
+  clears a previous default atomically when another configuration is promoted.
+- Provides Overview, Tab 1-4, Linked Agents, Appearance, Validation, and an
+  isolated sidebar preview.
+
+## Live page versus demo data
+
+Demo mode is intentionally selected only when the URL contains `?demo=1`. It
+uses in-memory sample records, displays a yellow **Demo data** badge, and shows
+zero-based sample GUIDs. It is for local visual validation only.
+
+The live Dynamics page does not display the badge. It shows real configuration
+IDs and persists authorized changes to Dataverse. An attached screenshot is
+also static and cannot be clicked; use the app navigation item or the
+Dynamics-hosted route above for the interactive page.
+
 ## Local development
 
 ```powershell
@@ -32,6 +74,10 @@ npm run check
 
 The command runs strict TypeScript checking, unit tests, and a production
 single-file build. The output is `dist/index.html`.
+
+The deployed build was validated with strict TypeScript, eight unit tests, and
+the production single-file build. Deployment state and hashes are recorded in
+`deployment/deployment-result.healthconnectcenter.json`.
 
 ## Review deployment without changing Dataverse
 
@@ -63,3 +109,19 @@ Rollback is intentionally gated:
 Rollback removes only `sidebar_designer` and the marked
 `sidebar_/designer/index.html` resource. It does not restore a stale sitemap or
 remove any other solution component.
+
+## Operational troubleshooting
+
+- **Demo data badge appears:** remove `?demo=1` and open the Dynamics-hosted
+  route. Demo mode does not read or write Dataverse.
+- **Attached image does not respond:** screenshots are documentation evidence,
+  not an embedded application.
+- **No configuration records are available:** verify the user can read
+  `sidebar_genericsidebar` and that at least one row exists.
+- **Linked agents are missing:** verify read access to
+  `sidebar_genericsidebaragent`, the parent lookup, active state, and
+  `sidebar_isactive`.
+- **Save is disabled:** make a change and resolve blocking findings under
+  **Validation**.
+- **Save reports a concurrency conflict:** another user changed one of the
+  loaded rows. Refresh, review the latest values, and reapply the edit.
