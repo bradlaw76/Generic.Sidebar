@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="./screenshots/generic-sidebar-banner.png" alt="Generic Sidebar for Dynamics 365" />
+  <img src="./Images/Generic%20Sidebar%20ASCII%20Showcase.png" alt="Generic Sidebar ASCII logo showcase for Dynamics 365" />
 </p>
+
+> **Branding note:** The ASCII showcase above is, for now, the official **header logo** for Generic Sidebar. It is separate from—and should not be confused with—the official image mark, which may change independently.
 
 # Generic Sidebar for Dynamics 365
 
