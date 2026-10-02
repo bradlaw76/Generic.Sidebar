@@ -229,6 +229,17 @@ Configuration edits normally do not require form rework or solution re-import. U
 
 For the single optional **Agent Menu Tab** administration field, including the exact Choice values and UI-only creation steps, see [Agent Menu Tab field setup](docs/agent-menu-tab-field-setup.md).
 
+### React Sidebar Designer
+
+The optional React and Fluent UI Sidebar Designer provides a task-focused
+administration workbench for the existing configuration and linked-agent
+tables. It adds one HTML web resource and one app navigation entry; it does not
+replace the standard forms or change the Dataverse schema.
+
+Source, validation commands, dry-run deployment, and the separately gated
+rollback procedure are documented in
+[sidebar-designer/README.md](sidebar-designer/README.md).
+
 Example of HTML Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
 

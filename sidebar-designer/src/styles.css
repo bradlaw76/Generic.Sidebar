@@ -1,0 +1,50 @@
+/*
+=============================================================================
+COMPONENT:    Generic Sidebar Designer Global Styles
+FILE:         sidebar-designer/src/styles.css
+VERSION:      1.0.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-10-02
+ENVIRONMENT:  React / Fluent UI
+
+OVERVIEW
+Provides only host-level normalization; component visuals remain scoped through
+Fluent UI makeStyles.
+
+STYLE ISOLATION
+- Rules target the designer document only.
+- No selectors reach into the model-driven app host.
+
+CHANGELOG
+v1.0.0  2026-10-02  Initial host styles
+=============================================================================
+*/
+
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 1024px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
