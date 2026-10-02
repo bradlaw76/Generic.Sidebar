@@ -158,33 +158,23 @@ See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/RE
 
 ---
 
+## Usage Instructions
 
-⚡ Usage Instructions
-1. Import the Solution
-2. Import the managed/unmanaged solution into your Dynamics 365 environment.
-3. Use Packaged Generic Sidebar Forms
-   The solution now includes pre-built Generic Sidebar forms for common OOB tables:
-   * Case -> `Case Generic.Sidebar`
-   * Account -> `Account Generic.Sidebar`
-   * Contact -> `Contact Generic.Sidebar`
-   * Lead -> `Lead Generic.Sidebar`
-   * Opportunity -> `Opportunity Generic.Sidebar`
-   Select these forms in app designer or form order based on your deployment preference.
-4. Create a Config Row
-   Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
-5. Set Key Fields
-   Fill in:
+1. Import `GenericSidebar_1_0_0_5.zip` as a managed or unmanaged solution into your Dynamics 365 environment.
+2. Add `sidebar_sidebar.js` to each target model-driven form and register `Generic_OpenSidebar` as an OnLoad handler. If your release separately includes the proposed packaged `* Generic.Sidebar` forms, select those forms in app designer or form order instead.
+3. Open the Generic Sidebar Configuration table (`sidebar_genericsidebar`) and create one record with `sidebar_default = Yes`.
+4. Fill in the key fields:
    * sidebar_title — header title (shown in the pane chrome).
    * sidebar_instructions — rich text instructions (bullets/headings supported).
    * sidebar_embedcode — choose:
 
-   https://... (External URL)
-   <iframe ...></iframe> (Copilot or Canvas App)
-   Raw HTML
+     * `https://...` (external URL)
+     * `<iframe ...></iframe>` (Copilot or Canvas App)
+     * Raw HTML
 
 ### Configure the Sidebar in the Admin App
 
-The **Generic Sidebar Configuration** table in the model-driven admin app controls what users see on every packaged `* Generic.Sidebar` form. The forms launch the sidebar; the configuration record supplies its title, panels, linked agents, and optional SSO settings.
+The **Generic Sidebar Configuration** table in the model-driven admin app controls what users see on every form wired to Generic Sidebar. The form launches the sidebar; the configuration record supplies its title, panels, linked agents, and optional SSO settings.
 
 1. Open the model-driven app that contains the **Generic Sidebar Configuration** table.
 2. Open an existing configuration record or create a new record.
@@ -197,9 +187,9 @@ The **Generic Sidebar Configuration** table in the model-driven admin app contro
 5. Use an embed field for a URL, `webresource:Name.html`, raw HTML, a Copilot Studio iframe, or a Canvas App embed.
 6. To use linked agents, create related **Generic Sidebar Agent** rows, set `sidebar_isactive = Yes`, leave the Dataverse record active, and choose the target tab through **Agent Menu Tab** (`sidebar_agentmenutab`).
 7. Enable and complete SSO fields only when the selected sidebar experience requires SSO. Keep browser client secrets out of configuration records.
-8. Save the configuration record, publish customizations when form or web-resource changes were made, and open a packaged form to test the result.
+8. Save the configuration record, publish customizations when form or web-resource changes were made, and open a wired form to test the result.
 
-Configuration edits normally do not require form rework or solution re-import. Updating the selected default configuration record changes the shared sidebar experience for all five packaged forms.
+Configuration edits normally do not require form rework or solution re-import. Updating the selected default configuration record changes the shared sidebar experience for every form wired to Generic Sidebar.
 
 For the single optional **Agent Menu Tab** administration field, including the exact Choice values and UI-only creation steps, see [Agent Menu Tab field setup](docs/agent-menu-tab-field-setup.md).
 
@@ -219,14 +209,16 @@ Example Displayed to End User
 Help, Issue Reporting and Survey\
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
-Packaged Form Wiring
-1. `Generic_OpenSidebar` is already wired on the packaged `* Generic.Sidebar` forms.
-2. For additional custom forms you create later, add `sidebar_sidebar.js` and OnLoad handler `Generic_OpenSidebar`.
+### Form Wiring
+
+1. Add `sidebar_sidebar.js` as a form library on each target form.
+2. Register `Generic_OpenSidebar` as an OnLoad handler and pass the execution context.
 3. Publish all customizations, then hard refresh (Ctrl/Cmd+Shift+R).
+4. If your release separately includes packaged `* Generic.Sidebar` forms, verify that this wiring is already present before exposing those forms through app designer or form order.
 
 ## Packaged OOB Forms
 
-Generic Sidebar can be delivered as a solution-managed experience for the following out-of-box tables:
+The repository includes implementation and release guidance for proposed solution-managed forms on the following out-of-box tables:
 
 | Table | Logical name | Packaged form |
 | --- | --- | --- |
@@ -236,9 +228,11 @@ Generic Sidebar can be delivered as a solution-managed experience for the follow
 | Lead | `lead` | `Lead Generic.Sidebar` |
 | Opportunity | `opportunity` | `Opportunity Generic.Sidebar` |
 
-Each is a new standard main form that calls the existing `Generic_OpenSidebar` entry point on form load. The OOB primary forms remain intact; administrators choose whether to expose the Generic.Sidebar form through app designer or form order.
+These forms are not included in the current `GenericSidebar_1_0_0_5.zip` package. Do not expect them to appear after importing that archive. Until a separately validated release includes them, wire `sidebar_sidebar.js` and `Generic_OpenSidebar` to the target forms manually.
 
-The sidebar behavior remains shared and configuration-driven: forms reuse the default `sidebar_genericsidebar` record maintained in the Generic Sidebar Configuration admin app, including panel layout, linked-agent selection, and SSO/non-SSO routing behavior. No form-specific embed code or runtime routing is required.
+When packaged, each should be a new standard main form that calls the existing `Generic_OpenSidebar` entry point on form load. The OOB primary forms remain intact; administrators choose whether to expose a Generic.Sidebar form through app designer or form order.
+
+The sidebar behavior would remain shared and configuration-driven: forms would reuse the default `sidebar_genericsidebar` record maintained in the Generic Sidebar Configuration admin app, including panel layout, linked-agent selection, and SSO/non-SSO routing behavior. No form-specific embed code or runtime routing would be required.
 
 Implementation and release artifacts:
 
@@ -264,12 +258,14 @@ Use this six-part narrative when presenting the feature:
 5. **Governance:** package forms directly in the solution; validate handler wiring, runtime behavior, SSO behavior, and OOB primary-form safety.
 6. **Decision:** approve creation, sandbox validation, and managed-solution release of the five forms.
 
-📋 Known Limitations
+## Known Limitations
+
 * External sites may block embedding (X-Frame-Options / CSP).
 * sidebar_acknowledged is optional; banner skipped if missing.
 
 
-⚠️ Disclaimer
+## Disclaimer
+
 This kit is provided as-is. It is intended primarily for demo / proof-of-concept purposes.
 Before production use, admins must acknowledge the disclaimer via the welcome banner (sets sidebar_acknowledged = Yes).
 

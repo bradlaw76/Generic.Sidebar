@@ -38,9 +38,9 @@ Create this field only when the environment uses linked **Generic Sidebar Agent*
 | Tab 3 | `100000003` |
 | Tab 4 | `100000004` |
 
-1. Save the column and publish all customizations.
-2. Add **Agent Menu Tab** to the Generic Sidebar Configuration main form if it is not already shown.
-3. Save and publish that form.
+7. Save the column and publish all customizations.
+8. Add **Agent Menu Tab** to the Generic Sidebar Configuration main form if it is not already shown.
+9. Save and publish that form.
 
 ## Use the field in the admin app
 
@@ -49,7 +49,7 @@ Create this field only when the environment uses linked **Generic Sidebar Agent*
 3. Confirm the configuration has at least one related **Generic Sidebar Agent** row that is both active (`sidebar_isactive = Yes`) and in active Dataverse state.
 4. Set **Agent Menu Tab** to the tab where the picker should appear.
 5. Save the configuration record.
-6. Open any packaged `* Generic.Sidebar` form and confirm the selected tab renders the linked-agent menu.
+6. Open any form wired to Generic Sidebar and confirm the selected tab renders the linked-agent menu.
 
 ## Expected behavior
 
@@ -59,4 +59,4 @@ Create this field only when the environment uses linked **Generic Sidebar Agent*
 
 ## Rollback
 
-Set **Agent Menu Tab** back to **None**, save the configuration record, and reopen the packaged form. The sidebar returns to its configured panel embed behavior without requiring a form or solution change.
+Set **Agent Menu Tab** back to **None**, save the configuration record, and reopen the wired form. The sidebar returns to its configured panel embed behavior without requiring a form or solution change.
