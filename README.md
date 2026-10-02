@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./screenshots/generic-sidebar-banner.png" alt="Generic Sidebar for Dynamics 365" />
+</p>
+
 # Generic Sidebar for Dynamics 365
 
 Generic Sidebar Core provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps with enterprise Single Sign-On (SSO) support.
