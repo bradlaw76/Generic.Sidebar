@@ -16,7 +16,7 @@ This repository contains three separate deployment layers. They share integratio
 
 | Layer | Current version evidence | Deployment boundary |
 | --- | --- | --- |
-| **Generic Sidebar Core** | Solution `1.0.0.5`; active web resources `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0 | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. |
+| **Generic Sidebar Core** | Solution `1.0.0.11`; active web resources `sidebar_sidebar.html` 2.15.5 and `sidebar_sidebar.js` 2.6.0 | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. |
 | **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.8.2 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
 | **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.8.2 through `localStorage.genericSimCall`. Never add it to the base Core package. |
 
@@ -24,7 +24,37 @@ The historical SSO release label `v2.0.0`, specification versions, solution pack
 
 ### Base Package Verification
 
-On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without extraction or modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only.
+On 2026-10-02, `GenericSidebar_1_0_0_11.zip` was exported from the Contact Center Power Platform environment and validated before publication. The unmanaged package identifies itself as `GenericSidebar` 1.0.0.11, contains `Solution.xml`, and has SHA-256 checksum `482CD5B5860B8858A6525616856225FF3C5BEBB3263B5F79F577CAA6D1A78942`.
+
+The package contains the same 12 deployment entries as v1.0.0.7: the solution and customization manifests, two calculated-column formulas, six web resources, and the Manage Default Record workflow. The Android and Genesys simulators remain separate add-ins and are not part of the Core package.
+
+## Current Dataverse Solution Release: v1.0.0.11
+
+Download the current unmanaged solution from the [GenericSidebar 1.0.0.11 GitHub release](https://github.com/bradlaw76/Generic.Sidebar/releases/tag/GenericSidebar_1_0_0_11.zip).
+
+### What changed since v1.0.0.7
+
+**Dataverse configuration and schema**
+
+* Added the linked-agent configuration model, including the `sidebar_genericsidebaragent` table, its parent relationship, activation/default-agent controls, display metadata, sort order, icon URL, and agent type/key fields.
+* Added `sidebar_agentmenutab`, allowing active linked agents to appear in a selected sidebar tab.
+* Expanded the parent configuration from one embed/instructions pair to four configurable panels with independent titles, instructions, and embed content.
+* Added SSO configuration fields for enablement, client and tenant IDs, redirect URI, scopes, token endpoint, and related authentication settings.
+
+**Sidebar runtime**
+
+* Updated `sidebar_sidebar.html` to 2.15.5 with linked-agent placement, active-record filtering, cache-safe picker loading, Dataverse-only tab titles, title tooltips, and `Alt+1` through `Alt+4` keyboard tab switching.
+* Updated `sidebar_sidebar.js` to 2.6.0 with persisted configuration tracking across form navigation, ordered SSO dependency loading, corrected SSO flag hydration, and fail-closed routing to the dedicated error resource when SSO initialization or navigation fails.
+* Preserved non-SSO behavior and the tab-host rendering model for existing configurations.
+
+**Administration experience**
+
+* Updated `sidebar_welcome.html` to 1.3.0 with a left-navigation installation guide, a full-height Copilot Studio agent dock, build/version markers, and deterministic selection of the most recently modified default configuration.
+* Updated `sidebar_GenericSidebar_AdminSurvey.html` to 1.0.1 with a persistent version footer for deployment verification.
+
+**Unchanged package components**
+
+* The Generic Sidebar Agent resource, logo, calculated-column formulas, and Manage Default Record workflow are unchanged from v1.0.0.7.
 
 ## Historical Release v2.0.0: Enterprise SSO Integration
 
