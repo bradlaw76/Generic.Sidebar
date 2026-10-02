@@ -1,0 +1,188 @@
+<!--
+=============================================================================
+COMPONENT:    Reusable Copilot Chat Host (standalone preview)
+FILE:         web resources/sidebar_CopilotChatHost.html
+VERSION:      0.1.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-10-02
+ENVIRONMENT:  HTTPS HTML web resource | JavaScript
+PORTAL URL:   Deployment-specific; no environment is built in
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Opt-in chat host for anonymous agents and agent-requested Entra SSO.
+Not referenced by the existing sidebar, solution archive, or demo pages.
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source: Configured Copilot Studio token endpoint and Direct Line
+- Entity/Table: None; no Dataverse reads or writes
+- Auth Model: Agent OAuth card requests; MSAL authorization code with PKCE
+- Rendering: Bot Framework Web Chat; separate local JavaScript resource
+- API Pattern: HTTPS JSON token endpoint; Direct Line signin/tokenExchange
+- OData: Not used
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- Validation: Public connection metadata only; HTTPS and same-origin redirect
+- UX Notes: Explicit Start; silent SSO, then user-initiated interactive fallback
+- Configuration: Paste JSON or load a same-origin JSON file with ?config=
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. HTTPS deployment of this file, its JavaScript, and the blank redirect page.
+2. Published agent with a compatible Direct Line channel and CORS token endpoint.
+3. For SSO: matching Entra SPA registration and agent token-exchange settings.
+4. Pinned Web Chat 4.19.1 and MSAL Browser 4.30.0; loaded only when needed.
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF Token: MSAL manages OAuth state, nonce, and PKCE
+- Auth Scope: Administrator-configured scopes and exact exchange resource URI
+- Data Exposure: Conversation/identity tokens never placed in configuration
+- Role Dependency: Agent and downstream services enforce user permissions
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- Root Scope ID: #copilot-chat-host
+- Component UI selectors are scoped; page-only sizing establishes the viewport
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- Preview, not integrated or live-tenant certified; see setup notes below.
+- A generic hosted webchat URL cannot be converted to SSO automatically.
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+- Anonymous agent never initializes MSAL or requests user sign-in.
+- OAuth exchange succeeds, retries, fails, or needs MFA without losing its card.
+- Existing sidebar and solution remain unchanged.
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v0.1.0  2026-10-02  Isolated, configurable preview with agent-requested SSO
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- No client secrets, host token harvesting, or bypass of agent authentication.
+- No deployment or changes to existing demo/solution assets.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Copilot Chat Host — Standalone Preview</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #copilot-chat-host { height: 100%; display: flex; flex-direction: column; font: 14px "Segoe UI", sans-serif; color: #242424; }
+    #copilot-chat-host header, #copilot-chat-host details, #copilot-chat-host #auth-controls { padding: 12px; }
+    #copilot-chat-host header { background: #f3f3f3; }
+    #copilot-chat-host h1 { margin: 0 0 6px; font-size: 18px; }
+    #copilot-chat-host textarea { box-sizing: border-box; width: 100%; min-height: 180px; font: 13px monospace; }
+    #copilot-chat-host button { padding: 7px 12px; margin: 6px 6px 0 0; cursor: pointer; }
+    #copilot-chat-host #chat { flex: 1; min-height: 200px; }
+    #copilot-chat-host #status { margin: 6px 0 0; }
+    #copilot-chat-host details { overflow: auto; }
+    #copilot-chat-host details[open] { max-height: 55%; }
+    #copilot-chat-host pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    #copilot-chat-host [hidden] { display: none !important; }
+  </style>
+  <script src="sidebar_CopilotChatHost.js" defer></script>
+</head>
+<body>
+  <main id="copilot-chat-host">
+    <header>
+      <h1>Copilot Chat Host — Standalone Preview</h1>
+      <span>Not connected to your existing sidebar or solution.</span>
+      <p id="status" role="status" aria-live="polite">Configure a test agent, then select Start chat.</p>
+    </header>
+    <details id="setup" open>
+      <summary>Configuration and setup instructions</summary>
+      <p>This is an isolated prototype. Do not change today's demo configuration.
+        No network connection to an agent starts until you select Start chat.</p>
+      <label for="configuration">Public deployment configuration (JSON; never paste tokens or secrets)</label>
+      <textarea id="configuration" spellcheck="false"></textarea>
+      <button id="start" type="button">Start chat</button>
+      <h2>Deployment later, in a test environment</h2>
+      <ol>
+        <li>Host this HTML, <code>sidebar_CopilotChatHost.js</code>, and
+          <code>sidebar_CopilotAuthRedirect.html</code> on the same HTTPS origin.
+          In Dynamics these would be three separate web resources. No existing
+          resource, solution package, or Dataverse record is changed by these files.</li>
+        <li>Copy the published agent's token endpoint from its compatible channel
+          configuration. It must return JSON containing a short-lived <code>token</code>.
+          Supply the correct Direct Line <code>directLineDomain</code> for that cloud,
+          ending in <code>/v3/directline</code>. Do not paste a hosted webchat URL,
+          Direct Line secret, or identity token. A secured channel may require a
+          separately operated token broker; this preview does not implement one.</li>
+        <li>For an anonymous agent omit <code>auth</code>. For an authenticated agent,
+          configure supported custom-website authentication and SSO in Copilot Studio.
+          Configure an Entra SPA/public-client registration, delegated consent,
+          preauthorization as appropriate, and the agent's token-exchange resource.</li>
+        <li>Add <code>auth</code> with <code>clientId</code>, <code>authority</code>,
+          <code>redirectUri</code>, <code>scopes</code>, and
+          <code>tokenExchangeResourceUri</code>. Register the exact deployed blank
+          redirect page as an SPA redirect URI. Use the matching cloud authority
+          and exact resource URI advertised by that agent's OAuth card.
+          Optional <code>loginHint</code> can help silent SSO; it is not proof of identity.</li>
+        <li>Optionally copy <code>sidebar_CopilotChatHost.config.example.json</code>
+          to a deployment-owned JSON file and use <code>?config=relative-file.json</code>.
+          Only same-origin configuration is accepted. Configuration is public,
+          remains editable, and never enables automatic startup.</li>
+      </ol>
+      <p>Authenticated configuration shape (replace every placeholder; these are not working values):</p>
+      <pre>{
+  "tokenEndpoint": "https://YOUR-AGENT-TOKEN-ENDPOINT",
+  "directLineDomain": "https://YOUR-DIRECT-LINE-HOST/v3/directline",
+  "auth": {
+    "clientId": "YOUR-SPA-APPLICATION-GUID",
+    "authority": "https://YOUR-ENTRA-CLOUD-HOST/YOUR-TENANT",
+    "redirectUri": "https://YOUR-HOST/PATH/sidebar_CopilotAuthRedirect.html",
+    "scopes": ["YOUR-AGENT-DELEGATED-SCOPE"],
+    "tokenExchangeResourceUri": "YOUR-EXACT-AGENT-EXCHANGE-RESOURCE-URI"
+  }
+}</pre>
+      <p>Separate deployments/panels can use separate configuration files without
+        modifying this component. The agent—not a sidebar switch—requests authentication.
+        Authentication configuration alone does not trigger sign-in.</p>
+      <h2>Browser and cloud requirements</h2>
+      <p>Web Chat 4.19.1 and MSAL Browser 4.30.0 are pinned, integrity-checked browser
+        bundles served from jsDelivr. MSAL loads only after an eligible agent OAuth card.
+        Your CSP/network policy must permit those libraries and the configured agent,
+        Direct Line, WebSocket, and Entra endpoints. Review SDK/CDN availability and
+        compliance separately for commercial, GCC, GCC High, DoD, or other clouds.
+        This preview supports Entra authorities in commercial, US government, and China
+        clouds, but does not claim every channel/cloud combination is supported.</p>
+      <p>Silent SSO can be prevented by cookie policies, missing consent, or account
+        ambiguity. The Sign in button opens a user-initiated popup for required login,
+        consent, or MFA. The fallback displays the agent's original sign-in card;
+        failure never changes the agent to anonymous mode. Pop-out creates a new
+        conversation; it does not transfer the existing conversation.</p>
+      <h2>Validation before integration</h2>
+      <ul>
+        <li>Anonymous agent: chat works, no MSAL load or user-authentication prompt.</li>
+        <li>Authenticated agent: matching Microsoft session exchanges silently where
+          supported; test absent session, multiple accounts, consent, and MFA.</li>
+        <li>Test popup/cookie blocking, rejected token exchange, expiry, and wrong
+          resource configuration. Confirm the original sign-in card remains available.</li>
+        <li>Test two differently configured hosts and later sidebar tab/pop-out behavior.</li>
+        <li>Validate in your own tenant. Mock tests are not a live SSO certification.</li>
+      </ul>
+      <p>Reference:
+        <a href="https://github.com/microsoft/CopilotStudioSamples/tree/main/sso/entra-id"
+          target="_blank" rel="noopener noreferrer">Microsoft's Entra SSO sample</a>.
+        To revert this preview, revert its additive commit(s); no existing demo
+        configuration needs restoration.</p>
+    </details>
+    <section id="auth-controls" aria-label="Agent authentication" hidden>
+      <span>The agent requires authentication. Continue with your Microsoft account.</span><br>
+      <button id="sign-in" type="button">Sign in</button>
+      <button id="agent-sign-in" type="button">Use agent sign-in instead</button>
+    </section>
+    <div id="chat" role="region" aria-label="Copilot conversation"></div>
+  </main>
+</body>
+</html>

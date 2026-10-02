@@ -1,0 +1,64 @@
+<!--
+=============================================================================
+COMPONENT:    Copilot SSO popup redirect
+FILE:         web resources/sidebar_CopilotAuthRedirect.html
+VERSION:      0.1.0
+AUTHOR:       Generic.Sidebar Team
+LAST UPDATED: 2026-10-02
+ENVIRONMENT:  HTTPS HTML web resource
+PORTAL URL:   Deployment-specific, same origin as the chat host
+-----------------------------------------------------------------------------
+OVERVIEW
+-----------------------------------------------------------------------------
+Intentionally inert redirect target for MSAL Browser 4 popup and silent flows.
+Register its exact deployed URL as an Entra SPA redirect URI.
+-----------------------------------------------------------------------------
+ARCHITECTURE
+-----------------------------------------------------------------------------
+- Data Source / Entity / API / OData: None
+- Auth Model: The opening chat host's MSAL instance processes the response
+- Rendering: Static HTML; no scripts or navigation
+-----------------------------------------------------------------------------
+FEATURES
+-----------------------------------------------------------------------------
+- UX Notes: Brief message while the parent processes authentication
+-----------------------------------------------------------------------------
+PREREQUISITES
+-----------------------------------------------------------------------------
+1. Same-origin HTTPS deployment and exact SPA redirect registration.
+-----------------------------------------------------------------------------
+SECURITY MODEL
+-----------------------------------------------------------------------------
+- CSRF / Auth Scope: Managed by MSAL in the opening host
+- Data Exposure: Does not read, transmit, log, or render the URL response
+-----------------------------------------------------------------------------
+STYLE ISOLATION
+-----------------------------------------------------------------------------
+- No styles or host integration
+-----------------------------------------------------------------------------
+KNOWN LIMITATIONS
+-----------------------------------------------------------------------------
+- Intended for MSAL 4 popup/silent flows, not full-page redirect login.
+-----------------------------------------------------------------------------
+TEST CASES
+-----------------------------------------------------------------------------
+- No scripts, external requests, redirect, or response logging.
+-----------------------------------------------------------------------------
+CHANGELOG
+-----------------------------------------------------------------------------
+v0.1.0  2026-10-02  Added isolated redirect target
+-----------------------------------------------------------------------------
+NON-NEGOTIABLES (Architecture Contract)
+-----------------------------------------------------------------------------
+- Keep this page inert; never copy it over an existing resource.
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
+  <title>Completing agent sign-in</title>
+</head>
+<body><p>Completing sign-in. This window will close when authentication finishes.</p></body>
+</html>
