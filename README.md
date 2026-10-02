@@ -1,8 +1,15 @@
-🚀 Generic Sidebar for Dynamics 365 — Release v1.0.5
+<p align="center">
+  <img src="./screenshots/generic-sidebar-banner.png" alt="Generic Sidebar for Dynamics 365" />
+</p>
+
+# Generic Sidebar for Dynamics 365
+
+**Release v1.0.5**
+
 The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps.
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, and theming.
 
-✨ What’s New in v1.0.5
+## What's New in v1.0.5
 
 ✅ Admin Acknowledgement Banner
 * Added a demo disclaimer banner visible only to admins.
@@ -63,20 +70,18 @@ A self-contained HTML phone simulator used as a sidecar embed for contact center
 ---
 
 
-⚡ Usage Instructions
-1. Import the Solution
-2. Import the managed/unmanaged solution into your Dynamics 365 environment.
-3. Create a Config Row
-   Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
-4. Set Key Fields
-   Fill in:
+## Usage Instructions
+
+1. Import the managed or unmanaged solution into your Dynamics 365 environment.
+2. Open the Generic Sidebar Configuration table (`sidebar_genericsidebar`) and create one record with `sidebar_default = Yes`.
+3. Fill in the key fields:
    * sidebar_title — header title (shown in the pane chrome).
    * sidebar_instructions — rich text instructions (bullets/headings supported).
    * sidebar_embedcode — choose:
 
-   https://... (External URL)
-   <iframe ...></iframe> (Copilot or Canvas App)
-   Raw HTML
+     * `https://...` (external URL)
+     * `<iframe ...></iframe>` (Copilot or Canvas App)
+     * Raw HTML
 
 Example of HTML Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
@@ -94,16 +99,19 @@ Example Displayed to End User
 Help, Issue Reporting and Survey\
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
-How to Add JS to a new Form
-1. Add the generic_sidebar.js web resource to your form and set OnLoad handler → Generic_OpenSidebar.
-2. Publish & Refresh
+## Add Generic Sidebar to a Form
+
+1. Add the `sidebar_sidebar.js` web resource to your form.
+2. Register `Generic_OpenSidebar` as an OnLoad handler and pass the execution context.
 3. Publish all customizations, then hard refresh (Ctrl/Cmd+Shift+R).
 
-📋 Known Limitations
+## Known Limitations
+
 * External sites may block embedding (X-Frame-Options / CSP).
 * sidebar_acknowledged is optional; banner skipped if missing.
 
 
-⚠️ Disclaimer
+## Disclaimer
+
 This kit is provided as-is. It is intended primarily for demo / proof-of-concept purposes.
 Before production use, admins must acknowledge the disclaimer via the welcome banner (sets sidebar_acknowledged = Yes).
