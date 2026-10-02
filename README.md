@@ -6,13 +6,15 @@
 
 Generic Sidebar is a configuration-driven side pane for Dynamics 365 and other model-driven apps. Administrators define panel titles, instructions, embeds, dimensions, and theming in Dataverse instead of hardcoding a different sidebar for every form.
 
+**Current Generic Sidebar Core release:** v1.0.0.11
+
 ## Current Repository Scope
 
 This repository contains the core Generic Sidebar solution plus optional applications and demo assets that can be embedded in it. These are separate deployment units.
 
 | Component | Current artifact | Relationship to Generic Sidebar |
 | --- | --- | --- |
-| **Generic Sidebar Core** | `GenericSidebar_1_0_0_5.zip` | The installable Dynamics 365 solution. |
+| **Generic Sidebar Core** | Release v1.0.0.11 | The installable Dynamics 365 solution. The checked-in `GenericSidebar_1_0_0_5.zip` archive is an older build retained in the repository. |
 | **Android Cell Phone Simulator** | `Generic.AndroidCellPhone/AndroidCellPhone.html` 2.6.0 | Optional standalone application that can be embedded as sidebar content. It is not included in or required by the core solution. |
 | **Genesys Softphone and examples** | Files under `SidecarItems/` | Optional demo integrations and content. They are not core solution prerequisites. |
 
@@ -39,8 +41,8 @@ The core solution uses the `sidebar_genericsidebar` Dataverse table to provide a
 
 ## Install the Core Solution
 
-1. Download or clone this repository.
-2. Import `GenericSidebar_1_0_0_5.zip` into the target Dynamics 365 environment as a managed or unmanaged solution.
+1. Obtain the Generic Sidebar Core v1.0.0.11 solution package.
+2. Import the package into the target Dynamics 365 environment as a managed or unmanaged solution.
 3. Open the **Generic Sidebar Configuration** table (`sidebar_genericsidebar`).
 4. Create or select one configuration record and set `sidebar_default = Yes`.
 5. Configure the first panel:
@@ -51,6 +53,8 @@ The core solution uses the `sidebar_genericsidebar` Dataverse table to provide a
 7. Save the configuration and publish customizations.
 
 An embed value can be an external URL, a `webresource:resource_name` reference, an iframe snippet, raw HTML, a Copilot Studio embed, or a Power Apps canvas app embed.
+
+> The `GenericSidebar_1_0_0_5.zip` archive currently checked into this repository predates v1.0.0.11 and should not be presented as the current release package.
 
 ## Add Generic Sidebar to a Form
 
