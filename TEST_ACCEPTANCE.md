@@ -35,6 +35,25 @@
 - ✔ Console logs indicate "Reusing existing sidebar pane" vs "Created new sidebar pane"
 - ✔ Console logs show "Sidebar already showing same config" when skip occurs
 
+### Opt-in Copilot Chat Host (v0.2.0 source integration)
+
+Offline regression command: `node --test tests/copilot-chat-host.test.js`.
+These tests use mocks, not live authentication. Deployment checks below remain
+required in a test tenant:
+
+- [ ] Published host HTML, runtime JS, redirect HTML, and sidebar renderer resolve correctly.
+- [ ] `copilot:` plus public JSON in each embed field opens the correct agent without setup controls.
+- [ ] Legacy URL, HTML, webresource, and hosted-webchat panels still behave normally.
+- [ ] Anonymous agents start without MSAL or user-authentication prompts.
+- [ ] Authenticated agents request SSO only on a matching agent token-exchange request.
+- [ ] Existing/no Microsoft session, multiple accounts, MFA, and consent behave correctly.
+- [ ] Token exchange rejection, expiry, blocked popups/cookies, and SDK/network failures remain recoverable.
+- [ ] Invalid Copilot metadata affects only that panel; other panels remain usable.
+- [ ] Initial connection failure offers retry without changing administrator configuration.
+- [ ] Tab switches preserve iframe/chat state; separate panels isolate conversations.
+- [ ] Pop-out retains configuration but starts a separate conversation; restoring the embedded panel preserves its existing state.
+- [ ] Cloud/channel endpoints, CORS, CSP, token-broker security where needed, and Entra redirect registration are validated.
+
 ### GitHub Pages Site
 
 - ✔ Landing page loads and renders release chart from GitHub API

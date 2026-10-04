@@ -1,17 +1,17 @@
 <!--
 =============================================================================
-COMPONENT:    Reusable Copilot Chat Host (standalone preview)
+COMPONENT:    Reusable Copilot Chat Host
 FILE:         web resources/sidebar_CopilotChatHost.html
-VERSION:      0.1.0
+VERSION:      0.2.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-10-02
+LAST UPDATED: 2026-10-04
 ENVIRONMENT:  HTTPS HTML web resource | JavaScript
 PORTAL URL:   Deployment-specific; no environment is built in
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
 Opt-in chat host for anonymous agents and agent-requested Entra SSO.
-Not referenced by the existing sidebar, solution archive, or demo pages.
+Opt-in sidebar integration; deployment and live-tenant certification required.
 -----------------------------------------------------------------------------
 ARCHITECTURE
 -----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ ARCHITECTURE
 FEATURES
 -----------------------------------------------------------------------------
 - Validation: Public connection metadata only; HTTPS and same-origin redirect
-- UX Notes: Explicit Start; silent SSO, then user-initiated interactive fallback
+- UX Notes: Automatic configured-panel startup; explicit standalone Start
 - Configuration: Paste JSON or load a same-origin JSON file with ?config=
 -----------------------------------------------------------------------------
 PREREQUISITES
@@ -49,17 +49,18 @@ STYLE ISOLATION
 -----------------------------------------------------------------------------
 KNOWN LIMITATIONS
 -----------------------------------------------------------------------------
-- Preview, not integrated or live-tenant certified; see setup notes below.
+- Not packaged or live-tenant certified; see setup notes below.
 - A generic hosted webchat URL cannot be converted to SSO automatically.
 -----------------------------------------------------------------------------
 TEST CASES
 -----------------------------------------------------------------------------
 - Anonymous agent never initializes MSAL or requests user sign-in.
 - OAuth exchange succeeds, retries, fails, or needs MFA without losing its card.
-- Existing sidebar and solution remain unchanged.
+- Legacy sidebar embeds remain unchanged; no deployment is performed.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v0.2.0  2026-10-04  Added opt-in configured-panel startup without setup controls
 v0.1.0  2026-10-02  Isolated, configurable preview with agent-requested SSO
 -----------------------------------------------------------------------------
 NON-NEGOTIABLES (Architecture Contract)
@@ -95,14 +96,15 @@ NON-NEGOTIABLES (Architecture Contract)
 <body>
   <main id="copilot-chat-host">
     <header>
-      <h1>Copilot Chat Host — Standalone Preview</h1>
-      <span>Not connected to your existing sidebar or solution.</span>
+      <h1 id="chat-title">Copilot Chat Host — Standalone Setup</h1>
+      <span id="preview-notice">Standalone setup; select Start chat after configuring a test agent.</span>
       <p id="status" role="status" aria-live="polite">Configure a test agent, then select Start chat.</p>
+      <button id="retry" type="button" hidden>Retry connection</button>
     </header>
     <details id="setup" open>
       <summary>Configuration and setup instructions</summary>
-      <p>This is an isolated prototype. Do not change today's demo configuration.
-        No network connection to an agent starts until you select Start chat.</p>
+      <p>Standalone setup requires Start chat. Opt-in sidebar panels start automatically
+        from administrator-supplied configuration; no user sign-in occurs unless the agent asks.</p>
       <label for="configuration">Public deployment configuration (JSON; never paste tokens or secrets)</label>
       <textarea id="configuration" spellcheck="false"></textarea>
       <button id="start" type="button">Start chat</button>
@@ -148,6 +150,12 @@ NON-NEGOTIABLES (Architecture Contract)
       <p>Separate deployments/panels can use separate configuration files without
         modifying this component. The agent—not a sidebar switch—requests authentication.
         Authentication configuration alone does not trigger sign-in.</p>
+      <p>For sidebar integration, enter <code>copilot:</code> followed by the public
+        JSON configuration in the existing panel embed field. The sidebar opens this
+        host with per-panel configuration in its URL fragment, hides setup controls,
+        and starts chat automatically. No new Dataverse columns or JSON web resource
+        are required. Existing URL/HTML/webresource embeds continue to work unchanged.
+        Publish all three companion resources and the updated sidebar renderer first.</p>
       <h2>Browser and cloud requirements</h2>
       <p>Web Chat 4.19.1 and MSAL Browser 4.30.0 are pinned, integrity-checked browser
         bundles served from jsDelivr. MSAL loads only after an eligible agent OAuth card.

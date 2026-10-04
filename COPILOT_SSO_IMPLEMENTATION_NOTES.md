@@ -1,8 +1,10 @@
 # Copilot Chat Host — Implementation and Integration Notes
 
-**Updated:** 2026-10-02  
-**Component version:** 0.1.0 preview  
-**Status:** Implemented as isolated files; **not integrated, deployed, or live-tenant certified**.
+**Updated:** 2026-10-04
+
+**Component version:** 0.2.0
+**Status:** Opt-in source integration implemented; **not deployed, packaged in a
+new solution ZIP, or live-tenant certified**.
 
 ## Purpose and safety boundary
 
@@ -20,10 +22,41 @@ The agent's Copilot Studio authentication configuration remains authoritative:
 - Failed or unsupported exchanges fall back to the agent's original sign-in card.
   The host never changes an authenticated agent to anonymous mode.
 
-The existing sidebar loader, panel renderer, agent iframe examples, solution ZIP,
-GitHub Pages entry points, and Dataverse configuration were **not changed**.
-No existing page references the new host. Adding these source files does not
-activate them in the demonstration or install them in Dynamics.
+The initial v0.1.0 work added isolated files only. The v0.2.0 work adds a small
+opt-in branch to the sidebar panel renderer for `copilot:` configuration.
+The existing loader, agent iframe examples, solution ZIP, GitHub Pages entry
+points, and deployed Dataverse configuration remain unchanged. Existing embed
+values retain their behavior; administrators must publish resources and
+explicitly configure a panel to use this integration.
+
+## Source integration implemented on 2026-10-04
+
+- `web resources/sidebar_sidebar.html` now recognizes `copilot:` followed by
+  public JSON configuration in an existing panel embed field.
+- The renderer resolves that value to the same-environment
+  `sidebar_CopilotChatHost.html`, with encoded configuration in a `copilot` URL
+  fragment. Configuration does not require a JSON web resource, schema changes,
+  a configuration script, or host-side Dataverse reads.
+- The URL fragment preserves special characters and per-panel metadata on
+  pop-out, while keeping configuration out of HTTP request/referrer URLs.
+  Configured Copilot URLs are redacted in the renderer's active-panel log.
+- The chat host validates the supplied metadata, hides standalone setup controls,
+  and starts chat automatically. This starts the conversation, **not** user
+  authentication. Agent-triggered SSO remains unchanged.
+- Malformed metadata produces a local configuration error without connecting
+  to an agent. It does not break neighboring legacy panels.
+- A failed initial connection offers Retry connection using the same
+  administrator configuration; duplicate startup is prevented.
+- Existing iframe tab reuse remains in place. A pop-out uses the same configuration
+  but creates a separate conversation; it does not transfer chat history.
+- Standalone host use without the fragment still supports manual JSON/file
+  configuration and requires Start chat.
+- README deployment guidance and offline regression coverage were updated.
+
+The required deployed resource names are `sidebar_sidebar.html`,
+`sidebar_CopilotChatHost.html`, `sidebar_CopilotChatHost.js`, and
+`sidebar_CopilotAuthRedirect.html`. These filenames are the current integration
+contract; arbitrary resource renaming is not implemented.
 
 ## Changes implemented
 
@@ -32,18 +65,22 @@ Repository root for the paths below:
 
 | Added file | Purpose |
 | --- | --- |
-| `web resources/sidebar_CopilotChatHost.html` | Standalone chat UI, editable public JSON configuration, explicit Start chat button, and embedded setup/validation instructions. |
+| `web resources/sidebar_CopilotChatHost.html` | Standalone setup UI plus automatic configured-panel chat, retry controls, and embedded setup/validation instructions. |
 | `web resources/sidebar_CopilotChatHost.js` | Configuration validation, Direct Line conversation startup, lazy MSAL identity acquisition, agent-requested token exchange, and fallback handling. |
 | `web resources/sidebar_CopilotAuthRedirect.html` | Inert same-origin target for MSAL silent/popup responses; requires an exact Entra SPA redirect registration. |
 | `web resources/sidebar_CopilotChatHost.config.example.json` | Empty anonymous-agent configuration template; contains no working environment details or credentials. |
-| `tests/copilot-chat-host.test.js` | Offline regression tests using Node's built-in test runner and mocked browser/identity/chat services. |
+| `tests/copilot-chat-host.test.js` | Offline host/sidebar regression tests using Node's built-in test runner and mocked browser/identity/chat services. |
+
+The existing `web resources/sidebar_sidebar.html` was updated only for opt-in
+resolution, Copilot URL log redaction, and avoiding phone-title autozoom for these
+new chat panels.
 
 ### Runtime behavior
 
 - Configuration can be pasted into the host or loaded from a same-origin file
   using the host's `config` query parameter.
-- Configuration loading does **not** start chat. Selecting Start chat is required
-  in this preview.
+- Standalone file/pasted configuration does **not** start chat until Start chat.
+  A sidebar-supplied `copilot` fragment starts validated chat automatically.
 - Web Chat 4.19.1 loads on startup. MSAL Browser 4.30.0 loads only when a matching
   agent authentication request needs it.
 - Both browser bundles are pinned and integrity-checked, with jsDelivr URLs.
@@ -85,7 +122,7 @@ secured, and operated; none was implemented here.
 
 At implementation time:
 
-- All **16 offline regression tests passed**, including anonymous behavior,
+- The original **16 offline regression tests passed**, including anonymous behavior,
   configuration validation, scope/resource boundaries, silent acquisition,
   explicit popup wiring, cancellation, bound user IDs, duplicates, and fallback.
 - Runtime JavaScript syntax and Git whitespace checks passed.
@@ -93,7 +130,13 @@ At implementation time:
 - CodeQL reported zero JavaScript alerts.
 - An independent read-only review found no significant issues. The automated code
   review executable was unavailable.
-- The implementation diff contained only the five additions listed above.
+- The initial implementation diff contained only the five additions listed above.
+
+For v0.2.0, **24 offline tests passed**, including all original cases plus
+legacy embed resolution, encoded per-agent configuration, automatic anonymous
+and authenticated-panel startup, invalid-configuration isolation, retry,
+separate panels/pop-outs, and renderer tab/frame reuse. Real browser automation
+was again unavailable; live deployment/authentication checks remain outstanding.
 
 The test command, run from the repository root, is:
 
@@ -113,12 +156,11 @@ and published SDK delivery still require real-environment testing.
   separate resources on one HTTPS origin.
 - [ ] Preserve relative script resolution and the redirect filename expected by
   validation when selecting Dynamics web resource names.
-- [ ] Decide how per-panel public configuration will be delivered. The preview
-  supports pasted JSON and same-origin JSON URLs, but does not read Dataverse
-  fields or automatically select an agent configuration.
-- [ ] Confirm a supported deployment mechanism for JSON configuration; do not
-  assume Dataverse accepts raw JSON as a web resource type. If a different
-  configuration mechanism is needed, implement and validate it separately.
+- [x] Implement per-panel public configuration using `copilot:` plus JSON in the
+  existing embed field. The existing renderer reads that field and passes the
+  metadata to the host; no new table/column or raw JSON web resource is required.
+- [ ] Enter real public connection metadata for a test panel. Do not paste a
+  hosted webchat iframe URL or credentials as the token endpoint.
 
 ### 2. Configure each agent and identity integration
 
@@ -147,22 +189,23 @@ and published SDK delivery still require real-environment testing.
 - [ ] Verify unsupported or failed SSO leaves a usable agent sign-in path and does
   not bypass agent/downstream authorization.
 - [ ] Test two separate hosts with different agent configurations.
-- [ ] Decide whether to retain the preview setup UI/manual startup or implement a
-  controlled production configuration/startup experience. Automated startup is
-  not implemented.
+- [x] Implement configured-panel automatic startup without editable setup UI,
+  retaining manual setup for standalone use.
+- [ ] Validate automatic startup and retry against real published agents.
 
 ### 4. Perform opt-in sidebar and solution integration
 
 - [ ] Add the tested resources and required dependencies to the appropriate
   Dynamics solution; publish them in a non-production environment first.
-- [ ] Point only a test panel at the deployed host resource, carrying its selected
-  configuration through the verified deployment mechanism.
-- [ ] Retain ordinary URL/HTML embeds and existing hosted-webchat panels unchanged
-  unless an administrator explicitly opts them into the new host.
+- [x] Implement opt-in panel resolution and preserve legacy URL/HTML/webresource
+  and hosted-webchat embed paths.
+- [ ] Configure only a test panel with `copilot:` plus public configuration after
+  publishing the updated renderer and all three host resources.
 - [ ] Verify the existing sidebar's resource URL resolution, panel switching,
   close/reopen behavior, nested-frame authentication, and conversation isolation.
-- [ ] Validate pop-out URLs retain agent configuration. A separate pop-out host
-  starts a new conversation; conversation transfer is not implemented.
+- [x] Verify configuration-preserving pop-out URLs in offline renderer/host tests.
+- [ ] Validate actual browser pop-out and nested-frame authentication. A separate
+  pop-out starts a new conversation; conversation transfer is not implemented.
 - [ ] Re-run existing sidebar/demo acceptance checks before modifying a shared
   default configuration or releasing a new solution package.
 - [ ] Record exported solution/resource versions and a deployment rollback plan.
@@ -170,8 +213,8 @@ and published SDK delivery still require real-environment testing.
 
 ## Documentation updates to make after integration
 
-- Update the main README's capabilities, deployment instructions, and limitations
-  only when the host is actually packaged and validated.
+- Source-level opt-in deployment guidance is now in the README; update actual
+  packaged release capabilities only after packaging and live validation.
 - Document anonymous versus authenticated agent setup, public configuration
   delivery, identity registrations, cloud prerequisites, and token-broker needs.
 - Add live SSO acceptance cases to the project's acceptance documentation.
@@ -187,10 +230,18 @@ The isolated implementation was committed in:
 1. `0ca0ba0` — Add isolated reusable Copilot chat host preview without integrating sidebar.
 2. `8acfada` — Validate standalone chat host wiring and isolated rollback boundary.
 
-To undo those implementation commits without rewriting history:
+For the original standalone-only revision, those two commits could be undone with:
 
 `git revert 8acfada 0ca0ba0`
 
-This removes the additive preview/test changes; no existing demo configuration
-was changed by those commits. This note is a separate documentation change.
-Future deployment or integration changes will require their own rollback steps.
+**After v0.2.0 integration, do not revert only those old commits:** first restore
+any deployed test panel embed values and revert the newer integration commits
+in reverse chronological order. Otherwise the renderer could reference deleted
+host files. Use Git history to identify the integration/documentation commits.
+
+Source rollback alone does not restore deployed web resources. Before deployment,
+export the current solution/resources and save prior panel embed values. To roll
+back a deployed integration, restore those values and publish the previous
+renderer/resources (or import the saved solution according to your environment's
+release process). No tenant configuration or solution archive was changed by
+the source implementation.

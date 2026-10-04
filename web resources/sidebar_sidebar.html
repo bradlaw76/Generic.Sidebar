@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      1.0.0
+VERSION:      1.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-10-04
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.1  2026-10-04  Added opt-in copilot: panel configuration; legacy embeds unchanged
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -397,6 +398,11 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
+    if (/^copilot:/i.test(t)) {
+      // Public per-panel metadata travels in the fragment, not server/referrer logs.
+      const data = encodeURIComponent(t.slice("copilot:".length).trim());
+      return { mode: "url", url: `${base}/WebResources/sidebar_CopilotChatHost.html#copilot=${data}`, isCopilot: true };
+    }
     if (/^webresource:/i.test(t)) return { mode: "url", url: `${base}/WebResources/${t.replace(/^webresource:/i,"")}` };
 
     return { mode: "url", url: t };
@@ -569,6 +575,7 @@ NON-NEGOTIABLES (Architecture Contract)
         iframe.style.display = "none"; // Hidden by default
         iframe.dataset.panelIndex = idx;
         iframe.dataset.configId = configId; // Track which config this iframe belongs to
+        iframe.dataset.isCopilot = target.isCopilot ? "true" : "false";
 
         if (target.mode === "html") {
           // Apply appropriate styling based on content type
@@ -592,7 +599,7 @@ NON-NEGOTIABLES (Architecture Contract)
           iframe.dataset.popoutUrl = target.url; // Store URL for pop-out
 
           const lower = panel.title.toLowerCase();
-          if (lower.includes("phone") || lower.includes("genesys")) {
+          if (!target.isCopilot && (lower.includes("phone") || lower.includes("genesys"))) {
             iframe.classList.add("force-zoom");
             iframe.dataset.autoZoom = "true";
           }
@@ -658,7 +665,8 @@ NON-NEGOTIABLES (Architecture Contract)
         if (activeIframe) {
           const isHtml = activeIframe.dataset.isHtml === "true";
           const hasPopoutUrl = !!activeIframe.dataset.popoutUrl;
-          console.log("Sidebar setActivePanel:", idx, "isHtml=", isHtml, "hasPopoutUrl=", hasPopoutUrl, "popoutUrl=", activeIframe.dataset.popoutUrl);
+          console.log("Sidebar setActivePanel:", idx, "isHtml=", isHtml, "hasPopoutUrl=", hasPopoutUrl, "popoutUrl=",
+            activeIframe.dataset.isCopilot === "true" ? "[configured Copilot host]" : activeIframe.dataset.popoutUrl);
           
           // Zoom button only for URL embeds (not HTML)
           if (isHtml) {
@@ -734,4 +742,3 @@ NON-NEGOTIABLES (Architecture Contract)
   </div>
 </body>
 </html>
-

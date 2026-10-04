@@ -1,17 +1,17 @@
 /*
 =============================================================================
-COMPONENT:    Copilot Chat Host runtime (standalone preview)
+COMPONENT:    Copilot Chat Host runtime
 FILE:         web resources/sidebar_CopilotChatHost.js
-VERSION:      0.1.0
+VERSION:      0.2.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-10-02
+LAST UPDATED: 2026-10-04
 ENVIRONMENT:  Browser JavaScript | Node built-in unit tests
 PORTAL URL:   Deployment-specific
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
 Configuration-driven Direct Line chat with agent-triggered Entra token exchange.
-No dependency on Xrm, existing sidebar scripts, or a fixed tenant/agent.
+Accepts opt-in sidebar configuration without Xrm or a fixed tenant/agent.
 -----------------------------------------------------------------------------
 ARCHITECTURE
 -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ ARCHITECTURE
 FEATURES
 -----------------------------------------------------------------------------
 - Validation: HTTPS, public metadata, exact resource match, same-origin redirect
-- UX Notes: Manual startup, bounded exchange, duplicate-request protection
+- UX Notes: Configured-panel startup; manual standalone setup; bounded exchange
 -----------------------------------------------------------------------------
 PREREQUISITES
 -----------------------------------------------------------------------------
@@ -53,11 +53,12 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v0.2.0  2026-10-04  Added validated per-panel startup and retry without setup UI
 v0.1.0  2026-10-02  Added isolated, reusable runtime
 -----------------------------------------------------------------------------
 NON-NEGOTIABLES (Architecture Contract)
 -----------------------------------------------------------------------------
-- Never modify the existing sidebar or downgrade authentication on failure.
+- Never change legacy embed behavior or downgrade authentication on failure.
 - Never use client secrets or forward identity tokens to configuration URLs.
 =============================================================================
 */
@@ -293,10 +294,32 @@ NON-NEGOTIABLES (Architecture Contract)
     const controls = document.getElementById("auth-controls");
     const signIn = document.getElementById("sign-in");
     const agentSignIn = document.getElementById("agent-sign-in");
+    const setup = document.getElementById("setup");
+    const retry = document.getElementById("retry");
+    const url = new URL(root.location.href);
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    const integrated = fragment.has("copilot");
+    let deploymentConfig;
+    let running = false;
+    let starting = false;
     editor.value = JSON.stringify({ tokenEndpoint: "", directLineDomain: "", title: "Copilot", startConversation: true }, null, 2);
 
-    const file = new URL(root.location.href).searchParams.get("config");
-    if (file) {
+    if (integrated) {
+      setup.hidden = true;
+      editor.disabled = true;
+      document.getElementById("preview-notice").hidden = true;
+      document.getElementById("chat-title").textContent = "Copilot";
+      try {
+        deploymentConfig = validateConfig(JSON.parse(fragment.get("copilot")), root.location.origin);
+        document.getElementById("chat-title").textContent = deploymentConfig.title;
+        document.title = deploymentConfig.title;
+      } catch {
+        status("Invalid Copilot panel configuration. Ask your administrator to check this panel's public connection settings.");
+        return;
+      }
+    }
+    const file = url.searchParams.get("config");
+    if (!integrated && file) {
       start.disabled = true;
       try {
         const url = new URL(file, root.location.href);
@@ -311,12 +334,15 @@ NON-NEGOTIABLES (Architecture Contract)
       } finally { start.disabled = false; }
     }
 
-    start.addEventListener("click", async () => {
+    const startChat = async () => {
+      if (starting || running) return;
+      starting = true;
       start.disabled = true;
+      retry.hidden = true;
       let directLine;
       try {
         if (root.location.protocol !== "https:") throw new Error("Deploy this preview on HTTPS before starting chat.");
-        const config = validateConfig(JSON.parse(editor.value), root.location.origin);
+        const config = deploymentConfig || validateConfig(JSON.parse(editor.value), root.location.origin);
         status("Loading chat…");
         await loadLibrary("webchat");
         const credentials = await fetchJson(config.tokenEndpoint);
@@ -370,17 +396,24 @@ NON-NEGOTIABLES (Architecture Contract)
           styleOptions: { hideUploadButton: true, botAvatarInitials: config.title.slice(0, 2) }
         }, document.getElementById("chat"));
         editor.disabled = true;
-        document.getElementById("setup").open = false;
+        setup.open = false;
+        running = true;
         status("Chat started. Authentication is requested only if the agent asks for it.");
         root.addEventListener("pagehide", () => directLine.end(), { once: true });
       } catch (error) {
         if (directLine) directLine.end();
         // Do not display raw service/identity errors, URLs, or token responses.
         status(error instanceof SyntaxError ? "Invalid JSON configuration." :
-          "Chat could not start. Check configuration, HTTPS, CORS, and SDK network policy; see setup instructions.");
+          "Chat could not start. Check connection settings, HTTPS, CORS, and SDK network policy.");
         start.disabled = false;
+        retry.hidden = !integrated;
+      } finally {
+        starting = false;
       }
-    });
+    };
+    start.addEventListener("click", startChat);
+    retry.addEventListener("click", startChat);
+    if (integrated) await startChat();
   }
 
   const api = { validateConfig, postExchange, createAuthMiddleware, createTokenProvider };

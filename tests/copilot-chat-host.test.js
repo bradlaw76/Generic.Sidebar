@@ -1,16 +1,16 @@
 /*
 =============================================================================
-COMPONENT:    Isolated Copilot chat host regression tests
+COMPONENT:    Copilot chat host and sidebar integration regression tests
 FILE:         tests/copilot-chat-host.test.js
-VERSION:      0.1.0
+VERSION:      0.2.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-10-02
+LAST UPDATED: 2026-10-04
 ENVIRONMENT:  Node.js built-in test runner
 PORTAL URL:   None
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-Offline tests for the new host only; no live agents, tenants, or demo assets.
+Offline host and opt-in sidebar tests; no live agents or tenants.
 -----------------------------------------------------------------------------
 ARCHITECTURE
 -----------------------------------------------------------------------------
@@ -46,6 +46,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v0.2.0  2026-10-04  Added configured startup and legacy embed integration tests
 v0.1.0  2026-10-02  Initial offline regression coverage
 -----------------------------------------------------------------------------
 NON-NEGOTIABLES (Architecture Contract)
@@ -278,10 +279,10 @@ test("unexpected identity errors do not force interactive sign-in", async () => 
   await assert.rejects(provider());
 });
 
-function browserHarness(configuration, credentials = { token: "mock-conversation" }) {
+function browserHarness(configuration, credentials = { token: "mock-conversation" }, options = {}) {
   const elements = new Map();
   for (const id of ["status", "configuration", "start", "auth-controls", "sign-in",
-    "agent-sign-in", "setup", "chat"]) {
+    "agent-sign-in", "setup", "chat", "retry", "preview-notice", "chat-title"]) {
     elements.set(id, { hidden: true, disabled: false, addEventListener(type, handler) { this[type] = handler; } });
   }
   let store;
@@ -294,12 +295,13 @@ function browserHarness(configuration, credentials = { token: "mock-conversation
   const fetched = [];
   const events = {};
   const window = {
-    location: { href: `${origin}/sidebar_CopilotChatHost.html`, origin, protocol: "https:" },
+    location: { href: options.href || `${origin}/sidebar_CopilotChatHost.html`, origin, protocol: "https:" },
     document: { getElementById: id => elements.get(id) },
     crypto: { randomUUID: () => "test-conversation" },
     addEventListener: (type, handler) => { events[type] = handler; },
     fetch: async url => {
       fetched.push(url);
+      if (options.fetch) return options.fetch(url);
       return { ok: true, json: async () => credentials };
     },
     WebChat: {
@@ -332,7 +334,7 @@ function browserHarness(configuration, credentials = { token: "mock-conversation
     }
   };
   runInNewContext(readFileSync(join(__dirname, "../web resources/sidebar_CopilotChatHost.js"), "utf8"),
-    { window, URL, AbortSignal, setTimeout, clearTimeout });
+    { window, URL, URLSearchParams, AbortSignal, setTimeout, clearTimeout });
   elements.get("configuration").value = JSON.stringify(configuration);
   return {
     elements, forwarded, posted, fetched, events,
@@ -388,4 +390,203 @@ test("browser interactive fallback cancel releases the original agent card witho
   assert.equal(h.posted.length, 0);
   assert.equal(h.forwarded.length, 1);
   assert.equal(h.elements.get("auth-controls").hidden, true);
+});
+
+function resolvePanel(raw) {
+  const source = readFileSync(join(__dirname, "../web resources/sidebar_sidebar.html"), "utf8");
+  const match = source.match(/  function resolveEmbed\(raw\) \{[\s\S]*?(?=\n  function toggleZoom)/);
+  assert.ok(match, "Sidebar resolver is present.");
+  return runInNewContext(`${match[0]}\nresolveEmbed(raw)`, {
+    raw, encodeURIComponent, console: { log() {} },
+    parent: { Xrm: { Utility: { getGlobalContext: () => ({ getClientUrl: () => origin }) } } }
+  });
+}
+
+test("sidebar opt-in format carries exact per-agent metadata in a pop-out-safe fragment", () => {
+  const config = { ...base, title: 'Agent A & + % # "日本語"', auth };
+  const target = resolvePanel(`copilot:${JSON.stringify(config)}`);
+  const url = new URL(target.url);
+  assert.equal(target.mode, "url");
+  assert.equal(target.isCopilot, true);
+  assert.equal(url.pathname, "/WebResources/sidebar_CopilotChatHost.html");
+  assert.equal(url.search, "");
+  assert.deepEqual(JSON.parse(new URLSearchParams(url.hash.slice(1)).get("copilot")), config);
+});
+
+test("legacy URLs, web resources, HTML, hosted webchat, and empty embeds stay unchanged", () => {
+  assert.equal(resolvePanel(""), null);
+  for (const url of ["https://external.example/app", "https://copilotstudio.microsoft.com/environments/example/bots/example/webchat"]) {
+    assert.equal(resolvePanel(url).url, url);
+    assert.equal(resolvePanel(url).isCopilot, undefined);
+  }
+  assert.equal(resolvePanel("webresource:sidebar_GenericSidebarAgent.html").url,
+    `${origin}/WebResources/sidebar_GenericSidebarAgent.html`);
+  const html = '<iframe src="https://external.example/app"></iframe>';
+  assert.equal(resolvePanel(html).html, html);
+  assert.equal(resolvePanel(html).extractedUrl, "https://external.example/app");
+  assert.equal(resolvePanel(html).mode, "html");
+});
+
+test("configured anonymous sidebar panel starts automatically without setup or MSAL", async () => {
+  const target = resolvePanel(`copilot:${JSON.stringify({ ...base, title: "Anonymous helper" })}`);
+  const h = browserHarness({}, undefined, { href: target.url });
+  await flush();
+  assert.equal(h.renders(), 1);
+  assert.equal(h.identityClients(), 0);
+  assert.equal(h.elements.get("setup").hidden, true);
+  assert.equal(h.elements.get("preview-notice").hidden, true);
+  assert.equal(h.elements.get("chat-title").textContent, "Anonymous helper");
+  assert.deepEqual(h.fetched, [base.tokenEndpoint]);
+  // A repeated start gesture must not create a second conversation.
+  await h.start();
+  assert.equal(h.renders(), 1);
+});
+
+test("configured authenticated panel starts chat but waits for the agent before user authentication", async () => {
+  const target = resolvePanel(`copilot:${JSON.stringify({ ...base, auth })}`);
+  const h = browserHarness({}, undefined, { href: target.url });
+  await flush();
+  assert.equal(h.renders(), 1);
+  assert.equal(h.identityClients(), 0);
+  h.incoming(card());
+  await flush();
+  assert.equal(h.identityClients(), 1);
+  assert.equal(h.popups(), 0);
+  h.elements.get("sign-in").onclick();
+  await flush();
+  assert.equal(h.posted.length, 1);
+  assert.equal(h.forwarded.length, 0);
+});
+
+test("malformed/unsafe configured panels fail locally without a connection or editable bypass", async () => {
+  for (const data of ["", "{broken", "null", JSON.stringify({ ...base, auth: { ...auth, authority: "https://untrusted.example/tenant" } })]) {
+    const h = browserHarness(base, undefined, {
+      href: `${origin}/WebResources/sidebar_CopilotChatHost.html#copilot=${encodeURIComponent(data)}`
+    });
+    await flush();
+    assert.equal(h.renders(), 0);
+    assert.equal(h.fetched.length, 0);
+    assert.equal(h.identityClients(), 0);
+    assert.equal(h.elements.get("setup").hidden, true);
+    assert.match(h.elements.get("status").textContent, /Invalid Copilot panel/);
+  }
+});
+
+test("configured panel connection failure provides retry using the original administrator config", async () => {
+  let attempts = 0;
+  const target = resolvePanel(`copilot:${JSON.stringify(base)}`);
+  const h = browserHarness({}, undefined, {
+    href: target.url,
+    fetch: async () => {
+      attempts++;
+      if (attempts === 1) throw new Error("mock offline");
+      return { ok: true, json: async () => ({ token: "mock-conversation" }) };
+    }
+  });
+  await flush();
+  assert.equal(h.renders(), 0);
+  assert.equal(h.elements.get("retry").hidden, false);
+  h.elements.get("configuration").value = "{}";
+  await h.elements.get("retry").click();
+  assert.equal(h.renders(), 1);
+  assert.deepEqual(h.fetched, [base.tokenEndpoint, base.tokenEndpoint]);
+  assert.equal(h.elements.get("retry").hidden, true);
+});
+
+test("separate configured panels and pop-outs preserve metadata but use separate conversations", async () => {
+  const targetA = resolvePanel(`copilot:${JSON.stringify(base)}`);
+  const second = { ...base, tokenEndpoint: "https://second-agent.example/token", title: "Agent B" };
+  const targetB = resolvePanel(`copilot:${JSON.stringify(second)}`);
+  const a = browserHarness({}, { token: "mock-A", userId: "dl_A" }, { href: targetA.url });
+  const b = browserHarness({}, { token: "mock-B", userId: "dl_B" }, { href: targetB.url });
+  const popout = browserHarness({}, { token: "mock-popout", userId: "dl_popout" }, { href: targetA.url });
+  await flush();
+  assert.deepEqual(a.fetched, [base.tokenEndpoint]);
+  assert.deepEqual(b.fetched, [second.tokenEndpoint]);
+  assert.deepEqual(popout.fetched, [base.tokenEndpoint]);
+  assert.equal(a.boundUser(), "dl_A");
+  assert.equal(b.boundUser(), "dl_B");
+  assert.equal(popout.boundUser(), "dl_popout");
+});
+
+test("sidebar renderer preserves tab state and pop-out configuration alongside legacy panels", async () => {
+  function element() {
+    const classes = new Set();
+    return {
+      children: [], dataset: {}, style: {},
+      classList: {
+        add: value => classes.add(value),
+        remove: value => classes.delete(value),
+        contains: value => classes.has(value),
+        toggle: (value, enabled) => enabled ? classes.add(value) : classes.delete(value)
+      },
+      appendChild(child) { this.children.push(child); },
+      setAttribute(name, value) { this[name] = value; },
+      set innerHTML(value) { this.html = value; this.children = []; },
+      get innerHTML() { return this.html || ""; },
+      querySelectorAll() { return this.children.filter(child => child.dataset.configId); },
+      querySelector(selector) {
+        const index = selector.match(/data-panel-index="(\d+)"/);
+        return index ? this.children.find(child => Number(child.dataset.panelIndex) === Number(index[1])) : null;
+      }
+    };
+  }
+  const nodes = new Map();
+  for (const id of ["host", "instBand", "zoomToggle", "panelContainer", "tabRow", "popoutBtn", "popoutPlaceholder"]) {
+    nodes.set(id, element());
+  }
+  const config = { ...base, title: "Phone agent", auth };
+  const record = {
+    sidebar_title1: "Phone agent", sidebar_embedcode: `copilot:${JSON.stringify(config)}`,
+    sidebar_title2: "Legacy", sidebar_embedcode2: "webresource:sidebar_GenericSidebarAgent.html",
+    sidebar_title3: "Invalid Copilot", sidebar_embedcode3: "copilot:{broken"
+  };
+  const storage = new Map();
+  const logs = [];
+  let load;
+  let reads = 0;
+  let opened;
+  const context = {
+    URL, URLSearchParams, encodeURIComponent, setInterval() {},
+    console: { log: (...values) => logs.push(values.join(" ")) },
+    screen: { availWidth: 1920, availHeight: 1080 },
+    sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
+    parent: { Xrm: {
+      Utility: { getGlobalContext: () => ({ getClientUrl: () => origin }) },
+      WebApi: { retrieveRecord: async () => { reads++; return record; } }
+    } },
+    document: {
+      getElementById: id => nodes.get(id),
+      createElement: () => element(),
+      querySelector: selector => nodes.get("panelContainer").querySelector(selector)
+    },
+    window: {
+      location: { href: `${origin}/WebResources/sidebar_sidebar.html?configId=test-record` },
+      addEventListener: (event, callback) => { load = callback; },
+      open: url => { opened = url; return null; }
+    }
+  };
+  const source = readFileSync(join(__dirname, "../web resources/sidebar_sidebar.html"), "utf8");
+  const script = source.match(/<script>([\s\S]*?)<\/script>/)[1];
+  runInNewContext(script, context);
+  await load();
+  assert.equal(nodes.get("host").innerHTML, "");
+  const frames = nodes.get("panelContainer").children;
+  assert.equal(frames.length, 3);
+  assert.equal(frames[0].style.display, "block");
+  assert.equal(frames[0].classList.contains("force-zoom"), false);
+  assert.equal(frames[1].src, `${origin}/WebResources/sidebar_GenericSidebarAgent.html`);
+  assert.match(frames[2].src, /sidebar_CopilotChatHost.html#copilot=/);
+  assert.equal(logs.some(line => line.includes(auth.tokenExchangeResourceUri)), false);
+  nodes.get("tabRow").children[1].onclick();
+  assert.equal(frames[0].style.display, "none");
+  assert.equal(frames[1].style.display, "block");
+  nodes.get("tabRow").children[0].onclick();
+  assert.equal(nodes.get("panelContainer").children[0], frames[0]);
+  context.popOutPanel();
+  assert.equal(opened, frames[0].src);
+  assert.deepEqual(JSON.parse(new URLSearchParams(new URL(opened).hash.slice(1)).get("copilot")), config);
+  await load();
+  assert.equal(reads, 1);
+  assert.equal(nodes.get("panelContainer").children[0], frames[0]);
 });

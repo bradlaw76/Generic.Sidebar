@@ -56,6 +56,48 @@ An embed value can be an external URL, a `webresource:resource_name` reference, 
 
 > The `GenericSidebar_1_0_0_5.zip` archive currently checked into this repository predates v1.0.0.11 and should not be presented as the current release package.
 
+### Opt-in Copilot Studio chat and SSO (source integration, v0.2.0)
+
+The source now supports `copilot:` followed by public JSON configuration in any
+existing panel embed field (`sidebar_embedcode`, `sidebar_embedcode2`, etc.).
+Existing URL, HTML, iframe, and webresource embeds are not migrated or changed.
+This code is **not included in a newly exported solution package and is not
+live-tenant certified**.
+
+In a test environment, publish the updated `sidebar_sidebar.html` and these
+three web resources under their exact names:
+
+- `sidebar_CopilotChatHost.html`
+- `sidebar_CopilotChatHost.js`
+- `sidebar_CopilotAuthRedirect.html`
+
+Set a test panel's embed field to the following shape, replacing both endpoint
+placeholders with values for your published agent/channel:
+
+```text
+copilot:{"tokenEndpoint":"https://YOUR-AGENT-TOKEN-ENDPOINT","directLineDomain":"https://YOUR-DIRECT-LINE-HOST/v3/directline","title":"My agent"}
+```
+
+The sidebar carries that panel's public configuration in the host URL fragment,
+including on pop-out. The host validates it and starts chat without setup controls.
+No new Dataverse columns or JSON web resources are needed. Each panel can target
+a different agent or environment.
+
+For an anonymous agent, omit `auth`. For authenticated agents, add the documented
+`auth` metadata and configure Copilot Studio/Entra token exchange and the exact
+SPA redirect URL. Sign-in is attempted only when the agent requests it; required
+MFA/consent prompts remain supported. An existing Dynamics session alone does not
+guarantee silent SSO. A secured channel may also require a separate token broker.
+
+Keep configuration public: never enter secrets or identity/conversation tokens.
+Cloud endpoints, CORS, CSP, SDK access, and real tenant authentication must be
+validated before rollout. Pop-out opens a new conversation; tab switching retains
+the existing iframe/conversation.
+
+See [implementation and integration notes](./COPILOT_SSO_IMPLEMENTATION_NOTES.md)
+for configuration fields, validation requirements, deployment, and rollback.
+Opening the host without a `copilot` fragment retains the standalone setup UI.
+
 ## Add Generic Sidebar to a Form
 
 1. Add the `sidebar_sidebar.js` web resource as a form library.
