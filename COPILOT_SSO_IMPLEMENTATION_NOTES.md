@@ -45,7 +45,7 @@ explicitly configure a panel to use this integration.
   authentication. Agent-triggered SSO remains unchanged.
 - Malformed metadata produces a local configuration error without connecting
   to an agent. It does not break neighboring legacy panels.
-- A failed initial connection offers Retry connection using the same
+- A failed token fetch or terminal Direct Line connection offers Retry connection using the same
   administrator configuration; duplicate startup is prevented.
 - Existing iframe tab reuse remains in place. A pop-out uses the same configuration
   but creates a separate conversation; it does not transfer chat history.
@@ -132,10 +132,10 @@ At implementation time:
   review executable was unavailable.
 - The initial implementation diff contained only the five additions listed above.
 
-For v0.2.0, **24 offline tests passed**, including all original cases plus
+For v0.2.0, **25 offline tests passed**, including all original cases plus
 legacy embed resolution, encoded per-agent configuration, automatic anonymous
 and authenticated-panel startup, invalid-configuration isolation, retry,
-separate panels/pop-outs, and renderer tab/frame reuse. Real browser automation
+separate panels/pop-outs, terminal connection failure recovery, and renderer tab/frame reuse. Real browser automation
 was again unavailable; live deployment/authentication checks remain outstanding.
 
 The test command, run from the repository root, is:

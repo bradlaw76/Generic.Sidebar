@@ -49,7 +49,7 @@ required in a test tenant:
 - [ ] Existing/no Microsoft session, multiple accounts, MFA, and consent behave correctly.
 - [ ] Token exchange rejection, expiry, blocked popups/cookies, and SDK/network failures remain recoverable.
 - [ ] Invalid Copilot metadata affects only that panel; other panels remain usable.
-- [ ] Initial connection failure offers retry without changing administrator configuration.
+- [ ] Token fetch failure or terminal Direct Line connection failure offers retry without changing administrator configuration.
 - [ ] Tab switches preserve iframe/chat state; separate panels isolate conversations.
 - [ ] Pop-out retains configuration but starts a separate conversation; restoring the embedded panel preserves its existing state.
 - [ ] Cloud/channel endpoints, CORS, CSP, token-broker security where needed, and Entra redirect registration are validated.

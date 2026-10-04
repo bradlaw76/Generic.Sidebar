@@ -340,6 +340,7 @@ NON-NEGOTIABLES (Architecture Contract)
       start.disabled = true;
       retry.hidden = true;
       let directLine;
+      let connectionSubscription;
       try {
         if (root.location.protocol !== "https:") throw new Error("Deploy this preview on HTTPS before starting chat.");
         const config = deploymentConfig || validateConfig(JSON.parse(editor.value), root.location.origin);
@@ -398,10 +399,38 @@ NON-NEGOTIABLES (Architecture Contract)
         editor.disabled = true;
         setup.open = false;
         running = true;
-        status("Chat started. Authentication is requested only if the agent asks for it.");
-        root.addEventListener("pagehide", () => directLine.end(), { once: true });
+        status("Connecting to the agent. Authentication is requested only if the agent asks for it.");
+        let failed = false;
+        const connectionFailed = () => {
+          if (failed) return;
+          failed = true;
+          running = false;
+          start.disabled = false;
+          retry.hidden = !integrated;
+          status("Agent connection failed. Retry the connection or ask your administrator to check the channel settings.");
+          if (connectionSubscription) connectionSubscription.unsubscribe();
+          directLine.end();
+        };
+        if (directLine.connectionStatus$) {
+          connectionSubscription = directLine.connectionStatus$.subscribe({
+            next: connectionStatus => {
+              if (failed) return;
+              if (connectionStatus === 2) status("Chat connected. Authentication is requested only if the agent asks for it.");
+              // Direct Line terminal statuses: ExpiredToken and FailedToConnect.
+              if (connectionStatus === 4 || connectionStatus === 5) connectionFailed();
+            },
+            error: connectionFailed
+          });
+          if (failed) connectionSubscription.unsubscribe();
+        }
+        root.addEventListener("pagehide", () => {
+          if (connectionSubscription) connectionSubscription.unsubscribe();
+          directLine.end();
+        }, { once: true });
       } catch (error) {
+        if (connectionSubscription) connectionSubscription.unsubscribe();
         if (directLine) directLine.end();
+        running = false;
         // Do not display raw service/identity errors, URLs, or token responses.
         status(error instanceof SyntaxError ? "Invalid JSON configuration." :
           "Chat could not start. Check connection settings, HTTPS, CORS, and SDK network policy.");

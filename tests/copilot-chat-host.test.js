@@ -294,6 +294,7 @@ function browserHarness(configuration, credentials = { token: "mock-conversation
   const posted = [];
   const fetched = [];
   const events = {};
+  const connections = [];
   const window = {
     location: { href: options.href || `${origin}/sidebar_CopilotChatHost.html`, origin, protocol: "https:" },
     document: { getElementById: id => elements.get(id) },
@@ -305,13 +306,23 @@ function browserHarness(configuration, credentials = { token: "mock-conversation
       return { ok: true, json: async () => credentials };
     },
     WebChat: {
-      createDirectLine: () => ({
-        end() {},
-        postActivity(activity) {
-          posted.push(activity);
-          return { subscribe(observer) { observer.next("mock-exchange-id"); return { unsubscribe() {} }; } };
-        }
-      }),
+      createDirectLine: () => {
+        const connection = { ended: false, released: false };
+        connections.push(connection);
+        return {
+          connectionStatus$: {
+            subscribe(observer) {
+              connection.observer = observer;
+              return { unsubscribe() { connection.released = true; } };
+            }
+          },
+          end() { connection.ended = true; },
+          postActivity(activity) {
+            posted.push(activity);
+            return { subscribe(observer) { observer.next("mock-exchange-id"); return { unsubscribe() {} }; } };
+          }
+        };
+      },
       createStore(initial, middleware) {
         store = middleware({ dispatch() {} })(action => forwarded.push(action));
         return store;
@@ -337,7 +348,7 @@ function browserHarness(configuration, credentials = { token: "mock-conversation
     { window, URL, URLSearchParams, AbortSignal, setTimeout, clearTimeout });
   elements.get("configuration").value = JSON.stringify(configuration);
   return {
-    elements, forwarded, posted, fetched, events,
+    elements, forwarded, posted, fetched, events, connections,
     start: () => elements.get("start").click(),
     incoming: action => store(action),
     renders: () => renders,
@@ -567,7 +578,7 @@ test("sidebar renderer preserves tab state and pop-out configuration alongside l
     }
   };
   const source = readFileSync(join(__dirname, "../web resources/sidebar_sidebar.html"), "utf8");
-  const script = source.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const script = source.match(/<script>([\s\S]*?)<\/script>/i)[1];
   runInNewContext(script, context);
   await load();
   assert.equal(nodes.get("host").innerHTML, "");
@@ -589,4 +600,31 @@ test("sidebar renderer preserves tab state and pop-out configuration alongside l
   await load();
   assert.equal(reads, 1);
   assert.equal(nodes.get("panelContainer").children[0], frames[0]);
+});
+
+test("asynchronous Direct Line terminal failures dispose the connection and allow retry", async () => {
+  for (const failure of [4, 5, "error"]) {
+    const target = resolvePanel(`copilot:${JSON.stringify(base)}`);
+    const h = browserHarness({}, undefined, { href: target.url });
+    await flush();
+    assert.equal(h.renders(), 1);
+    const first = h.connections[0];
+    first.observer.next(2);
+    assert.match(h.elements.get("status").textContent, /Chat connected/);
+    if (failure === "error") first.observer.error(new Error("mock connection failure"));
+    else first.observer.next(failure);
+    assert.equal(first.ended, true);
+    assert.equal(first.released, true);
+    assert.equal(h.elements.get("retry").hidden, false);
+    await h.elements.get("retry").click();
+    assert.equal(h.renders(), 2);
+    assert.equal(h.connections.length, 2);
+    assert.equal(h.elements.get("retry").hidden, true);
+    h.connections[1].observer.next(2);
+    first.observer.next(5);
+    assert.match(h.elements.get("status").textContent, /Chat connected/);
+    h.events.pagehide();
+    assert.equal(h.connections[1].ended, true);
+    assert.equal(h.connections[1].released, true);
+  }
 });
