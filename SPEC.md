@@ -1,9 +1,9 @@
 # Generic.Sidebar — Specification
 
 **Status:** DRAFT
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Created:** 2026-03-04
-**Updated:** 2026-03-05
+**Updated:** 2026-10-06
 
 ---
 
@@ -19,6 +19,7 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - Dataverse-driven runtime configuration loading
 - Multi-panel rendering and tab behavior
 - Embed handling for URL and HTML sources
+- Opt-in `copilot:` public JSON panels and agent-requested Entra SSO (chat host v0.2.0 source integration)
 - Instruction-band visibility behavior
 - Admin-only affordances where applicable
 
@@ -27,6 +28,7 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - Changes to external embedded systems (for example, Genesys)
 - Dataverse schema evolution beyond fields consumed by the sidebar runtime
 - Non-Dynamics host application integrations
+- Automatic tenant deployment, Entra registrations, server-side token broker implementation, and universal cloud/channel certification
 
 ## Sidecar Components
 
@@ -68,6 +70,10 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - Tab UI must render only when at least two panels have content.
 - Switching tabs must preserve iframe state and not recreate loaded frames.
 - Missing or invalid config must show a graceful placeholder.
+- Configured Copilot panels must start validated chat automatically without setup
+  controls; standalone host setup must retain manual Start chat.
+- Legacy URL/HTML/webresource paths must not be migrated implicitly. Copilot
+  pop-out must retain configuration but starts a separate conversation.
 
 ### Non-Functional Requirements
 
@@ -75,3 +81,32 @@ Define the functional and non-functional behavior of Generic.Sidebar as a config
 - UI behavior must remain consistent across supported records in the host app.
 - External embeds must enforce safe referrer policy settings.
 - Changes should preserve backward compatibility for existing config records.
+
+### Copilot Authentication and Security
+
+- Agent configuration remains authoritative: anonymous agents must not initiate
+  user authentication; matching bot OAuth cards may trigger silent SSO using
+  configured scopes and an exact token-exchange resource URI match.
+- Interaction-required login/MFA/consent must use an explicit user-initiated popup.
+  Unsupported or failed exchange must retain the original sign-in card without
+  downgrading the agent to anonymous mode.
+- Public metadata must contain no secrets/tokens. Validate HTTPS endpoints,
+  reject URL credentials/fragments and known sensitive keys/query parameters,
+  constrain Entra authority hosts, and require the exact registered same-origin
+  `sidebar_CopilotAuthRedirect.html` SPA redirect URL.
+- Use MSAL PKCE/state/nonce and sessionStorage caching; keep identity and
+  conversation tokens separate. Hints/user IDs are not authorization.
+- Pin and integrity-check browser SDKs. Host JSON fetches must omit credentials,
+  disable caching, reject redirects, and time out; bounded token-exchange posting
+  and duplicate suppression must preserve a fallback sign-in path.
+- Treat Dataverse embed writers as trusted administrators: ordinary HTML embeds
+  are not generally sanitized or sandboxed. Restrict configuration writes and
+  secure token endpoints/brokers independently of client validation or CORS.
+- Only public metadata may travel in the fragment; this is not encryption.
+  Avoid raw identity/service errors and redact integrated URLs in active-panel logs.
+
+**Validation status:** Source integration is implemented, but no new solution ZIP
+or live tenant certification was produced. Recorded offline mocks do not verify
+actual MFA, consent, cookies, CORS, or cloud compatibility. See
+[deployment/security details](./COPILOT_SSO_IMPLEMENTATION_NOTES.md) and
+[acceptance checks](./TEST_ACCEPTANCE.md).

@@ -1,7 +1,8 @@
 # Generic.Sidebar — UX Invariants
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.3.0
+**Updated:** 2026-10-06
 
 ---
 
@@ -22,6 +23,29 @@ These UX behaviors must NEVER break across releases:
 - CSV export must properly escape values containing commas, quotes, or newlines.
 - **Switching between tabs must preserve iframe content state (chat messages, form inputs, scroll position) — iframes must be hidden/shown, not destroyed/recreated.**
 - **Navigating between D365 records must not reload the sidebar if the same configuration is already loaded.**
+
+### Opt-in Copilot Authentication (chat host v0.2.0)
+
+- Only explicitly configured `copilot:` panels use the new host; legacy embeds
+  must retain their behavior. Hosted-webchat examples are not SSO evidence.
+- Configured panels start chat automatically, but MSAL/sign-in must wait for an
+  eligible agent request. Anonymous agents must not initiate user authentication.
+- Silent SSO is best effort. Required login/MFA/consent must use a user-initiated
+  popup; the host must not bypass identity policy or select arbitrary cached accounts.
+- Rejected, unsupported, canceled, or failed exchange must retain the agent's
+  sign-in card, never downgrade authentication.
+- Invalid metadata must show a panel-local error without initiating connection;
+  token-fetch or terminal connection failures must allow retry.
+- Pop-out preserves public configuration, not an existing conversation. Tab
+  switching hides/shows the existing host iframe without recreating it.
+- Do not expose raw identity/service errors or credentials in setup/status text.
+  Fragment metadata is browser-visible public data, not an encrypted store.
+- Configuration writes must be restricted by deployment roles. General embeds
+  are not a universal sanitizer/sandbox; cached identity and same-origin scripts
+  have a different boundary from conversation isolation.
+
+See [security/deployment notes](./COPILOT_SSO_IMPLEMENTATION_NOTES.md) for the
+implemented controls and live validation still required.
 
 ### Android Cell Phone Simulator (AndroidCellPhone.html)
 

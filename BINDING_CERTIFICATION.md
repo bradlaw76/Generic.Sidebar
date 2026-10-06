@@ -1,7 +1,8 @@
 # Generic.Sidebar — Binding Certification
 
 **Status:** NOT CERTIFIED
-**Spec Version:** 0.2.0
+**Spec Version:** 0.3.0
+**Documentation Review:** 2026-10-06
 **Certification Date:** —
 
 ---
@@ -15,10 +16,26 @@
 - [ ] All requirements implemented
 - [ ] Test acceptance criteria met
 - [ ] No known deviations from spec
+- [ ] Copilot SSO/security acceptance checks completed in a real test tenant
+- [ ] Deployed resources and solution package verified against current source
 
 ## Notes
 
 <!-- TODO: Capture evidence links for verification runs, screenshots, and release validation when certifying. -->
+
+### 2026-10-06 — Copilot security documentation alignment (not certification)
+
+- Chat host v0.2.0 supports opt-in `copilot:` panels, agent-requested Entra SSO,
+  explicit MFA/consent popup fallback, exact resource/scope configuration, public
+  metadata validation, pinned SDK integrity, and failure recovery.
+- README, implementation notes, specs, manifest, UX invariants, and acceptance
+  references now document these controls and their administrator trust boundary.
+- Recorded implementation evidence: 25 mocked offline tests and a zero-alert
+  CodeQL result; these are not live SSO, tenant authorization, or universal
+  cloud/channel compatibility certification.
+- No new packaged solution or live deployment evidence is recorded here.
+  Status remains **NOT CERTIFIED**; execute the unchecked
+  [acceptance checks](./TEST_ACCEPTANCE.md) and attach evidence before approval.
 
 ### 2026-03-05 — Sidecar Components Deployed
 - AndroidCellPhone.html v2.3.0: browser, fallback wallpaper/ringtone/transcript, Demo Panel URL config

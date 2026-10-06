@@ -3,6 +3,7 @@
 **Feature Branch**: `main`  
 **Created**: 2026-02-17  
 **Status**: Draft  
+**Security documentation updated**: 2026-10-06
 **Input**: Configuration-driven sidebar UX demo for Dynamics 365; public site pages for docs and stats.
 
 ## User Scenarios & Testing (mandatory)
@@ -56,6 +57,10 @@ When navigating between records in D365 (e.g., moving from one case to another),
 
 When the D365 platform switches to an OOB sidecar (e.g., Copilot Studio, Smart Assist), our custom sidebar pane is unloaded. Users can "pop out" the embedded content to a separate window to preserve their chat session across these platform pane switches.
 
+For the opt-in v0.2.0 Copilot host, pop-out preserves public connection
+configuration but starts a new conversation. Existing iframe history is not
+transferred; validate actual platform lifecycle behavior in the target app.
+
 **Why this priority**: Platform limitation cannot be bypassed; pop-out provides a workaround that preserves user context during OOB pane activations.
 
 **Independent Test**: Open sidebar → Start chat → Click pop-out button → D365 opens OOB pane → Verify chat continues in pop-out window → Click "Bring to Front" in sidebar placeholder.
@@ -96,7 +101,7 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-001**: The system MUST read the default configuration record from `sidebar_genericsidebar` (fallback to most recent if none default).
 - **FR-002**: The sidebar MUST render up to 4 panels; each panel reads title, instructions, and embed content from corresponding fields.
 - **FR-003**: The instructions band MUST be shown only when content exists; hidden otherwise.
-- **FR-004**: The embed renderer MUST support three content sources: inline HTML, external URL, and platform-hosted resources. Platform-specific resolution details MUST remain abstracted from end users.
+- **FR-004**: The embed renderer MUST support inline HTML, external URL, platform-hosted resources, and opt-in `copilot:` public JSON configuration. Existing embeds MUST remain unchanged; configured Copilot panels resolve to the local host without schema changes.
 - **FR-005**: Embedded content MUST protect user privacy and security by limiting referrer sharing and isolating third-party content. External links MUST prevent external sites from affecting the host application.
 - **FR-006**: The Copilot page MUST show fallback content if the iframe fails to load or times out.
 - **FR-007**: CSV exports MUST escape commas, quotes, and newlines consistently across pages.
@@ -106,7 +111,7 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-011**: The chart canvas elements MUST include `aria-label` and `role="img"`; table headers MUST have `scope="col"`.
 - **FR-012**: Error states MUST render visible messages (not blank screens) for Dataverse/GitHub failures.
 - **FR-013**: README typos MUST be corrected and docs MUST link to the public site pages.
-- **FR-014**: Public site styling MAY use external design libraries; sidebar runtime MUST avoid external dependencies to maintain reliability and predictable behavior.
+- **FR-014**: Core sidebar rendering MUST not depend on the optional chat SDKs. The opt-in Copilot host uses pinned, integrity-checked Web Chat/MSAL browser bundles; deployment MUST validate CDN/CSP/cloud compatibility.
 - **FR-015**: The zoom toggle MUST appear only when embedded content benefits from zoom (e.g., externally hosted pages), not for inline HTML or platform-hosted resources.
 - **FR-016**: The pane MUST set title from `sidebar_title` and bring to front when opened.
 - **FR-017**: Tab switching MUST hide/show iframes (not destroy/recreate) to preserve embedded content state including chat conversations.
@@ -123,11 +128,38 @@ Visitors can view the landing page with release statistics, a downloads page wit
 - **FR-031**: Zoomed iframes (Genesys/phone) MUST NOT have visual framing; zoom CSS MUST override framing styles.
 - **FR-032**: Raw HTML embeds (no iframe) MUST have `ensureFullHeightHtml()` applied for proper scrolling.
 - **FR-033**: Iframe widget embeds (Copilot, Canvas Apps) MUST NOT have `ensureFullHeightHtml()` applied; widgets control their own layout.
-- **FR-034**: Auto-zoom MUST be triggered by title keywords ("phone", "genesys") regardless of embed type.
+- **FR-034**: Auto-zoom MUST retain title-keyword behavior for legacy URL embeds; opt-in Copilot chat panels MUST be excluded.
 
 - **FR-027**: Performance targets — Pane open: p50 ≤ 2s, p95 ≤ 4s; Site interactions: p50 ≤ 1s, p95 ≤ 2s.
-- **FR-028**: Automated testing scope [NEEDS CLARIFICATION: include unit/integration tests or rely on manual acceptance only?].
+- **FR-028**: Copilot host/sidebar offline regression tests use Node's built-in test runner (`node --test tests/copilot-chat-host.test.js`). Live identity/browser/deployment checks remain required in `TEST_ACCEPTANCE.md`.
 - **FR-029**: Admin-only banner visibility rules [NEEDS CLARIFICATION: which roles or security groups control visibility?].
+
+### Copilot Security Requirements (v0.2.0 source integration)
+
+- Configured panels start chat automatically; anonymous agents MUST NOT initialize
+  MSAL or trigger user sign-in. Only supported bot OAuth requests matching the
+  configured exchange URI trigger SSO using administrator-configured scopes.
+- Silent acquisition is best effort; necessary login/MFA/consent MUST use a
+  user-initiated popup. Failed/unsupported exchanges MUST preserve the agent's
+  original sign-in card, not downgrade authentication.
+- Configuration MUST be public, contain no credentials, and pass HTTPS,
+  known sensitive-key/query validation, allowed Entra authority, and same-origin
+  registered redirect checks. Validation is not a universal secret detector.
+- MSAL PKCE/state/nonce and sessionStorage caching, pinned SDK integrity checks,
+  bounded host JSON/token-exchange requests, and duplicate suppression are
+  implemented controls, not server-side authorization.
+- Fragment metadata MUST remain public; it is not encryption. Integrated URLs
+  are redacted from active-panel logs and raw host identity/service errors are
+  not displayed.
+- Dataverse configuration writers MUST be trusted and access-restricted.
+  Generic HTML embeds are not a general sanitizer/sandbox. Secure token brokers,
+  rate limits, and agent/downstream authorization remain deployment responsibilities.
+
+The source is not live-tenant certified or included in a newly exported solution
+ZIP. Full settings and limitations are in
+[the security notes](../../COPILOT_SSO_IMPLEMENTATION_NOTES.md) and
+[README](../../README.md#security-and-authentication); certification requires
+[live acceptance evidence](../../TEST_ACCEPTANCE.md).
 
 ### Key Entities
 

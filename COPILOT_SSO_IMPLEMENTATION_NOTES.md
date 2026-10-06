@@ -1,6 +1,6 @@
 # Copilot Chat Host — Implementation and Integration Notes
 
-**Updated:** 2026-10-04
+**Updated:** 2026-10-06
 
 **Component version:** 0.2.0
 **Status:** Opt-in source integration implemented; **not deployed, packaged in a
@@ -104,7 +104,7 @@ new chat panels.
 | `tokenEndpoint` | Required HTTPS JSON endpoint returning a short-lived `token`; a hosted webchat URL is not a substitute. Public API-version query parameters are allowed, credential-bearing parameters are rejected. |
 | `directLineDomain` | Required HTTPS cloud-appropriate endpoint ending in `/v3/directline`. |
 | `title` | Optional display metadata. |
-| `startConversation` | Defaults to true; sends the greeting event after connection. This does not bypass the preview's manual Start chat step. |
+| `startConversation` | Defaults to true; sends the greeting event after connection. Configured sidebar panels start chat automatically; standalone setup still requires Start chat. This is not an authentication-policy switch. |
 | `auth` | Omit for anonymous agents; supplies identity metadata for SSO-capable authenticated agents. Its presence alone does not initiate sign-in. |
 | `auth.clientId` | Entra SPA/public-client application GUID. |
 | `auth.authority` | Supported Entra authority with the appropriate cloud host and tenant path. |
@@ -117,6 +117,44 @@ Configuration is public metadata, not a security policy or credential store.
 Do not include client secrets, passwords, identity tokens, or Direct Line secrets.
 If a secured channel needs a token broker, that broker must be separately designed,
 secured, and operated; none was implemented here.
+
+### Security controls and trust boundaries (documentation verified 2026-10-06)
+
+- HTTPS and URL validation reject embedded credentials/fragments. Known sensitive
+  property names and credential-bearing token-endpoint query parameters are
+  rejected, but validation cannot recognize every secret hidden in arbitrary
+  strings. Public metadata must never contain credentials.
+- Entra authorities accept only tenant paths under `login.microsoftonline.com`,
+  `login.microsoftonline.us`, or `login.partner.microsoftonline.cn`. The exact
+  same-origin blank redirect URL must be registered as an SPA redirect.
+- MSAL implements PKCE/state/nonce and uses `sessionStorage` for its cache.
+  Tokens are not added to panel configuration or application logs; do not claim
+  identity tokens are stored only in memory. Same-origin hosts may share cached
+  identity context even though their conversations are separate.
+- Configured scopes and an exact resource URI match constrain supported
+  bot-origin OAuth card exchanges. Neither the optional login hint nor the
+  conversation user ID establishes authorization; the agent/services enforce it.
+- Web Chat 4.19.1 and MSAL Browser 4.30.0 load from pinned jsDelivr URLs with
+  SHA-384 integrity and anonymous cross-origin loading. Integrity checks do not
+  replace dependency review or cloud/compliance approval.
+- The host's JSON fetches use `credentials: omit`, `cache: no-store`,
+  `redirect: error`, and a 20-second timeout. Token-exchange posting also times
+  out after 20 seconds; duplicate pending/completed exchanges are suppressed.
+  These settings are not a claim that all SDK-internal requests have those options.
+- Fragment metadata stays out of server request/referrer URLs but remains visible
+  in the browser. The renderer redacts configured Copilot URLs in its active-panel
+  log, and the host uses generic error messages rather than exposing raw service
+  or identity errors.
+- Restrict Dataverse configuration writes to trusted administrators. The generic
+  renderer accepts configured HTML and URLs; it provides neither general HTML
+  sanitization nor a sandbox boundary against all same-origin scripts.
+- Server-side token broker security, endpoint authorization, token lifetime,
+  rate limiting, and channel/origin restrictions are deployment responsibilities.
+  No broker was added, and the host does not forward Dynamics credentials through
+  its JSON fetches. CORS is not an authorization mechanism.
+- SSO failure retains the agent's sign-in card, not anonymous access. Retrying a
+  terminal connection can start a fresh conversation; it is not a history-transfer
+  or guaranteed conversation-resumption mechanism.
 
 ## Validation completed and limitations
 
@@ -215,9 +253,13 @@ and published SDK delivery still require real-environment testing.
 
 - Source-level opt-in deployment guidance is now in the README; update actual
   packaged release capabilities only after packaging and live validation.
-- Document anonymous versus authenticated agent setup, public configuration
+- Anonymous versus authenticated setup and implemented security controls are now
+  documented in the README, these notes, both specs, the manifest, and UX/acceptance
+  references. Continue updating verified deployment evidence and release packaging.
+- Maintain anonymous versus authenticated agent setup, public configuration
   delivery, identity registrations, cloud prerequisites, and token-broker needs.
-- Add live SSO acceptance cases to the project's acceptance documentation.
+- Live SSO/security acceptance cases are listed in `TEST_ACCEPTANCE.md`; execute
+  them and attach evidence before certification rather than marking mocks as live passes.
 - Update the system manifest, binding/architecture documentation, and actual
   solution release/version information to match the integrated deployment.
 - Distinguish verified environments from untested combinations; do not describe

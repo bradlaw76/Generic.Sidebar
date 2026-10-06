@@ -2,6 +2,7 @@
 
 **Branch**: `main` | **Date**: 2026-02-17 | **Spec**: /specs/main/spec.md (to be created)
 **Input**: UX demo requirements for Dynamics 365 sidebar kit; configuration-driven behavior via Dataverse
+**Security documentation updated**: 2026-10-06
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
@@ -18,9 +19,9 @@ Implement a configuration-driven Dynamics 365 sidebar that renders up to four pa
 -->
 
 **Language/Version**: HTML5, CSS3, JavaScript (ES6+); PowerShell scripts for agent context  
-**Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only)  
+**Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only); pinned Web Chat 4.19.1 and MSAL Browser 4.30.0 only for opt-in Copilot host panels
 **Storage**: Dataverse (table: `sidebar_genericsidebar`)  
-**Testing**: Manual acceptance using `TEST_ACCEPTANCE.md`; automated tests NEEDS CLARIFICATION  
+**Testing**: Manual/live acceptance using `TEST_ACCEPTANCE.md`; Copilot host/sidebar mocks use `node --test tests/copilot-chat-host.test.js` (25 recorded passing tests, not live SSO certification)
 **Target Platform**: Dynamics 365 model-driven apps (side pane), GitHub Pages  
 **Project Type**: web (Dynamics 365 web resources + static website)  
 **Performance Goals**: NEEDS CLARIFICATION  
@@ -36,6 +37,30 @@ Implement a configuration-driven Dynamics 365 sidebar that renders up to four pa
 - Safe Embedding: Iframes use strict referrer policy, explicit `allow`; no raw `innerHTML` from external APIs (pass/fail)
 - Graceful Degradation: Placeholders and error messages render on missing config or API failures (pass/fail)
 - Accessibility: WCAG 2.1 AA; `aria-label` on charts, `scope="col"` on table headers; skip-to-content links; consistent navigation (pass/fail)
+
+## Implemented Copilot Security Architecture (source v0.2.0)
+
+The existing renderer accepts opt-in `copilot:` public JSON values and resolves
+them to the local chat host with fragment configuration. Legacy embeds are not
+migrated. The configured host starts chat automatically; anonymous chat does not
+initialize MSAL. Matching agent OAuth cards request scoped Entra SSO, with an
+explicit popup when login/MFA/consent is needed and original-card fallback on
+rejected or unsupported exchange.
+
+The host validates HTTPS URLs, known credential-bearing keys/query parameters,
+Entra authority hosts, and same-origin SPA redirects. MSAL handles PKCE/state/nonce
+and sessionStorage caching. Browser bundles are pinned and integrity-checked;
+host JSON requests omit credentials, disable caching, reject redirects, and
+time out. Fragment metadata is public, integrated active-panel URLs are redacted
+in logs, and raw identity/service errors are not displayed.
+
+Configuration writers are trusted administrators: ordinary embeds are not
+generally sanitized or sandboxed. Secure endpoint/broker authorization, consent,
+rate limits, CSP/CORS, and cloud/channel compatibility require deployment work.
+No new solution ZIP, token broker, or live tenant certification has been produced.
+Refer to [README security guidance](../../README.md#security-and-authentication)
+and [implementation notes](../../COPILOT_SSO_IMPLEMENTATION_NOTES.md) rather than
+treating historical plan gates as proof that security acceptance passed.
 
 ## Project Structure
 
@@ -65,6 +90,10 @@ web resources/
 ├── sidebar_sidebar.js
 ├── sidebar_welcome.html
 ├── sidebar_GenericSidebarAgent.html
+├── sidebar_CopilotChatHost.html
+├── sidebar_CopilotChatHost.js
+├── sidebar_CopilotAuthRedirect.html
+├── sidebar_CopilotChatHost.config.example.json
 ├── sidebar_GenericSidebar_AdminSurvey.html
 └── generic.sidebar.logo.png
 

@@ -1,7 +1,8 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.3.0
+**Updated:** 2026-10-06
 
 ---
 
@@ -19,7 +20,7 @@
 - ✔ Switching tabs updates the instructions band and iframe content
 - ✔ URL embeds load in an iframe with `src`; HTML embeds use `srcdoc`
 - ✔ Zoom toggle appears for URL embeds only
-- ✔ `force-zoom` class applied when panel title contains "phone" or "genesys"
+- ✔ `force-zoom` class applied to legacy URL embeds when panel title contains "phone" or "genesys"; opt-in Copilot panels are excluded
 - ✔ Placeholder shown when `configId` is missing
 - ✔ Error div shown when `Xrm.WebApi.retrieveRecord` fails
 
@@ -53,6 +54,21 @@ required in a test tenant:
 - [ ] Tab switches preserve iframe/chat state; separate panels isolate conversations.
 - [ ] Pop-out retains configuration but starts a separate conversation; restoring the embedded panel preserves its existing state.
 - [ ] Cloud/channel endpoints, CORS, CSP, token-broker security where needed, and Entra redirect registration are validated.
+- [ ] Reject non-HTTPS endpoints, URL credentials/fragments, known secret/token keys and credential-bearing token-endpoint query parameters before connection.
+- [ ] Reject unsupported Entra authority hosts and nonmatching/cross-origin redirect URLs.
+- [ ] Mismatched resource URIs, unsupported cards, and user-origin activities never receive an identity token through host token exchange.
+- [ ] Configured delegated scopes, exact resource URI, agent policy, and downstream permissions are verified; hints/user IDs do not grant authorization.
+- [ ] Verify pinned SDK integrity enforcement and graceful load failure under the deployed CSP/network policy.
+- [ ] Inspect host JSON requests for omitted credentials, disabled caching, rejected redirects, and timeout behavior.
+- [ ] Verify MSAL's sessionStorage cache and inert redirect page; do not claim per-panel identity-cache isolation or memory-only token storage.
+- [ ] Inspect URLs/status/logs for credential leakage; public fragment metadata and redacted active-panel logs do not constitute encryption.
+- [ ] Restrict Dataverse configuration writes and test token endpoint/broker authorization and rate limits; CORS alone is insufficient.
+
+The recorded **25 offline tests** cover a subset of these scenarios with mocks.
+Unchecked items above require deployment evidence, not merely a successful
+offline run. Security controls apply to the opt-in host; legacy embeds retain
+their own authentication and trust requirements. See the
+[README security section](./README.md#security-and-authentication).
 
 ### GitHub Pages Site
 

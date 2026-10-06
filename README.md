@@ -15,6 +15,7 @@ This repository contains the core Generic Sidebar solution plus optional applica
 | Component | Current artifact | Relationship to Generic Sidebar |
 | --- | --- | --- |
 | **Generic Sidebar Core** | Release v1.0.0.11 | The installable Dynamics 365 solution. The checked-in `GenericSidebar_1_0_0_5.zip` archive is an older build retained in the repository. |
+| **Copilot Chat Host** | Source integration v0.2.0 | Optional `copilot:` panels with agent-requested Entra SSO. Requires publishing the updated renderer and host resources; not packaged in a new solution ZIP or live-tenant certified. |
 | **Android Cell Phone Simulator** | `Generic.AndroidCellPhone/AndroidCellPhone.html` 2.6.0 | Optional standalone application that can be embedded as sidebar content. It is not included in or required by the core solution. |
 | **Genesys Softphone and examples** | Files under `SidecarItems/` | Optional demo integrations and content. They are not core solution prerequisites. |
 
@@ -35,7 +36,7 @@ The core solution uses the `sidebar_genericsidebar` Dataverse table to provide a
   - Copilot Studio experiences
   - Dynamics web resources
 - Optional panel icons and theming.
-- Configurable iframe size, style, permissions, and referrer policy.
+- Sidebar-created panel iframes use `strict-origin-when-cross-origin` and an explicit permissions list. Stored iframe options are not a guarantee of runtime enforcement.
 - Pop-out support for URL-based content.
 - Shared default configuration selected through `sidebar_default`.
 
@@ -97,6 +98,42 @@ the existing iframe/conversation.
 See [implementation and integration notes](./COPILOT_SSO_IMPLEMENTATION_NOTES.md)
 for configuration fields, validation requirements, deployment, and rollback.
 Opening the host without a `copilot` fragment retains the standalone setup UI.
+
+## Security and authentication
+
+The controls below describe the **opt-in v0.2.0 chat host**, not every existing
+iframe integration. Hosted-webchat examples and screenshots do not demonstrate
+this SSO flow. Copilot Studio controls whether the agent requires authentication;
+Entra policies and downstream services remain responsible for authorization.
+
+| Implemented safeguard | Behavior |
+| --- | --- |
+| Agent-requested identity | Anonymous chat does not initialize MSAL. Matching bot OAuth token-exchange cards trigger silent acquisition; necessary login, MFA, or consent uses a user-initiated popup. Failed, canceled, or unsupported exchanges retain the original agent sign-in card, never anonymous downgrade. |
+| Scoped token exchange | The host uses administrator-configured delegated scopes and requires an exact exchange-resource URI match. Identity access tokens are separate from Direct Line conversation tokens. `loginHint` and conversation user IDs are not proof of identity or authorization. |
+| Public configuration validation | HTTPS endpoints are required, URL credentials/fragments are rejected, and known credential-bearing configuration keys/token-endpoint query parameters are rejected. This validation is not a general-purpose secret detector; administrators must never include secrets or tokens. |
+| Identity endpoint validation | Entra authorities are limited to configured tenant paths under `login.microsoftonline.com`, `login.microsoftonline.us`, or `login.partner.microsoftonline.cn`. Redirects must be same-origin HTTPS URLs ending in `/sidebar_CopilotAuthRedirect.html`, registered exactly as SPA redirects. |
+| OAuth/browser handling | MSAL manages authorization code flow with PKCE, state, and nonce. Its cache uses `sessionStorage` (not a promise that tokens exist only in memory). The redirect page has no scripts, navigation, or response logging. Multiple cached accounts are not arbitrarily selected. |
+| SDK and network handling | Web Chat 4.19.1 and MSAL Browser 4.30.0 are pinned, SHA-384 integrity-checked jsDelivr bundles. The host's JSON fetches omit browser credentials, disable caching, reject redirects, and time out after 20 seconds; token-exchange posting also has a 20-second timeout and duplicate suppression. |
+| Privacy and recovery | Panel metadata travels in a URL fragment, not the HTTP request/referrer URL, and integrated URLs are redacted in the active-panel log. Metadata remains visible to browser users/scripts and is not encrypted. Service/identity errors are not displayed verbatim. Token-fetch or terminal Direct Line failures allow connection retry. |
+
+**Administrator responsibilities and limits**
+
+- Restrict write access to sidebar configuration using Dataverse security roles.
+  Treat configured HTML/scripts and endpoint URLs as trusted administrator input.
+  The renderer is not a general HTML sanitizer or an iframe sandbox; do not
+  describe ordinary embeds as isolated from all same-origin scripts.
+- Protect token endpoints/brokers server-side: enforce appropriate access control,
+  origin/channel restrictions, rate limiting, and short-lived conversation tokens.
+  The host does not implement a broker or send a Dynamics session token to one;
+  its JSON fetches use `credentials: omit`. CORS alone is not authorization.
+- Validate tenant registrations, consent, CSP, browser cookie/popup policies,
+  and cloud/channel/SDK compatibility. Silent SSO is best effort, not guaranteed
+  by signing into Dynamics. Separate conversations do not mean separate
+  same-origin identity caches.
+- Existing solution packages are not proof of deployment of these source changes.
+  The recorded 25 offline tests, secret/advisory checks, and zero-alert CodeQL
+  result are not live SSO certification or a guarantee of vulnerability-free code.
+  Complete the unchecked [acceptance checks](./TEST_ACCEPTANCE.md) in a test tenant.
 
 ## Add Generic Sidebar to a Form
 
