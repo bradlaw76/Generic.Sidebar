@@ -2,7 +2,7 @@
 
 **Status:** NOT CERTIFIED
 **Spec Version:** 0.3.0
-**Documentation Review:** 2026-10-06
+**Documentation Review:** 2026-10-08
 **Certification Date:** —
 
 ---
@@ -18,6 +18,7 @@
 - [ ] No known deviations from spec
 - [ ] Copilot SSO/security acceptance checks completed in a real test tenant
 - [ ] Deployed resources and solution package verified against current source
+- [ ] Opt-in SDK host's constitution constraint resolved by an approved exception/amendment
 
 ## Notes
 

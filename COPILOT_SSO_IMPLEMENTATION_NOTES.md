@@ -1,6 +1,6 @@
 # Copilot Chat Host — Implementation and Integration Notes
 
-**Updated:** 2026-10-06
+**Updated:** 2026-10-08
 
 **Component version:** 0.2.0
 **Status:** Opt-in source integration implemented; **not deployed, packaged in a
@@ -249,7 +249,21 @@ and published SDK delivery still require real-environment testing.
 - [ ] Record exported solution/resource versions and a deployment rollback plan.
   No new installable solution ZIP or core release was produced by this work.
 
-## Documentation updates to make after integration
+## Documentation handoff status (2026-10-08)
+
+Current source documentation is aligned across the README, these notes, root
+and baseline specs, system manifest, UX invariants, acceptance criteria, binding
+certification, and specification checklist. Public Agent/Copilot help pages now
+distinguish their hosted help bot from the opt-in configurable SSO host.
+Historical archives and unrelated simulator documents retain their own scope;
+they do not establish Copilot SSO certification.
+
+An unresolved governance item is now explicit in the implementation plan and
+certification checklist: the constitution prohibits external frameworks in web
+resources, while this opt-in host uses Web Chat/MSAL. Obtain an approved exception
+or amendment before certification; these notes do not change governance rules.
+
+### Remaining documentation after actual deployment
 
 - Source-level opt-in deployment guidance is now in the README; update actual
   packaged release capabilities only after packaging and live validation.
@@ -260,8 +274,9 @@ and published SDK delivery still require real-environment testing.
   delivery, identity registrations, cloud prerequisites, and token-broker needs.
 - Live SSO/security acceptance cases are listed in `TEST_ACCEPTANCE.md`; execute
   them and attach evidence before certification rather than marking mocks as live passes.
-- Update the system manifest, binding/architecture documentation, and actual
-  solution release/version information to match the integrated deployment.
+- After packaging/deployment, update the manifest, certification evidence, and
+  solution release/version information to match the verified deployed artifacts.
+  Do not bump the released core version solely for a source documentation update.
 - Distinguish verified environments from untested combinations; do not describe
   this preview as universal or zero-configuration SSO.
 

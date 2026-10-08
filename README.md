@@ -185,12 +185,18 @@ The [`SidecarItems`](./SidecarItems) directory contains optional examples and in
 - [System manifest](./SYSTEM_MANIFEST.json.md)
 - [Binding certification](./BINDING_CERTIFICATION.md)
 - [Solution specification](./SPEC.md)
+- [Copilot implementation and deployment handoff](./COPILOT_SSO_IMPLEMENTATION_NOTES.md#documentation-handoff-status-2026-10-08)
+- [Specification readiness checklist](./specs/main/checklists/requirements.md)
+- [Public agent setup and security guidance](https://bradlaw76.github.io/Generic.Sidebar/pages/agent/#sidebar-authentication)
 
 ## Known Limitations
 
 - External sites can block iframe embedding through `X-Frame-Options` or Content Security Policy.
 - The optional `sidebar_acknowledged` field controls the administrator disclaimer acknowledgement. Environments without that field skip the acknowledgement update.
 - Embeddable applications can have their own data, security, browser, and deployment requirements.
+- The opt-in Web Chat/MSAL host needs an approved resolution of the constitution's
+  external-framework constraint before certification; see the
+  [implementation plan's governance check](./specs/main/plan.md#constitution-check).
 
 ## Disclaimer
 

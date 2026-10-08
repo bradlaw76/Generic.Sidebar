@@ -38,6 +38,15 @@ Implement a configuration-driven Dynamics 365 sidebar that renders up to four pa
 - Graceful Degradation: Placeholders and error messages render on missing config or API failures (pass/fail)
 - Accessibility: WCAG 2.1 AA; `aria-label` on charts, `scope="col"` on table headers; skip-to-content links; consistent navigation (pass/fail)
 
+**2026-10-08 documentation review:** These historical gates are not recorded
+passes. The constitution's Technology Constraints prohibit external frameworks
+inside web resources, whereas the opt-in chat host uses Web Chat and MSAL.
+An approved exception or governance amendment remains required; this documentation
+update does not silently amend the constitution. The core renderer does not
+depend on those SDKs. Also, full-height HTML processing is layout handling,
+not sanitization or proof of XSS isolation. Apply the documented trusted-writer
+boundary and complete live acceptance checks before certification.
+
 ## Implemented Copilot Security Architecture (source v0.2.0)
 
 The existing renderer accepts opt-in `copilot:` public JSON values and resolves

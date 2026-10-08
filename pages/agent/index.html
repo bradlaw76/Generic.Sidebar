@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    index
 FILE:         pages\agent\index.html
-VERSION:      1.0.0
+VERSION:      1.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-10-08
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.1  2026-10-08  Clarified hosted agent versus configurable sidebar SSO
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -83,9 +84,9 @@ NON-NEGOTIABLES (Architecture Contract)
 =============================================================================
 COMPONENT:    index
 FILE:         pages\agent\index.html
-VERSION:      1.0.0
+VERSION:      1.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-10-08
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -150,6 +151,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.1  2026-10-08  Clarified hosted agent versus configurable sidebar SSO
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -228,7 +230,7 @@ NON-NEGOTIABLES (Architecture Contract)
     </nav>
     <header>
       <h1>Generic.Sidebar Agent — How to use</h1>
-      <p class="muted">The bot is embedded but does not auto-start. Send a first message (e.g., <kbd>help</kbd>) to begin.</p>
+      <p class="muted">The hosted help bot linked here does not auto-start. Send a first message (e.g., <kbd>help</kbd>) to begin. This is separate from opt-in Copilot panels in Dynamics.</p>
       <div class="cta-row">
         <a class="btn" href="https://bradlaw76.github.io/Generic.Sidebar/pages/copilot/index.html" target="_blank" rel="noopener noreferrer">Open the Bot</a>
         <a class="btn secondary" href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener noreferrer">View Repo Issues</a>
@@ -254,12 +256,39 @@ NON-NEGOTIABLES (Architecture Contract)
       <p class="muted">Notes: The agent uses MCP to call a GitHub tool with a token you control. It will post issues to <code>bradlaw76/Generic.Sidebar</code> (unless configured otherwise).</p>
     </section>
 
+    <section class="card" aria-labelledby="sidebar-authentication">
+      <h2 id="sidebar-authentication">Using your own agent in Generic Sidebar</h2>
+      <p>The v0.2.0 source integration accepts <code>copilot:</code> followed by
+        public JSON configuration in an existing panel embed field. Configured
+        panels start chat automatically; the hosted help bot above is not a
+        demonstration of that integration or proof of SSO.</p>
+      <p>Your agent's Copilot Studio policy controls authentication. Anonymous
+        agents do not initiate user sign-in. Supported agent authentication
+        requests attempt Entra SSO, with an explicit popup for required login,
+        MFA, or consent. Failed or unsupported exchange retains the agent's
+        sign-in card; signing into Dynamics does not guarantee silent SSO.</p>
+      <p>Publish the updated renderer and the three host resources in a test
+        environment, supply your own endpoints and identity registrations, and
+        validate browser/cloud policies before rollout. Never include secrets
+        or tokens in panel configuration. This source integration is not packaged
+        in a new solution ZIP or live-tenant certified.</p>
+      <p>
+        <a href="https://github.com/bradlaw76/Generic.Sidebar/blob/main/README.md#security-and-authentication"
+          target="_blank" rel="noopener noreferrer">Security and setup guidance</a>
+        · <a href="https://github.com/bradlaw76/Generic.Sidebar/blob/main/COPILOT_SSO_IMPLEMENTATION_NOTES.md"
+          target="_blank" rel="noopener noreferrer">Deployment, configuration, and rollback</a>
+        · <a href="https://github.com/bradlaw76/Generic.Sidebar/blob/main/TEST_ACCEPTANCE.md"
+          target="_blank" rel="noopener noreferrer">Live acceptance checks</a>
+      </p>
+    </section>
+
     <!-- Section 2 -->
     <section class="card">
       <h2>FAQ</h2>
       <ul>
         <li><strong>The bot doesn’t greet me. Is it broken?</strong><br/>
-            No—auto-start is disabled. Just type <kbd>help</kbd> (or any message) to begin.</li>
+            For this hosted help bot, send <kbd>help</kbd> (or any message) to begin.
+            Opt-in <code>copilot:</code> sidebar panels instead start chat automatically after validated configuration.</li>
         <li><strong>Where do my issues go?</strong><br/>
             To the GitHub repository configured for the agent (default: <code>bradlaw76/Generic.Sidebar</code>).</li>
         <li><strong>Can it update existing issues?</strong><br/>
@@ -326,4 +355,3 @@ NON-NEGOTIABLES (Architecture Contract)
   </script>
 </body>
 </html>
-
