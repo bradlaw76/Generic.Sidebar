@@ -1,7 +1,24 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.5.0
+**Version:** 1.6.0
+
+## H009 deployment-readiness assessment - 2026-11-17
+
+**BLOCKED; no live acceptance passed.** [Detailed evidence](docs/H009_ACCEPTANCE.md)
+now classifies component identities, Case/app collateral changes, activated
+default-record automation, optional schema and authentication gates, and records
+the proposed A-H deployment/rollback sequence. C06 separately requires actual
+browser/hosted raw-embed origin isolation; legacy characterization does not prove
+isolation. A04 requires persisted agent configuration; D04 covers approved
+automation behavior and prevention of unintended activation.
+
+All 32 original private backup/export checksums reverify; the existing backup
+was listed again and expires November 24, 2026 at 18:36:22 as printed, without
+a timezone. Existing Core/SSO local and hosted evidence remains distinct from
+read-only verification and pending live tests. No runtime/package/tenant changes
+were made for this assessment. Local source/package remediation and a durable
+archive destination need owner approval before the next stage.
 
 ## H009 approved backup/export stage - 2026-11-17
 
@@ -20,8 +37,9 @@ the repeated 44 Core/package and 67 SSO/agent local checks, read-only sandbox
 discovery, dependency/schema gaps, conditional import order, backup/rollback
 constraints, and the focused live acceptance matrix. **No live scenario has
 passed yet.** The current enterprise delivery ZIP is not importable.
-Owner target selection and explicit operation approval are required before
-backup creation, import, publishing, schema/configuration or enterprise changes.
+Owner target selection and the one backup/export approval are now complete.
+New exact operation approval is required before any additional backup, import,
+publishing, schema/configuration or enterprise change.
 
 ## H004 local evidence - 2026-11-17
 

@@ -1,5 +1,52 @@
 # Generic.Sidebar ChatGPT Handoff
 
+## H009 deployment-readiness assessment - 2026-11-17
+
+- **Readiness: BLOCKED; not Done.** Read-only analysis and documentation only.
+  Existing H009 draft [#26](https://github.com/bradlaw76/Generic.Sidebar/pull/26)
+  remains dependent on H004 draft #25 at `32a2681`; no competing writer/new
+  H-number/PR, merge, production action or tenant modification.
+- **Preserved:** registered worktrees, original dirty SSO files and Git backup
+  refs; no locks found. Published H009 starting point was `001b9bbb`.
+  All 32 original private evidence hashes pass. Both exports and separate Case
+  form remain unchanged; existing backup re-listed, expires
+  **2026-11-24 18:36:22** as printed, timezone unspecified.
+- **Confirmed compatibility:** three Sidebar form IDs, seven view IDs, six
+  relationship definitions, Case form identity, required Microsoft component
+  families, all four Core logical names/types. App role references are standard
+  Administrator/Customizer templates and live associations resolve correctly.
+  CSR role names/templates exist; source-ID importer resolution remains unproven.
+- **New blockers/decisions:** HTML/JS GUID mismatches; explicit removal of an
+  existing Case CardFeed control; changed app membership/settings; incomplete
+  effective layer evidence; a new chart and activated-metadata default-record
+  cloud flow/connection reference. Flow actions modify Sidebar defaults/start
+  dates; no owner/working connection/activation is approved. Structural validity
+  is not target importability or dependency closure.
+- **Enterprise:** six resources and required parent/child schema remain absent.
+  Delivery ZIP is not importable; scripts use unapproved alternate authentication
+  paths. Separate optional solution and verified existing Entra/agent settings
+  are required. No authentication/context/roles were changed.
+- **Monitor coordination:** acknowledged #25 comment 6955624945 and #26 comment
+  6956920608. Unsandboxed Core/linked-agent raw `srcdoc` is an unresolved origin
+  isolation gate, not certified by green tests. C06 records negative host-access
+  assertions and a positive approved legacy case; actual browser/hosted proof
+  and coordinated source mitigation are pending. No exploit is claimed.
+- **Evidence/plan:** [H009 assessment](H009_ACCEPTANCE.md) contains classified
+  dependency findings, exact A-H component/permission/change/validation/rollback
+  gates, acceptance matrix, immutable backup receipt and recovery limitations.
+  Static runtime/schema/inventory and four-resource ZIP checks pass; prior
+  44+67 local tests and H004 hosted checks do not constitute live acceptance.
+- **Next authorization:** local-only package/source remediation coordinated with
+  H004/H007; owner decisions on Case/app/flow separation and enterprise packaging;
+  confirm owner-local `%USERPROFILE%\Generic.Sidebar-Backups\H009\2026-11-17`
+  as durable archive destination with restricted ACLs and copied-hash verification.
+  No configured authorized destination was found and no copy was made.
+  Import/deploy/publish/restore/schema/data/role/Entra/auth/flow operations remain
+  prohibited. H010 stays gated on required live H009 acceptance.
+
+Earlier milestones below are historical; this assessment supersedes their
+next-action and incomplete dependency conclusions.
+
 ## H009 authorized backup/export receipt - 2026-11-17
 
 - **Owner authorization:** exact Sidebar Sandbox confirmed; only pre-change
