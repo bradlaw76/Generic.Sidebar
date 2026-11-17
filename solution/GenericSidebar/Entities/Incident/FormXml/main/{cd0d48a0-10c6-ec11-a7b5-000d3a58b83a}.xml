@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{cd0d48a0-10c6-ec11-a7b5-000d3a58b83a}</formid>
+    <IntroducedVersion>9.1.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form enablerelatedinformation="false" shownavigationbar="true" hasmargin="false" headerdensity="HighWithControls" showinformselector="true">
+      <tabs showlabels="true">
+        <tab name="general" verticallayout="true" id="{564b9a08-4626-46f5-8bd8-3d31e17a8873}" IsUserDefined="0" labelid="{9d6e9f7c-5fb8-47a7-8d84-a6f1b8c14d4c}" ordinalvalue="0">
+          <columns>
+            <column width="50%" id="0">
+              <sections>
+                <section name="general_section_10" id="86e13dba-d7c9-43a5-a930-41b6d0695dbe" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" ordinalvalue="4">
+                  <rows />
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <events>
+        <event name="onload" application="true" active="true">
+          <Handlers>
+            <Handler functionName="Generic_OpenSidebar" libraryName="sidebar_sidebar.js" handlerUniqueId="{830ea7f8-c0ac-4448-a1ed-5b64bf92ebe3}" enabled="true" parameters="" passExecutionContext="true" ordinalvalue="2" solutionaction="Added" />
+          </Handlers>
+        </event>
+      </events>
+      <controlDescriptions>
+        <controlDescription forControl="{3ff9a528-dd50-4aca-8f10-2e5ed73513ad}" solutionaction="Removed" />
+      </controlDescriptions>
+      <footer id="{87f48bb0-8611-4251-b5a3-189a97be8c9d}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows />
+      </footer>
+      <formLibraries>
+        <Library name="sidebar_sidebar.js" libraryUniqueId="{7fab9adb-3aee-4485-94db-916d9f5bba51}" solutionaction="Added" />
+      </formLibraries>
+    </form>
+    <LocalizedNames>
+      <LocalizedName description="Enhanced full case form" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Enhanced full case form" languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

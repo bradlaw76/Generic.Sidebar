@@ -1,12 +1,22 @@
 {
   "system": {
     "name": "Generic.Sidebar",
-    "version": "2.1.0",
-    "status": "ACTIVE",
-    "type": "hybrid"
+    "version": "2.3.0",
+    "solutionVersion": "1.0.0.12",
+    "releaseArtifact": null,
+    "candidateArtifact": "GenericSidebar_1_0_0_12.zip",
+    "publishedReleaseVersion": "1.0.0.11",
+    "status": "PRE_RELEASE",
+    "type": "core-with-optional-enterprise-and-simulator-add-ins",
+    "runtimeVersions": {
+      "sidebar_sidebar.html": "2.16.0",
+      "sidebar_sidebar.js": "2.7.0"
+    },
+    "enterpriseResourceInventory": "config/enterprise-resources.json",
+    "liveAcceptanceVerified": false
   },
   "purpose": {
-    "summary": "A flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps. Configure a single Dataverse table row to control instructions, embeds, icons, and theming — no custom HTML/JS per form. Includes sidecar components: Android Cell Phone Simulator (Samsung S25 Ultra, v2.5.0 — settings screen, standalone profile editing, lock screen, camera, browser, call flows) and Genesys Softphone for contact center demos. See Generic.AndroidCellPhone/DOCUMENTATION.md for full phone simulator technical docs."
+    "summary": "Independently installable Generic Sidebar Core with one through four configurable panels. Enterprise SSO and linked-agent resources have a separate optional source inventory and pending solution/import acceptance. Android, Genesys, ACS, GenericSoftphone and gensoft_* remain external optional add-ins, excluded from the Core package."
   },
   "registry": {
     "indexUrl": "https://github.com/bradlaw76/SpeckKit-Project-Development/blob/main/system-manifests/MANIFEST_INDEX.json.md",

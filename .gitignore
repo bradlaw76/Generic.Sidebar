@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+tests/coverage/
+azure-functions/node_modules/
+_debug.txt
+azure-functions.zip

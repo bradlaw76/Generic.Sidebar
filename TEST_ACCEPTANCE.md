@@ -1,7 +1,35 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.3.0
+
+## H004 local evidence - 2026-11-17
+
+Historical checkmarks below are acceptance criteria, **not new hosted evidence**.
+The isolated H004 candidate has 44 passing Core/package cases and 67 passing
+SSO/linked-agent cases, plus characterization lint and static runtime/schema
+checks (Windows, Node 22.23.5, PowerShell 7.7.0). The SSO manifest requests
+Node 24; local Node 22 execution does not certify the hosted Node 24 matrix.
+
+- H005: all 15 nonempty panel-slot combinations, legacy two-panel dimensions,
+  instructions, zoom, retained frame identity and per-config persistence.
+- H006: ordered dependency loading, fail-closed read/auth/navigation errors,
+  identity-isolated MSAL clients, single-resource scope validation, trusted
+  endpoints, redirect rejection, expiring/replay-resistant in-memory handoff.
+- H007: linked menu in every tab slot without replacing sibling frames;
+  empty queries versus dependency errors; shared secure selected-agent auth.
+- H008: actual successful Core queries covered by packaged schema; text/binary
+  corruption gates; hostile theme-color regressions; separate complete optional
+  resource delivery bundle verified against canonical UTF-8/LF source text.
+- Core 1.0.0.12: offline PAC pack and four mapped-resource comparisons passed.
+  XML/XAML and PowerShell parsing passed. Core excludes all optional resources
+  and simulator schemas.
+
+**Still required (H009):** authorized nonproduction Dynamics import, real
+customer two-/four-panel acceptance, optional resource/schema setup, real Entra
+and Copilot Studio sign-in/token-exchange and linked-agent tests. These are
+untested, not inferred from mocks or package generation. No production action,
+release publication or PR merge is authorized by these local results.
 
 ---
 
