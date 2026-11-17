@@ -2,16 +2,16 @@
 =============================================================================
 COMPONENT:    sidebar_sidebar
 FILE:         web resources\sidebar_sidebar.html
-VERSION:      1.0.0
+VERSION:      2.16.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-11-17
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
 -----------------------------------------------------------------------------
 OVERVIEW
 -----------------------------------------------------------------------------
-SpeckKit component header applied for governance and maintainability.
+Canonical Generic Sidebar Core renderer for the H004 1.0.0.12 local candidate.
 
 -----------------------------------------------------------------------------
 ARCHITECTURE
@@ -26,15 +26,11 @@ ARCHITECTURE
 -----------------------------------------------------------------------------
 FEATURES
 -----------------------------------------------------------------------------
-- Search:           As implemented
-- Filtering:        As implemented
-- Sorting:          As implemented
-- Pagination:       As implemented
-- Create:           As implemented
-- Update:           As implemented
-- Delete:           As implemented
-- Validation:       As implemented
-- UX Notes:         See file content
+- Multi-panel tabs with retained iframe state
+- Active-panel persistence, zoom, and pop-out controls
+- Configurable iframe dimensions, style, and permissions
+- Color injection and Copilot URL theming
+- Deterministic placeholders and safe error rendering
 
 -----------------------------------------------------------------------------
 PREREQUISITES
@@ -69,6 +65,13 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.16.0  2026-11-17  H004 reconcile Core panels with optional linked-agent tabs
+  * Preserve Core sizing, retention, persistence and legacy title fallback
+  * Reject invalid theme colors before host or serialized document insertion
+  * Query optional linked-agent dependencies only when explicitly configured
+v2.15.3 2026-09-05  Honor configured iframe width during automatic zoom
+v2.15.2 2026-09-04  Aligned unchanged runtime with solution 1.0.0.7
+v2.15.0 2026-08-28  Reconciled source and packaged Core capabilities
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -84,10 +87,17 @@ NON-NEGOTIABLES (Architecture Contract)
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sidebar v2.14.0 – Full-Height Iframe Widgets</title>
+  <title>Sidebar v2.16.0 - Reconciled Core Runtime</title>
 
   <style>
-    :root { --band-bg:#0f5c73; --band-fg:#ffffff; }
+    :root {
+      --band-bg: #0f5c73;
+      --band-fg: #ffffff;
+      --band-marker: #d6f0ff;
+      --sidebar-primary: #0f5c73;
+      --sidebar-text: #ffffff;
+      --sidebar-link: #d6f0ff;
+    }
 
     html, body {
       height: 100%;
@@ -112,6 +122,11 @@ NON-NEGOTIABLES (Architecture Contract)
     }
     .inst-label { font-size: 12px; font-weight: 600; }
     .inst-body { font-size: 12px; line-height: 1.35; }
+    .inst-body a { color: var(--sidebar-link); }
+    .inst-body p { margin: 6px 0; }
+    .inst-body ul, .inst-body ol { margin: 6px 0; padding-left: 1.25rem; }
+    .inst-body li { margin: 3px 0; }
+    .inst-body li::marker { color: var(--band-marker); }
 
     /* Layout Host */
     #host {
@@ -216,7 +231,7 @@ NON-NEGOTIABLES (Architecture Contract)
       cursor: pointer;
       display: none;
     }
-    .popout-btn:hover { 
+    .popout-btn:hover {
       background: #edebe9;
       color: #0078d4;
     }
@@ -286,8 +301,8 @@ NON-NEGOTIABLES (Architecture Contract)
 
     .panel-container iframe {
       flex: 1;
-      width: 100% !important;
-      height: 100% !important;
+      width: 100%;
+      height: 100%;
       border: 0;
       display: block;
       overflow-y: auto !important;
@@ -295,10 +310,10 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     /* Non-zoomed iframes - subtle visual frame */
-    .panel-container iframe:not(.force-zoom) {
+    .panel-container iframe.framed:not(.force-zoom) {
       margin: 4px;
-      width: calc(100% - 8px) !important;
-      height: calc(100% - 8px) !important;
+      width: calc(100% - 8px);
+      height: calc(100% - 8px);
       border: 1px solid #e1dfdd;
       border-radius: 4px;
       background: white;
@@ -306,12 +321,12 @@ NON-NEGOTIABLES (Architecture Contract)
 
     /* Zooming for Genesys / phone simulators - NO framing */
     .force-zoom {
-      width: 320px !important;
-      min-width: 320px !important;
-      max-width: 320px !important;
+      width: var(--sidebar-zoom-width, 320px) !important;
+      min-width: var(--sidebar-zoom-width, 320px) !important;
+      max-width: var(--sidebar-zoom-width, 320px) !important;
       height: 64% !important;
       transform-origin: 0 0;
-      transform: scale(1.56);
+      transform: scale(var(--sidebar-zoom-scale, 1.5625));
       margin: 0 !important;
       border: none !important;
       border-radius: 0 !important;
@@ -322,6 +337,9 @@ NON-NEGOTIABLES (Architecture Contract)
 <script>
   const TABLE = "sidebar_genericsidebar";
   const COPILOT_FILE_TYPE_VALUE = 172520002;
+  const DEFAULT_IFRAME_ALLOW = "clipboard-write; microphone; camera; autoplay; encrypted-media";
+  const DEFAULT_ZOOM_WIDTH = 320;
+  const ZOOM_TARGET_WIDTH = 500;
 
   function getParams() {
     const url = new URL(window.location.href);
@@ -352,6 +370,195 @@ NON-NEGOTIABLES (Architecture Contract)
     } catch {
       return html;
     }
+  }
+
+  function bodyInnerHTMLIfFullDoc(html) {
+    const lower = (html || "").trim().toLowerCase();
+    if (!lower.includes("<html") && !lower.includes("<body")) return html;
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      return doc.body ? doc.body.innerHTML : html;
+    } catch {
+      return html;
+    }
+  }
+
+  function tidyLists(root) {
+    root.querySelectorAll("li > p:only-child").forEach((paragraph) => {
+      const item = paragraph.parentElement;
+      while (paragraph.firstChild) item.insertBefore(paragraph.firstChild, paragraph);
+      paragraph.remove();
+    });
+    root.querySelectorAll("li").forEach((item) => {
+      const text = (item.textContent || "").replace(/\u00a0/g, " ").trim();
+      if (!text && !item.querySelector("img,video,iframe,table")) item.remove();
+    });
+    root.querySelectorAll("ul,ol").forEach((list) => {
+      if (!list.querySelector("li")) list.remove();
+    });
+  }
+
+  function normalizeColor(value) {
+    const color = typeof value === "string" ? value.trim() : "";
+    if (!color) return "";
+    if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) return color;
+    if (/^[a-z]+$/i.test(color) || /^(?:rgba?|hsla?)\([0-9.,%+\-\s/degturnrad]+\)$/i.test(color)) {
+      const style = document.createElement("span").style;
+      style.color = color;
+      if (style.color) return color;
+    }
+    console.warn("Ignoring unsupported sidebar theme color.");
+    return "";
+  }
+
+  function normalizeColors(rec) {
+    return {
+      primary: normalizeColor(rec.sidebar_primarycolor),
+      text: normalizeColor(rec.sidebar_textcolor),
+      link: normalizeColor(rec.sidebar_linkcolor)
+    };
+  }
+
+  function applyHostColors(colors) {
+    const root = document.documentElement.style;
+    if (colors.primary) {
+      root.setProperty("--band-bg", colors.primary);
+      root.setProperty("--sidebar-primary", colors.primary);
+    }
+    if (colors.text) {
+      root.setProperty("--band-fg", colors.text);
+      root.setProperty("--sidebar-text", colors.text);
+    }
+    if (colors.link) {
+      root.setProperty("--band-marker", colors.link);
+      root.setProperty("--sidebar-link", colors.link);
+    }
+  }
+
+  function applyDocumentColors(html, colors) {
+    if (!colors.primary && !colors.text && !colors.link) return html;
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const style = doc.createElement("style");
+      style.dataset.sidebarTheme = "true";
+      style.textContent = `:root {
+        --sidebar-primary: ${colors.primary || "#0f5c73"};
+        --sidebar-text: ${colors.text || "#ffffff"};
+        --sidebar-link: ${colors.link || colors.primary || "#0078d4"};
+        --primary-color: var(--sidebar-primary);
+        --text-color: var(--sidebar-text);
+        --link-color: var(--sidebar-link);
+      }`;
+      doc.head.appendChild(style);
+      return doc.documentElement.outerHTML;
+    } catch {
+      return html;
+    }
+  }
+
+  function applyCopilotTheme(url, colors) {
+    if (!url || (!url.includes("powerva.microsoft.com") && !url.includes("copilotstudio.microsoft.com"))) {
+      return url;
+    }
+    if (!colors.primary && !colors.text && !colors.link) return url;
+    try {
+      const themedUrl = new URL(url);
+      const options = {
+        styleOptions: {
+          headerBackground: colors.primary || "#f0f0f0",
+          bubbleBackground: colors.primary || "#0078d4",
+          bubbleTextColor: colors.text || "#ffffff",
+          suggestedActionBackground: "#ffffff",
+          suggestedActionTextColor: colors.link || colors.primary || "#0078d4"
+        }
+      };
+      themedUrl.searchParams.set("b", btoa(JSON.stringify(options)));
+      return themedUrl.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  function prepareHtmlEmbed(html, colors, isCopilot) {
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      if (isCopilot) {
+        const embeddedFrame = doc.querySelector("iframe[src]");
+        if (embeddedFrame) {
+          embeddedFrame.setAttribute("src", applyCopilotTheme(embeddedFrame.getAttribute("src"), colors));
+        }
+      }
+      return applyDocumentColors(doc.documentElement.outerHTML, colors);
+    } catch {
+      return applyDocumentColors(html, colors);
+    }
+  }
+
+  function positiveNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function applyIframeOptions(rec, iframe) {
+    const customStyle = typeof rec.sidebar_iframestyle === "string" ? rec.sidebar_iframestyle.trim() : "";
+    if (customStyle) iframe.style.cssText = customStyle;
+    const width = positiveNumber(rec.sidebar_iframewidth);
+    const height = positiveNumber(rec.sidebar_iframeheight);
+    const effectiveZoomWidth = width || DEFAULT_ZOOM_WIDTH;
+    iframe.style.width = width ? `${width}px` : (iframe.style.width || "100%");
+    iframe.style.height = height ? `${height}px` : (iframe.style.height || "100%");
+    iframe.style.flex = height ? `0 0 ${height}px` : (iframe.style.flex || "1 1 0%");
+    iframe.style.setProperty("--sidebar-zoom-width", `${effectiveZoomWidth}px`);
+    iframe.style.setProperty("--sidebar-zoom-scale", String(ZOOM_TARGET_WIDTH / effectiveZoomWidth));
+    const configuredAllow = typeof rec.sidebar_iframeallow === "string" ? rec.sidebar_iframeallow.trim() : "";
+    iframe.setAttribute("allow", configuredAllow || DEFAULT_IFRAME_ALLOW);
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  }
+
+  function buildPanels(rec, configId, linkedAgents) {
+    const panels = [];
+    [
+      [1, "sidebar_title1", "sidebar_instructions", "sidebar_embedcode"],
+      [2, "sidebar_title2", "sidebar_instructions2", "sidebar_embedcode2"],
+      [3, "sidebar_title3", "sidebar_instructions3", "sidebar_embedcode3"],
+      [4, "sidebar_title4", "sidebar_instructions4", "sidebar_embedcode4"]
+    ].forEach(([index, titleField, instructionField, embedField]) => {
+      const embed = typeof rec[embedField] === "string" ? rec[embedField].trim() : "";
+      if (!embed) return;
+      panels.push({
+        index,
+        title: (rec[titleField] || (index === 1 ? rec.sidebar_title : "") || "").trim() || `Panel ${index}`,
+        instr: (rec[instructionField] || "").trim(),
+        embed
+      });
+    });
+    const slot = parseAgentMenuTab(rec.sidebar_agentmenutab);
+    if (slot && linkedAgents?.count > 0) {
+      const base = parent.Xrm.Utility.getGlobalContext().getClientUrl();
+      const embed = `${base}/WebResources/vz_AgentSidePanelHTML.html?configId=${encodeURIComponent(configId)}&v=2.2.0`;
+      const existing = panels.find((panel) => panel.index === slot);
+      if (existing) {
+        existing.embed = embed;
+      } else {
+        panels.push({ index: slot, title: `Linked Agents (${linkedAgents.count})`, instr: "", embed });
+      }
+      panels.sort((left, right) => left.index - right.index);
+    }
+    return panels;
+  }
+
+  function parseAgentMenuTab(value) {
+    const slot = Number(value);
+    if (Number.isInteger(slot) && slot >= 1 && slot <= 4) return slot;
+    if (Number.isInteger(slot) && slot >= 100000001 && slot <= 100000004) return slot - 100000000;
+    return null;
+  }
+
+  async function getLinkedAgentSummary(configId) {
+    const query = "?$select=sidebar_genericsidebaragentid" +
+      `&$filter=_sidebar_genericsidebarid_value eq ${configId} and sidebar_isactive eq true and statecode eq 0`;
+    const result = await parent.Xrm.WebApi.retrieveMultipleRecords("sidebar_genericsidebaragent", query);
+    return { count: result.entities.length };
   }
 
   // For iframe widgets (Copilot, Canvas Apps) - full height but top-aligned
@@ -387,7 +594,7 @@ NON-NEGOTIABLES (Architecture Contract)
   function resolveEmbed(raw) {
     const t = (raw || "").trim();
     if (!t) return null;
-    
+
     if (t.startsWith("<")) {
       // Check if this HTML contains an iframe with src - extract it for pop-out capability
       const iframeMatch = t.match(/<iframe[^>]+src=["']([^"']+)["']/i);
@@ -424,14 +631,14 @@ NON-NEGOTIABLES (Architecture Contract)
     const height = screen.availHeight - 50;
     const left = screen.availWidth - width - 10;
     const top = 25;
-    
+
     // Open with a window name so we can track it
     popoutWindow = window.open(
       currentPopoutUrl,
       "SidebarPopout",
       `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
     );
-    
+
     // Show placeholder in the sidebar
     if (popoutWindow && currentPopoutPanelIndex !== null) {
       showPopoutPlaceholder(currentPopoutPanelIndex);
@@ -450,12 +657,12 @@ NON-NEGOTIABLES (Architecture Contract)
   function showPopoutPlaceholder(panelIndex) {
     const placeholder = document.getElementById("popoutPlaceholder");
     const iframe = document.querySelector(`iframe[data-panel-index="${panelIndex}"]`);
-    
+
     if (iframe) {
       iframe.style.display = "none";
     }
     placeholder.classList.add("active");
-    
+
     // Hide pop-out button when already popped out
     document.getElementById("popoutBtn").style.display = "none";
   }
@@ -463,13 +670,13 @@ NON-NEGOTIABLES (Architecture Contract)
   function restoreEmbeddedContent() {
     const placeholder = document.getElementById("popoutPlaceholder");
     placeholder.classList.remove("active");
-    
+
     // Close pop-out window if still open
     if (popoutWindow && !popoutWindow.closed) {
       popoutWindow.close();
     }
     popoutWindow = null;
-    
+
     // Show the iframe again
     if (currentPopoutPanelIndex !== null) {
       const iframe = document.querySelector(`iframe[data-panel-index="${currentPopoutPanelIndex}"]`);
@@ -477,28 +684,195 @@ NON-NEGOTIABLES (Architecture Contract)
         iframe.style.display = "block";
       }
     }
-    
+
     // Show pop-out button again
     document.getElementById("popoutBtn").style.display = "block";
   }
 
-  // Check if pop-out window was closed externally
-  setInterval(() => {
+  function checkPopoutWindow() {
     if (popoutWindow && popoutWindow.closed) {
       restoreEmbeddedContent();
     }
-  }, 1000);
+  }
 
-  async function loadConfigAndRender() {
-    const { configId, mode } = getParams();
+  setInterval(checkPopoutWindow, 1000);
+
+  function renderPlaceholder(message) {
+    const host = document.getElementById("host");
+    host.replaceChildren();
+    const placeholder = document.createElement("div");
+    placeholder.className = "placeholder";
+    placeholder.textContent = message;
+    host.appendChild(placeholder);
+  }
+
+  function renderError(error) {
     const host = document.getElementById("host");
     const instBand = document.getElementById("instBand");
+    instBand.style.display = "none";
+    host.replaceChildren();
+    const errorElement = document.createElement("div");
+    errorElement.className = "error";
+    errorElement.textContent = `Could not load configuration. ${error?.message || "Unknown error."}`;
+    host.appendChild(errorElement);
+  }
+
+  function saveActivePanel(configId, index) {
+    try {
+      sessionStorage.setItem(`sidebar_activePanel_${configId}`, String(index));
+    } catch (error) {
+      console.log("Could not save panel state:", error);
+    }
+  }
+
+  function getInitialPanel(configId, panelCount) {
+    try {
+      const saved = Number.parseInt(sessionStorage.getItem(`sidebar_activePanel_${configId}`), 10);
+      return Number.isInteger(saved) && saved >= 0 && saved < panelCount ? saved : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function createPanelFrame(panel, rec, configId, position, colors) {
+    const target = resolveEmbed(panel.embed);
+    if (!target) return null;
+
+    const iframe = document.createElement("iframe");
+    iframe.className = "panel-frame framed";
+    iframe.dataset.panelIndex = String(position);
+    iframe.dataset.configId = configId;
+
+    if (target.mode === "html") {
+      const hasEmbeddedIframe = Boolean(target.extractedUrl);
+      let processedHtml = prepareHtmlEmbed(
+        target.html,
+        colors,
+        Number(rec.sidebar_filetype) === COPILOT_FILE_TYPE_VALUE
+      );
+      processedHtml = hasEmbeddedIframe
+        ? ensureFullHeightIframeWidget(processedHtml)
+        : ensureFullHeightHtml(processedHtml);
+      iframe.srcdoc = processedHtml;
+      iframe.dataset.isHtml = "true";
+      iframe.dataset.hasEmbeddedIframe = String(hasEmbeddedIframe);
+      if (target.extractedUrl) {
+        iframe.dataset.popoutUrl = Number(rec.sidebar_filetype) === COPILOT_FILE_TYPE_VALUE
+          ? applyCopilotTheme(target.extractedUrl, colors)
+          : target.extractedUrl;
+      }
+    } else {
+      iframe.src = target.url;
+      iframe.dataset.isHtml = "false";
+      iframe.dataset.popoutUrl = target.url;
+      const title = panel.title.toLowerCase();
+      if (title.includes("phone") || title.includes("genesys")) {
+        iframe.classList.add("force-zoom");
+        iframe.classList.remove("framed");
+        iframe.dataset.autoZoom = "true";
+      }
+    }
+
+    applyIframeOptions(rec, iframe);
+    iframe.style.display = "none";
+    return iframe;
+  }
+
+  function renderRuntime(rec, configId, linkedAgents) {
+    const panels = buildPanels(rec, configId, linkedAgents);
+    if (!panels.length) {
+      renderPlaceholder("No panels configured.");
+      return null;
+    }
+
+    const colors = normalizeColors(rec);
+    applyHostColors(colors);
+    const instBand = document.getElementById("instBand");
+    const instBody = document.getElementById("instBody");
     const zoomBtn = document.getElementById("zoomToggle");
+    const popoutBtn = document.getElementById("popoutBtn");
     const panelContainer = document.getElementById("panelContainer");
     const tabRow = document.getElementById("tabRow");
 
+    const iframes = panels.map((panel, index) => createPanelFrame(panel, rec, configId, index, colors));
+    panelContainer.replaceChildren(...iframes.filter(Boolean));
+    tabRow.replaceChildren();
+    tabRow.style.display = panels.length > 1 ? "flex" : "none";
+
+    function setActivePanel(index) {
+      const panel = panels[index];
+      const activeIframe = iframes[index];
+      if (!panel || !activeIframe) return false;
+      if (document.getElementById("popoutPlaceholder").classList.contains("active") && currentPopoutPanelIndex !== index) {
+        restoreEmbeddedContent();
+      }
+
+      saveActivePanel(configId, index);
+      Array.from(tabRow.children).forEach((tab, tabIndex) => tab.classList.toggle("active", tabIndex === index));
+      iframes.forEach((iframe, iframeIndex) => {
+        if (iframe) iframe.style.display = iframeIndex === index ? "block" : "none";
+      });
+
+      if (panel.instr) {
+        instBody.innerHTML = bodyInnerHTMLIfFullDoc(panel.instr);
+        tidyLists(instBody);
+        instBand.style.display = "block";
+      } else {
+        instBody.replaceChildren();
+        instBand.style.display = "none";
+      }
+
+      const isHtml = activeIframe.dataset.isHtml === "true";
+      zoomBtn.style.display = isHtml ? "none" : "block";
+      zoomBtn.classList.toggle("active", activeIframe.classList.contains("force-zoom"));
+      zoomBtn.textContent = activeIframe.classList.contains("force-zoom") ? "Reset" : "Fit";
+
+      if (activeIframe.dataset.popoutUrl) {
+        popoutBtn.style.display = "block";
+        currentPopoutUrl = activeIframe.dataset.popoutUrl;
+        currentPopoutPanelIndex = index;
+      } else {
+        popoutBtn.style.display = "none";
+        currentPopoutUrl = null;
+        currentPopoutPanelIndex = null;
+      }
+      return true;
+    }
+
+    if (panels.length > 1) {
+      panels.forEach((panel, index) => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "tab";
+        tab.textContent = panel.title;
+        tab.title = panel.title;
+        tab.setAttribute("aria-label", `${panel.title} (Alt+${index + 1})`);
+        tab.addEventListener("click", () => setActivePanel(index));
+        tabRow.appendChild(tab);
+      });
+    }
+
+    if (window.__sidebarTabHotkeyHandler) {
+      document.removeEventListener("keydown", window.__sidebarTabHotkeyHandler);
+    }
+    window.__sidebarTabHotkeyHandler = (event) => {
+      if (!event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;
+      const target = event.target;
+      if (target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName || "")) return;
+      if (!/^[1-4]$/.test(event.key)) return;
+      if (setActivePanel(Number(event.key) - 1)) event.preventDefault();
+    };
+    document.addEventListener("keydown", window.__sidebarTabHotkeyHandler);
+    setActivePanel(getInitialPanel(configId, panels.length));
+    return { panels, iframes, setActivePanel };
+  }
+
+  async function loadConfigAndRender() {
+    const { configId } = getParams();
+    const panelContainer = document.getElementById("panelContainer");
+
     if (!configId) {
-      host.innerHTML = '<div class="placeholder">No configuration selected.</div>';
+      renderPlaceholder("No configuration selected.");
       return;
     }
 
@@ -506,209 +880,56 @@ NON-NEGOTIABLES (Architecture Contract)
     const existingIframes = panelContainer.querySelectorAll("iframe[data-config-id]");
     if (existingIframes.length > 0 && existingIframes[0].dataset.configId === configId) {
       console.log("Sidebar: Content already rendered for this config, skipping reload");
-      // Restore active panel from sessionStorage if available
-      const savedPanel = sessionStorage.getItem("sidebar_activePanel_" + configId);
-      if (savedPanel !== null) {
-        const idx = parseInt(savedPanel, 10);
-        const activeIframe = panelContainer.querySelector(`iframe[data-panel-index="${idx}"]`);
-        if (activeIframe) {
-          existingIframes.forEach(f => f.style.display = "none");
-          activeIframe.style.display = "block";
-        }
-      }
       return;
     }
 
     try {
+      if (!parent?.Xrm?.WebApi) throw new Error("Xrm.WebApi not available.");
       const select =
         "?$select=" +
-        "sidebar_title1,sidebar_instructions,sidebar_embedcode," +
+        "sidebar_title,sidebar_title1,sidebar_instructions,sidebar_embedcode," +
         "sidebar_title2,sidebar_instructions2,sidebar_embedcode2," +
         "sidebar_title3,sidebar_instructions3,sidebar_embedcode3," +
         "sidebar_title4,sidebar_instructions4,sidebar_embedcode4," +
         "sidebar_iframewidth,sidebar_iframeheight,sidebar_iframestyle,sidebar_iframeallow," +
         "sidebar_primarycolor,sidebar_textcolor,sidebar_linkcolor,sidebar_filetype";
 
-      const rec = await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, select);
-
-      const panels = [];
-      function addPanel(idx, titleField, instrField, embedField) {
-        const embed = (rec[embedField] || "").trim();
-        if (!embed) return;
-        panels.push({
-          index: idx,
-          title: (rec[titleField] || "").trim() || `Panel ${idx}`,
-          instr: (rec[instrField] || "").trim(),
-          embedField
-        });
-      }
-
-      addPanel(1, "sidebar_title1", "sidebar_instructions",  "sidebar_embedcode");
-      addPanel(2, "sidebar_title2", "sidebar_instructions2", "sidebar_embedcode2");
-      addPanel(3, "sidebar_title3", "sidebar_instructions3", "sidebar_embedcode3");
-      addPanel(4, "sidebar_title4", "sidebar_instructions4", "sidebar_embedcode4");
-
-      if (!panels.length) {
-        host.innerHTML = '<div class="placeholder">No panels configured.</div>';
-        return;
-      }
-
-      // Create all iframes upfront to preserve state when switching tabs
-      const iframes = [];
-      panelContainer.innerHTML = "";
-
-      panels.forEach((panel, idx) => {
-        const target = resolveEmbed(rec[panel.embedField]);
-        if (!target) {
-          iframes.push(null);
-          return;
-        }
-
-        const iframe = document.createElement("iframe");
-        iframe.referrerPolicy = "strict-origin-when-cross-origin";
-        iframe.style.display = "none"; // Hidden by default
-        iframe.dataset.panelIndex = idx;
-        iframe.dataset.configId = configId; // Track which config this iframe belongs to
-
-        if (target.mode === "html") {
-          // Apply appropriate styling based on content type
-          const hasEmbeddedIframe = !!target.extractedUrl;
-          if (hasEmbeddedIframe) {
-            // Iframe widgets (Copilot, Canvas Apps) - full height, top-aligned
-            iframe.srcdoc = ensureFullHeightIframeWidget(target.html);
-          } else {
-            // Raw HTML - full height with flex layout
-            iframe.srcdoc = ensureFullHeightHtml(target.html);
-          }
-          iframe.dataset.isHtml = "true";
-          iframe.dataset.hasEmbeddedIframe = hasEmbeddedIframe ? "true" : "false";
-          // If HTML contains an iframe, extract its URL for pop-out
-          if (target.extractedUrl) {
-            iframe.dataset.popoutUrl = target.extractedUrl;
-          }
-        } else {
-          iframe.src = target.url;
-          iframe.dataset.isHtml = "false";
-          iframe.dataset.popoutUrl = target.url; // Store URL for pop-out
-
-          const lower = panel.title.toLowerCase();
-          if (lower.includes("phone") || lower.includes("genesys")) {
-            iframe.classList.add("force-zoom");
-            iframe.dataset.autoZoom = "true";
-          }
-        }
-
-        iframe.setAttribute(
-          "allow",
-          "clipboard-write; microphone; camera; autoplay; encrypted-media"
-        );
-
-        panelContainer.appendChild(iframe);
-        iframes.push(iframe);
-      });
-
-      if (panels.length > 1) {
-        tabRow.style.display = "flex";
-        tabRow.innerHTML = "";
-        panels.forEach((p, idx) => {
-          const btn = document.createElement("button");
-          btn.className = "tab";
-          btn.textContent = p.title;
-          btn.onclick = () => setActivePanel(idx);
-          tabRow.appendChild(btn);
-        });
-      } else {
-        tabRow.style.display = "none";
-      }
-
-      function setActivePanel(idx) {
-        const panel = panels[idx];
-        if (!panel) return;
-
-        // Save active panel to sessionStorage for persistence across pane switches
-        try {
-          sessionStorage.setItem("sidebar_activePanel_" + configId, idx.toString());
-        } catch (e) {
-          console.log("Could not save panel state:", e);
-        }
-
-        if (panels.length > 1) {
-          Array.from(tabRow.children).forEach((t, i) =>
-            t.classList.toggle("active", i === idx)
-          );
-        }
-
-        if (panel.instr) {
-          instBand.style.display = "block";
-          document.getElementById("instBody").innerHTML =
-            ensureFullHeightHtml(panel.instr);
-        } else {
-          instBand.style.display = "none";
-        }
-
-        // Hide all iframes, show only the active one (preserves state)
-        iframes.forEach((iframe, i) => {
-          if (iframe) {
-            iframe.style.display = i === idx ? "block" : "none";
-          }
-        });
-
-        const activeIframe = iframes[idx];
-        const popoutBtn = document.getElementById("popoutBtn");
-        if (activeIframe) {
-          const isHtml = activeIframe.dataset.isHtml === "true";
-          const hasPopoutUrl = !!activeIframe.dataset.popoutUrl;
-          console.log("Sidebar setActivePanel:", idx, "isHtml=", isHtml, "hasPopoutUrl=", hasPopoutUrl, "popoutUrl=", activeIframe.dataset.popoutUrl);
-          
-          // Zoom button only for URL embeds (not HTML)
-          if (isHtml) {
-            zoomBtn.style.display = "none";
-          } else {
-            zoomBtn.style.display = "block";
-            if (activeIframe.classList.contains("force-zoom")) {
-              zoomBtn.classList.add("active");
-              zoomBtn.textContent = "⤢ Reset";
-            } else {
-              zoomBtn.classList.remove("active");
-              zoomBtn.textContent = "⤢ Fit";
-            }
-          }
-          
-          // Pop-out button shows if there's a URL (even for HTML with iframe src)
-          if (hasPopoutUrl) {
-            popoutBtn.style.display = "block";
-            currentPopoutUrl = activeIframe.dataset.popoutUrl;
-            currentPopoutPanelIndex = idx;
-          } else {
-            popoutBtn.style.display = "none";
-            currentPopoutUrl = null;
-            currentPopoutPanelIndex = null;
-          }
-        }
-        
-        // Reset placeholder state when switching tabs
-        document.getElementById("popoutPlaceholder").classList.remove("active");
-      }
-
-      // Restore active panel from sessionStorage, or default to panel 0
-      let initialPanel = 0;
+      let rec;
       try {
-        const savedPanel = sessionStorage.getItem("sidebar_activePanel_" + configId);
-        if (savedPanel !== null) {
-          const parsed = parseInt(savedPanel, 10);
-          if (!isNaN(parsed) && parsed >= 0 && parsed < panels.length) {
-            initialPanel = parsed;
-          }
-        }
-      } catch (e) {
-        console.log("Could not restore panel state:", e);
+        rec = await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, select + ",sidebar_agentmenutab");
+      } catch (error) {
+        if (!/sidebar_agentmenutab/i.test(error?.message || "") ||
+            !/could not find|does not exist|not found|undeclared/i.test(error.message)) throw error;
+        console.warn("Optional Agent Menu Tab column is not installed; loading Core configuration.");
+        rec = await parent.Xrm.WebApi.retrieveRecord(TABLE, configId, select);
       }
-      setActivePanel(initialPanel);
-
-    } catch (e) {
-      host.innerHTML = `<div class="error">${e.message}</div>`;
+      const linkedAgents = parseAgentMenuTab(rec.sidebar_agentmenutab)
+        ? await getLinkedAgentSummary(configId)
+        : null;
+      renderRuntime(rec, configId, linkedAgents);
+    } catch (error) {
+      renderError(error);
     }
   }
+
+  window.__GenericSidebarHtmlRuntime = {
+    applyCopilotTheme,
+    applyDocumentColors,
+    applyIframeOptions,
+    buildPanels,
+    checkPopoutWindow,
+    createPanelFrame,
+    focusPopoutWindow,
+    getInitialPanel,
+    loadConfigAndRender,
+    normalizeColors,
+    popOutPanel,
+    renderError,
+    renderPlaceholder,
+    renderRuntime,
+    restoreEmbeddedContent,
+    toggleZoom
+  };
 
   window.addEventListener("load", loadConfigAndRender);
 </script>
@@ -729,9 +950,8 @@ NON-NEGOTIABLES (Architecture Contract)
       <p>Content is open in a separate window.<br/>Use the buttons below to manage it.</p>
       <button class="focus-btn" onclick="focusPopoutWindow()">Bring to Front</button>
       <button class="restore-btn" onclick="restoreEmbeddedContent()">Restore Here</button>
-      <p class="restore-note">Note: Restoring will reload the content and reset any chat conversation.</p>
+      <p class="restore-note">Restoring returns the retained embedded frame to this panel.</p>
     </div>
   </div>
 </body>
 </html>
-

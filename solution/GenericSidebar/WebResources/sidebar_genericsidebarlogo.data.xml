@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{98c31835-328f-f011-b4cc-001dd809c7de}</WebResourceId>
+  <Name>sidebar_genericsidebarlogo</Name>
+  <DisplayName>generic.sidebar.logo</DisplayName>
+  <WebResourceType>11</WebResourceType>
+  <IntroducedVersion>1.0.0.1</IntroducedVersion>
+  <IsEnabledForMobileClient>1</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/sidebar_genericsidebarlogo98C31835-328F-F011-B4CC-001DD809C7DE</FileName>
+</WebResource>

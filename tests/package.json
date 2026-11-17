@@ -1,0 +1,25 @@
+{
+  "name": "generic-sidebar-characterization-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "check": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "axe-core": "4.12.1",
+    "eslint": "10.8.0",
+    "globals": "17.9.0",
+    "jsdom": "30.0.1",
+    "vitest": "4.1.10"
+  }
+}
