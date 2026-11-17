@@ -1,5 +1,40 @@
 # Generic.Sidebar ChatGPT Handoff
 
+## H009 preflight milestone - 2026-11-17
+
+- **Status:** In progress; live acceptance blocked, not Done.
+- **Owner/runner:** Brad / existing Copilot SDK VS Code runner. Read H000 and
+  latest hourly-monitor receipt; no competing writer, tenant/identity switch,
+  PR merge, release or production deployment.
+- **Branch:** `docs/h009-nonproduction-acceptance`, isolated from verified
+  H004 head `32a2681207a8eb4491fe802059fc26bd1ec1fb42`. Integration #25 remains
+  OPEN/DRAFT to `main` at that head; hosted Core Windows/Ubuntu and SSO Ubuntu
+  checks pass. Existing worktrees, original dirty SSO changes and remote backup
+  refs preserved. H004/H003/H007/H008 implementation was not rebuilt.
+- **Evidence:** [H009 acceptance report](H009_ACCEPTANCE.md) includes package
+  hashes, environment capability findings, unresolved dependencies, conditional
+  execution order, rollback constraints and the live/simulated test matrix.
+  Exact tenant/environment/identity details and full typed environment inventory
+  remain in the H009 session's local evidence, not repository documentation.
+- **Read-only findings:** sidebar sandbox candidate confirmed; similarly named
+  v2 is Production and excluded. Saved PAC context is a different app and was
+  not selected/switched. Explicit sandbox reads show System Administrator and
+  required customization grants, Customer Service apps, shared unmanaged
+  GenericSidebar 1.0.0.0 / GenericSidebarV2 1.0.0.3, four Core resources, zero
+  parent rows, twelve missing Core fields, absent optional schema/resources,
+  and ten bots. Existing Entra/agent auth/channel binding remains unverified.
+- **Blockers:** two source role IDs differ from same-named target roles; full
+  metadata/layer compatibility remains unverified. Optional ZIP is not importable;
+  provisioning scripts do not reuse the approved PAC context and must not run.
+  Case-form and shared unmanaged-component impact must be approved explicitly.
+- **Repeated checks:** 44 Core/package tests + 67 SSO/agent tests, lint, static
+  runtime/schema/inventory and actual four-resource Core ZIP verifier pass.
+  These are not live import/SSO/customer acceptance.
+- **Next:** owner selects exact nonproduction environment and approves
+  backup/export stage. No import proposal until dependency/schema closure;
+  separate exact import/enterprise/live-test authorization remains required.
+  Keep H009 open and H010 gated. Do not replay closed H001 searches.
+
 ## H004 current milestone - 2026-11-17
 
 - **Owner/runner:** Brad / existing Copilot SDK VS Code runner; approved GitHub

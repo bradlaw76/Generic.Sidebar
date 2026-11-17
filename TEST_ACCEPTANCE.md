@@ -1,7 +1,17 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.3.0
+**Version:** 1.4.0
+
+## H009 acceptance preparation - 2026-11-17
+
+[H009 acceptance evidence and execution gates](docs/H009_ACCEPTANCE.md) records
+the repeated 44 Core/package and 67 SSO/agent local checks, read-only sandbox
+discovery, dependency/schema gaps, conditional import order, backup/rollback
+constraints, and the focused live acceptance matrix. **No live scenario has
+passed yet.** The current enterprise delivery ZIP is not importable.
+Owner target selection and explicit operation approval are required before
+backup creation, import, publishing, schema/configuration or enterprise changes.
 
 ## H004 local evidence - 2026-11-17
 

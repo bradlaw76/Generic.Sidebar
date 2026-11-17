@@ -20,7 +20,7 @@ Implement a configuration-driven Dynamics 365 sidebar that renders up to four pa
 **Language/Version**: HTML5, CSS3, JavaScript (ES6+); PowerShell scripts for agent context  
 **Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only)  
 **Storage**: Dataverse (table: `sidebar_genericsidebar`)  
-**Testing**: Manual acceptance using `TEST_ACCEPTANCE.md`; automated tests NEEDS CLARIFICATION  
+**Testing**: Core/package Vitest and SSO/agent characterization suites plus lint/static schema gates; H009 hosted acceptance remains blocked on owner authorization and dependency/schema closure. See [H009 evidence](../../docs/H009_ACCEPTANCE.md) and [acceptance criteria](../../TEST_ACCEPTANCE.md).  
 **Target Platform**: Dynamics 365 model-driven apps (side pane), GitHub Pages  
 **Project Type**: web (Dynamics 365 web resources + static website)  
 **Performance Goals**: NEEDS CLARIFICATION  
