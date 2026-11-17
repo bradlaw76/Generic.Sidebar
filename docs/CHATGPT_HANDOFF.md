@@ -1,6 +1,6 @@
 # Generic.Sidebar ChatGPT Handoff
 
-## Current milestone - Persistent H008 and local H004 (2026-11-17)
+## Current milestone - Persistent H008 and local H003/H004 (2026-11-17)
 
 - **H008 status:** Existing implementation preserved and locally reverified.
 - **Branch:** `test/h008-multipanel-regressions`
@@ -27,15 +27,17 @@ Evidence uses cached refs only, not current GitHub PR heads.
 | --- | --- | --- |
 | `origin/main` / PR #18 baseline | 7 / 9 | `README.md` |
 | `origin/main` / `integration/sso-v2` | 7 / 42 | `README.md` |
-| PR #18 baseline / H008 | 0 / 1 | None; H008 is directly based on `28daba3` |
+| PR #18 baseline / H008 implementation `5715d18` | 0 / 1 | None; the implementation is directly based on `28daba3` |
 | PR #18 baseline / `integration/sso-v2` | 9 / 42 | `.gitignore`, `README.md`, `SYSTEM_MANIFEST.json.md`, `package-lock.json`, `package.json`, `web resources/sidebar_sidebar.html`, `web resources/sidebar_sidebar.js` |
 
 `git merge-tree --write-tree --name-only --no-messages` was used only to compute
 diagnostic trees; no branch, index, working file, or PR was merged or updated.
 Cached `origin/main` is `fbea924`; PR #18 baseline is `28daba3`;
 `integration/sso-v2` is `d229a51`. Their shared base is `99347ac`.
-The H008-only increment is the existing three-file test/workflow/documentation
-change; a main-targeted PR would also contain the nine unmerged PR #18 commits.
+The H008 implementation-only increment is the existing three-file
+test/workflow/documentation change. Handoff persistence adds documentation-only
+commits afterward; a main-targeted PR would also contain the nine unmerged
+PR #18 commits.
 Do not silently remove that dependency, auto-merge either PR, or resolve the
 overlapping runtime/dependency manifests by choosing one branch wholesale.
 
@@ -58,6 +60,26 @@ overlapping runtime/dependency manifests by choosing one branch wholesale.
   dependencies are reconciled; and post the H008/H004 milestone to H000 issue #21.
   This scope must not authorize merges, releases, deployment, tenant operations,
   credential/account changes, or any other previously denied operation.
+
+### H003 - Local package/source manifest
+
+- **Status:** Independent local evidence completed; published parity unverified.
+- **Branch:** `docs/h003-package-source-evidence`, based on `28daba3`.
+- **Commit:** `ffaf510258dcaad9facf8dc0d7b506694def4a77`
+- **PR:** Not opened; no remote publication authorization assumed.
+- **Persistent workspace:** `D:\Onedrive\OneDrive - Microsoft - Nov 24\OneDrive - Microsoft\DEMO\My Github\Generic.Sidebar\Generic.Sidebar-h003-manifest`
+- **Deliverable:** `docs/H003_PR18_PACKAGE_SOURCE_MANIFEST.json`.
+  Generated from the existing package verifier, not a second implementation.
+  Includes source revision, runtime versions, package inventory, text/binary
+  comparison modes, and source/package SHA-256 values.
+- **Validation:** Parsed the saved JSON, compared its complete verifier report
+  with a fresh verifier run, matched its package hash against the actual ZIP,
+  and confirmed tracked package/source inputs were clean.
+- **Boundary:** This verifies PR #18's local 1.0.0.7 baseline only. Published
+  release identity/hash, hosted Dynamics, live SSO, linked-agent dependency
+  certification, and production-candidate acceptance are explicitly unverified.
+- **Next:** Compare with current published artifacts only after scoped GitHub
+  read authorization; no package rebuild, import, deployment, or release.
 
 ## H001 - Resume investigation (2026-11-17)
 
@@ -160,9 +182,10 @@ hosted CI acceptance are not claimed complete.
 
 ### Next eligible task
 
-H004's independent local dependency diagnosis is recorded above. H008's local
-verification is complete. Further PR reconciliation/publication and the H000
-update require the narrow GitHub authorization above. Published-artifact H003
-claims require current authorized release evidence; local PR #18 package checks
-do not establish them. H001/H009 tenant acceptance remains blocked. No H-number
-was created or reassigned, and no existing SSO implementation was duplicated.
+H004's independent local dependency diagnosis and H003's local source/package
+evidence are recorded above. H008's local verification is complete. Further PR
+reconciliation/publication and the H000 update require the narrow GitHub
+authorization above. H003 published-parity claims require authorized release
+evidence; the local manifest deliberately does not establish them. H001/H009
+tenant acceptance remains blocked. No H-number was created or reassigned, and
+no existing SSO implementation was duplicated.
