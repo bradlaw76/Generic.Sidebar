@@ -1,5 +1,34 @@
 # Generic.Sidebar ChatGPT Handoff
 
+## H009 authorized backup/export receipt - 2026-11-17
+
+- **Owner authorization:** exact Sidebar Sandbox confirmed; only pre-change
+  backup, read-only owner-controlled exports and evidence verification approved.
+  Import/deploy/publish/restore/roles/Entra changes explicitly prohibited.
+- **Completed:** one manual backup created and independently listed, seven-day
+  interval expiring 2026-11-24 18:36:22 as printed by PAC (timezone not printed);
+  both older unmanaged Sidebar solutions exported without publishing.
+  No async operations reported afterward. Exact backup/tenant/identity identifiers
+  and raw exports remain local, outside Git, restricted to owner/SYSTEM/Admins.
+- **Verification:** all ZIP entries and XML/XAML readable; names/versions and four
+  mapped resources per ZIP verified; shared payloads identical. V2 includes the
+  Sidebar app/sitemap/settings/role maps. Affected Case form XML was absent from
+  both ZIPs, so separately captured/parsed/hashed through read-only FetchXML.
+  Zero parent rows, absent child schema, direct role assignments, forms,
+  component membership and installed catalog captured. No extra backup/export
+  retry or tenant publication to fill the coverage gap.
+- **Artifacts/hashes/limits:** [H009 acceptance report](H009_ACCEPTANCE.md).
+  Local private receipt and manifest retain backup ID and full evidence.
+  Restore not performed; restore permissions/full layer history/recoverability
+  not certified. Older unmanaged exports are not a full rollback mechanism.
+- **Source publication:** documentation-only continuation on
+  `docs/h009-nonproduction-acceptance`, draft #26 to `main`, dependent on #25;
+  original preparation `d0ecf4f`, prior exact publication `a26fd6d`.
+  H004 source and original dirty SSO worktrees preserved.
+- **Next:** preserve receipt and monitor expiry; no remaining tenant writes
+  are authorized. Dependency/schema closure and new exact approval are required
+  before import/live acceptance. H009 remains blocked, not Done; H010 gated.
+
 ## H009 preflight milestone - 2026-11-17
 
 - **Status:** In progress; live acceptance blocked, not Done.

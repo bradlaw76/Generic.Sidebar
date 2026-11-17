@@ -1,7 +1,17 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.4.0
+**Version:** 1.5.0
+
+## H009 approved backup/export stage - 2026-11-17
+
+Owner confirmed the exact Sidebar Sandbox and authorized only pre-change backup,
+read-only local exports and verification. One backup is independently listed;
+both unmanaged Sidebar solution ZIPs and a separately captured affected Case
+form definition are verified and hashed. Details and limits are in
+[H009 evidence](docs/H009_ACCEPTANCE.md). No import, deploy, publish, restore,
+role/Entra change or live acceptance occurred. Backup/export verification does
+not satisfy hosted integration or restore-drill acceptance.
 
 ## H009 acceptance preparation - 2026-11-17
 

@@ -6,8 +6,11 @@ Baseline: `integration/h004-core-sso` at
 `32a2681207a8eb4491fe802059fc26bd1ec1fb42`, draft [#25](https://github.com/bradlaw76/Generic.Sidebar/pull/25).
 H000 [#21](https://github.com/bradlaw76/Generic.Sidebar/issues/21) remains the assignment authority.
 
-This is preparation and read-only discovery, not an import certificate.
-No tenant resource was created, changed, imported, published, or deleted.
+This is preparation and backup/export evidence, not an import certificate.
+The owner subsequently selected the exact Sandbox and authorized one pre-change
+backup, read-only exports to owner-controlled storage, and evidence verification.
+That stage completed; no application/schema/configuration resource was changed,
+imported, published or deleted. No restore was performed.
 No PR was merged and no release was published.
 Environment identifiers, identity details, and the complete environment inventory
 are retained in session-local evidence, not this repository.
@@ -38,11 +41,11 @@ be used implicitly for H009 commands.
 
 | Check | Observed result | Acceptance consequence |
 | --- | --- | --- |
-| Environment type | Sidebar sandbox candidate confirmed `Sandbox`; similarly named v2 environment is `Production` | Owner must select the target; v2 is excluded from H009 |
+| Environment type | Owner confirmed exact Sidebar `Sandbox`; similarly named v2 environment is `Production` | Only backup/export approved; v2 remains excluded |
 | Identity privileges | Direct Basic User and System Administrator roles; import/export/publish customization, create/write web resource, entity and attribute, and parent-row CRUD grants observed | Capability evidence only, not owner authorization or an actual successful import |
 | Dynamics apps | Customer Service Hub, Copilot Service workspace, and Generic.Sidebar app modules present | Required host application family is present; launch/form behavior untested |
 | Existing solutions | Unmanaged `GenericSidebar` 1.0.0.0 and `GenericSidebarV2` 1.0.0.3 | Both share the parent table and all four Core resources; not isolated by solution name |
-| Core resources | All four mapped resource names/types present, unmanaged | Current server bytes/version have not been compared or backed up |
+| Core resources | All four mapped resource names/types present, unmanaged | Current bytes exported and hashed in both pre-change ZIPs; shared payloads identical, not candidate parity |
 | Enterprise resources | All six exact optional logical names absent from the queried inventory | Enterprise cannot be enabled |
 | Parent schema | Table exists; three active form types found | Metadata compatibility is partial, not certified |
 | Parent configuration | Aggregate query returned zero rows | No existing customer two-panel configuration is available for live acceptance |
@@ -142,8 +145,9 @@ Before enterprise writes, identify the exact existing app and published agent:
 Stop before every write unless its exact environment and operation are approved.
 Dependencies/schema must be resolved **before** proposing an import.
 
-1. Owner selects the sandbox and approves backup/export scope. Reconfirm tenant,
-   identity, environment type and exact package hash at execution time.
+1. Owner selected the sandbox and approved backup/export scope. Identity,
+   tenant and environment type were reconfirmed before that completed stage.
+   Reconfirm again before any later authorized operation.
 2. Capture complete backup and exports described below. Resolve role mapping
    and full metadata/layer compatibility. Do not install Microsoft dependencies
    or change roles to make a preflight pass without a separate approved scope.
@@ -164,11 +168,45 @@ Dependencies/schema must be resolved **before** proposing an import.
 7. Record defects, source fixes and focused retests on H009 branches/draft PRs
    targeting `main`. No merge, production operation or release is implied.
 
+## Authorized backup/export receipt - 2026-11-17
+
+The owner approved only the exact Sandbox's pre-change backup, read-only local
+exports and verification. Existing PAC identity and tenant were retained; every
+environment-specific command targeted the confirmed Sandbox explicitly, without
+changing the saved active environment.
+
+- One labeled manual backup was created and independently listed. PAC reports
+  a seven-day interval, expiring **2026-11-24 18:36:22** as printed, without a
+  timezone. No asynchronous operations were reported afterward. Backup ID and
+  exact target/identity evidence remain in local owner-controlled storage.
+- Exported unmanaged `GenericSidebar` **1.0.0.0**, 25,570 bytes, SHA-256
+  `EA861B278E970E3F3081694C05B6463ACDA81878D054CE6D4B269E3DEB5CB403`.
+- Exported unmanaged `GenericSidebarV2` **1.0.0.3**, 27,557 bytes, SHA-256
+  `6E79270503A89D7D71F303FFA89D44A4AC4741C476B88B8D15E95D3451542800`.
+- Read all archive entries, parsed XML/XAML, checked solution identity and all
+  four mapped resources per ZIP, and verified identical shared payloads.
+  Three Sidebar forms and parent schema are present in each; V2 includes the
+  Sidebar application/sitemap/settings/role maps.
+- Export coverage verification found that the affected Case form XML is absent
+  from both solution ZIPs. Captured it separately via same-context read-only
+  FetchXML, parsed and hashed it; no publishing or export retry was used.
+  This separate XML is not an importable solution.
+- Captured zero parent rows, absent child schema, component memberships,
+  installed solution catalog, Sidebar forms and approved-user direct role
+  assignments. Local manifest records verification and coverage limits.
+- Backup storage was restricted to its existing owner, SYSTEM and Administrators.
+  No raw tenant export/configuration/identity evidence was committed to GitHub.
+
+Backup listing/export verification is not a restore drill or an import test.
+Full component-layer history and restore operator permissions are not certified.
+No approved Entra/agent settings were identified, exported or modified.
+
 ## Backup, rollback, and impact gate
 
-Before import, obtain owner-approved full sandbox backup with timestamp/ID and
-retention/restore availability verified. An environment backup request is a
-tenant operation and was **not** executed during discovery.
+Before any later import proposal, confirm the verified backup still exists and
+has not expired, verify restore operator permissions/availability, close remaining
+dependency/schema gaps, and obtain separate owner authorization for exact changes.
+The initial discovery created no backup; the later explicitly approved stage did.
 
 Also export unmanaged `GenericSidebar` and `GenericSidebarV2`, all affected
 resource bytes/metadata, parent/child schema and rows (including an explicit
@@ -176,7 +214,9 @@ zero-row snapshot if still empty), relevant Case and Sidebar form/app definition
 solution layering, role assignments, and selected Entra/Copilot settings.
 Keep sensitive configuration in owner-controlled local storage; record hashes,
 not tokens, secrets, HAR authorization headers or customer data in GitHub.
-Exports/backup are not yet performed.
+The approved backup and local exports above have now been performed. They are
+snapshots, not proof of full layer-history coverage or recoverability; recheck
+for environment drift and expiry before any future change.
 
 Verify backup IDs, export readability/hashes, and restore operator permissions
 before writes. A successful backup is not a tested restore; an actual restore
@@ -220,7 +260,7 @@ success does not certify end-user least-privilege access.
 | D01 | Import completes with expected solution version and no unresolved dependency; preserve import log | Package checks only | Dependency closure, backup and explicit import approval |
 | D02 | Four Core and six optional resource names/types; expected schema/choices/lookup and forms available in intended app | Read-only partial inventory | Authorized install and post-install comparison |
 | D03 | Existing configurations and Case/Sidebar integration unaffected; app launch, form event and side pane work | Not run | Baseline exports, approved hosted app and representative data |
-| R01 | Backup/export hashes and restore route verified; if drill approved, restore and recheck baseline | Plan only | Backup approval; restore drill separate |
+| R01 | Backup/export hashes and restore route verified; if drill approved, restore and recheck baseline | Backup listed and export hashes/coverage verified; restore route/permission and drill not certified | Any restore requires separate approval |
 
 Missing dependency/read failures should be exercised using approved isolated
 fixtures or browser interception, not deleting shared tenant components or
@@ -244,11 +284,13 @@ No dependency install, solution rebuild, schema script or test deployment was ne
 
 ## Next executable task and H010 gate
 
-Obtain one owner decision selecting the exact sandbox and authorizing only the
-pre-change backup/export stage (or continued read-only work). Confirm the approved
-enterprise app/agent and packaging route before asking for their configuration
-writes. Import/live tests remain blocked on dependency/schema closure and their
-own exact operation approval.
+The owner's selected-Sandbox backup/export stage is complete and verified.
+Preserve the local receipts and recheck backup expiry before any future operation.
+Role mapping/full schema compatibility, restore readiness and approved enterprise
+app/agent/packaging still require evidence. The owner explicitly prohibited import,
+deployment, publishing, restore, role and Entra changes; none was performed.
+Import/live tests remain blocked on dependency/schema closure and a new exact
+operation approval. This receipt is not a request or authorization to deploy.
 
 H009 is not Done. H010 release-candidate documentation/verification begins after
 the required live scenarios pass; no release or production authorization is inferred.
