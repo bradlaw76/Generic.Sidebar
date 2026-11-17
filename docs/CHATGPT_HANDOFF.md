@@ -1,6 +1,52 @@
 # Generic.Sidebar ChatGPT Handoff
 
-## Current state - 2026-11-17
+## H004 current milestone - 2026-11-17
+
+- **Owner/runner:** Brad / existing Copilot SDK VS Code runner; approved GitHub
+  identity unchanged. H004 implementation explicitly authorized in the current
+  request. Hourly monitor receipts 6952569557/6950855908 acknowledged in H000
+  comment 6953699686. No competing writer assigned.
+- **Branch:** `integration/h004-core-sso`, based on `main=fbea924`.
+- **Implementation commit:** `707968af0be6a42907d56a0dec92052058bd0e0b`.
+- **Draft PR:** [#25](https://github.com/bradlaw76/Generic.Sidebar/pull/25),
+  targeting `main`; GitHub reports conflict-free. Selectively incorporates
+  #18/#22/#23/#24 without merging those PRs or their broad histories.
+- **Implementation:** seven conflict paths reconciled; HTML 2.16.0 / JS 2.7.0;
+  Core sizing, 1-4 panels, retention and persistence preserved; optional linked
+  tabs and keyboard navigation integrated. SSO read/auth/navigation fails
+  closed. Picker 2.2.0 uses shared validated, expiring single-use auth handoffs,
+  not hardcoded identity/endpoint defaults or bearer-token URLs.
+- **Artifacts:** local unmanaged Core 1.0.0.12 SHA-256
+  `971062A5A8C9A8D5B78BB0B4CF801096C7B695DEEF29D7B385A46FE283237C06`;
+  separate `GenericSidebarEnterpriseResources_1_0_0.zip` delivers six optional
+  resources and two schema sources with canonical UTF-8/LF hashes. The optional
+  bundle is **not an importable Dataverse solution**. No schema script executed.
+- **Validation:** local 44 Core/package + 67 SSO/agent tests, lint, static
+  runtime/schema/dependency inventory, offline PAC pack, four mapped-resource
+  parity checks, XML/XAML and PowerShell parsing passed. Node 22.23.5 local;
+  hosted Node 24 Core Windows/Ubuntu and SSO checks triggered on #25 and pending
+  at this handoff. Do not equate mocks with live SSO.
+- **H003 follow-through:** exact published v11 asset digest verified; six
+  resources, 57 parent and 30 agent fields inventoried in
+  `docs/H003_PUBLISHED_ZIP_EVIDENCE.json`. All six optional enterprise resources
+  are absent; several source comparisons differ. Full parity remains uncertified.
+- **Preservation:** 20 original modified/nonignored-untracked WIP files copied
+  and hash-verified in persistent session storage; originals rechecked unchanged.
+  Existing H003/H007/H008 commits and seven monitor backup refs preserved.
+  No simulator/designer/ACS changes added to H004; Core excludes their schemas
+  and optional enterprise components.
+- **Remaining/next:** H005-H008 local integration evidence is ready for review.
+  H009 requires owner-approved nonproduction Dataverse/Entra access, optional
+  schema/resource setup, import and real two-/four-panel/agent/SSO acceptance.
+  An optional importable enterprise solution remains an unclaimed future
+  distribution decision; current delivery is explicitly manual-admin scoped.
+  H010 release/RC approval remains gated on H009. No merge, release, deployment,
+  account change, new H-number, or replay of denied operations.
+
+The established H008 persistent handoff is kept in sync with this H004 copy.
+Subsequent documentation commits do not replace the implementation SHA above.
+
+## Historical publication state - 2026-11-17 (superseded above)
 
 Owner: Brad. Runner: Copilot SDK in VS Code. Approved GitHub identity: `bradlaw76`.
 Canonical H000 register: [issue #21](https://github.com/bradlaw76/Generic.Sidebar/issues/21).
