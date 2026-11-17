@@ -24,8 +24,11 @@
 - **Validation:** local 44 Core/package + 67 SSO/agent tests, lint, static
   runtime/schema/dependency inventory, offline PAC pack, four mapped-resource
   parity checks, XML/XAML and PowerShell parsing passed. Node 22.23.5 local;
-  hosted Node 24 Core Windows/Ubuntu and SSO checks triggered on #25 and pending
-  at this handoff. Do not equate mocks with live SSO.
+  hosted Node 24 Core Windows/Ubuntu and Ubuntu SSO checks **passed** for
+  implementation `707968a` and handoff checkpoint `0522d01`. Evidence:
+  [Core](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44126984647),
+  [SSO](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44126984611).
+  Do not equate these mocked checks with live SSO.
 - **H003 follow-through:** exact published v11 asset digest verified; six
   resources, 57 parent and 30 agent fields inventoried in
   `docs/H003_PUBLISHED_ZIP_EVIDENCE.json`. All six optional enterprise resources
@@ -33,6 +36,9 @@
 - **Preservation:** 20 original modified/nonignored-untracked WIP files copied
   and hash-verified in persistent session storage; originals rechecked unchanged.
   Existing H003/H007/H008 commits and seven monitor backup refs preserved.
+  Additional exact-SHA checkpoints `backup/20261117-h004/integration/h004-core-sso`
+  (`0522d01`) and `backup/20261117-h004/test/h008-multipanel-regressions`
+  (`6861ef0`) pushed and read back.
   No simulator/designer/ACS changes added to H004; Core excludes their schemas
   and optional enterprise components.
 - **Remaining/next:** H005-H008 local integration evidence is ready for review.
