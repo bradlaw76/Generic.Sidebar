@@ -1,5 +1,42 @@
 # Generic.Sidebar ChatGPT Handoff
 
+## Latest execution - H003/H008 publication and independent H007 (2026-11-17)
+
+- **Publication:** H003 `ffaf510` and H008 `03d8f79` remain local and preserved.
+  Their draft PRs must target `main` and document dependency on PR #18.
+  Later H008 commits only maintain this handoff; `03d8f79` remains an ancestor.
+- **Authorization:** A narrow GitHub-only approval form was attempted in this
+  VS Code chat for repository reads/fetch, the two branch pushes, draft PRs,
+  and H000 issue #21 updates. It returned "user not available"; no grant was
+  recorded. No request was sent by email or to GitHub/Power Platform.
+- **H000:** No remote register update was attempted without authorization.
+- **H001:** The report is unavailable and its search is closed; do not repeat it.
+
+### H007 - Linked-agent dependency diagnostics
+
+- **Status:** Independent local runtime increment implemented and verified;
+  linked-agent package completeness and tenant acceptance remain open.
+- **Branch:** `fix/h007-linked-agent-load-errors`
+- **Commit:** `f330ded5f53e366a96f52b478d1d46643333f4a7`
+- **Base:** Committed `feature/sso-integration-v2` at `7e09de7`, in a separate
+  persistent `Generic.Sidebar-h007-agent-errors` sibling worktree.
+- **PR:** Not pushed/opened. Main integration still needs H004 reconciliation
+  with PR #18 and the SSO branch; do not merge any PR automatically.
+- **Implementation:** Picker 2.1.3 distinguishes missing-table/read failures
+  from successful empty queries, displays an actionable alert, and does not
+  offer bundled preview agents after Dataverse configuration failures.
+  Fixed default configuration discovery discarding a valid default row.
+  Existing standalone preview without `Xrm.WebApi` remains unchanged.
+- **Verification:** Five regression cases failed against the original code.
+  `npm --prefix tests run check` now passes lint and all 46 tests on this clean
+  branch, including successful/empty/inactive-agent and standalone behavior.
+  Tests ran on local Node 22.23.5; the test manifest requests Node 24, so npm
+  reported an engine warning. Node 24/hosted CI and live Dataverse/SSO were
+  not run. Locked dependencies came only from the offline cache.
+- **Preservation:** The original uncommitted SSO files, H003/H008 implementation
+  commits, and PR #18 worktree were untouched. No new H-number, package rebuild,
+  tenant write, deployment, release, or identity change.
+
 ## Current milestone - Persistent H008 and local H003/H004 (2026-11-17)
 
 - **H008 status:** Existing implementation preserved and locally reverified.
@@ -56,8 +93,9 @@ overlapping runtime/dependency manifests by choosing one branch wholesale.
   H001 report search is closed; do not repeat it or infer new permission.
 - **Specific authorization needed:** Using the existing approved identity,
   authorize GitHub read/fetch for this repository and PRs #17/#18 plus issue #21;
-  push only the H008 branch; create/update its draft PR targeting `main` once
-  dependencies are reconciled; and post the H008/H004 milestone to H000 issue #21.
+  push `docs/h003-package-source-evidence` and `test/h008-multipanel-regressions`;
+  create/update their draft PRs targeting `main`, documenting dependency on
+  PR #18; and post factual milestones to H000 issue #21.
   This scope must not authorize merges, releases, deployment, tenant operations,
   credential/account changes, or any other previously denied operation.
 
@@ -80,6 +118,10 @@ overlapping runtime/dependency manifests by choosing one branch wholesale.
   certification, and production-candidate acceptance are explicitly unverified.
 - **Next:** Compare with current published artifacts only after scoped GitHub
   read authorization; no package rebuild, import, deployment, or release.
+- **Proposed draft PR:** `H003: record verified local Core package/source evidence`,
+  head `docs/h003-package-source-evidence`, base `main`, dependency PR #18.
+  Include the saved/fresh-verifier equality and package hash validation results;
+  do not represent the local manifest as published-release acceptance.
 
 ## H001 - Resume investigation (2026-11-17)
 
@@ -95,9 +137,8 @@ overlapping runtime/dependency manifests by choosing one branch wholesale.
   No later explicit authorization for those exact operations was found.
   Historical PR #18 instructions cannot establish permission to retry a later,
   unidentified H001 denial.
-- **Owner request:** Supply the original report's local path, originating session
-  link, or exact denial text, plus any subsequent explicit authorization.
-  The clarification form did not obtain an owner answer.
+- **Report request:** Closed after the owner confirmed that the report is
+  unavailable. Do not request it again or repeat the search.
 - **Boundary:** No remote GitHub or Power Platform operation retried; no account
   switch, credential change, H001 replacement branch, or registry update.
 - **Next step:** Keep affected H001 operations blocked. The owner has confirmed
@@ -183,7 +224,8 @@ hosted CI acceptance are not claimed complete.
 ### Next eligible task
 
 H004's independent local dependency diagnosis and H003's local source/package
-evidence are recorded above. H008's local verification is complete. Further PR
+evidence are recorded above. H007's independent dependency-error fix is now
+committed and locally verified. H008's local verification is complete. Further PR
 reconciliation/publication and the H000 update require the narrow GitHub
 authorization above. H003 published-parity claims require authorized release
 evidence; the local manifest deliberately does not establish them. H001/H009
