@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    Core Runtime Acceptance Tests
 FILE:         tests/core/runtime.test.js
-VERSION:      1.5.0
+VERSION:      1.6.0
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-09-04
+LAST UPDATED: 2026-11-17
 ENVIRONMENT:  Node.js | Vitest | jsdom
 
 OVERVIEW
@@ -14,6 +14,7 @@ capabilities defined in docs/CORE_RUNTIME_RECONCILIATION.md.
 
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.6.0  2026-11-17  H008 cover sparse panels and legacy two-panel state
 v1.5.0  2026-09-05  Verify fallback and configured automatic zoom widths
 v1.4.0  2026-09-04  Verify committed package contains every runtime query field
 v1.3.0  2026-08-30  Verify four-panel capacity and portable module paths
@@ -136,6 +137,96 @@ describe("Generic Sidebar Core runtime reconciliation", () => {
     expect(window.document.querySelectorAll(".tab")).toHaveLength(4);
     expect(window.document.querySelectorAll(".panel-frame")).toHaveLength(4);
     dom.window.close();
+  });
+
+  it.each([
+    [1], [2], [3], [4],
+    [1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4],
+    [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4],
+    [1, 2, 3, 4]
+  ].map((slots) => [slots.join(","), slots]))("H008 renders and switches configured slots %s without recreating frames", (_label, slots) => {
+    const { dom, window, runtime } = createHtmlRuntime();
+    try {
+      const record = panelRecord(4);
+      for (const slot of [1, 2, 3, 4]) {
+        if (!slots.includes(slot)) record[slot === 1 ? "sidebar_embedcode" : `sidebar_embedcode${slot}`] = "   ";
+      }
+      const result = runtime.renderRuntime(record, "config-slot-matrix");
+      const frames = [...result.iframes];
+      expect(result.panels.map((panel) => panel.index)).toEqual(slots);
+      expect(window.document.querySelectorAll(".panel-frame")).toHaveLength(slots.length);
+      expect(window.document.getElementById("tabRow").style.display).toBe(slots.length > 1 ? "flex" : "none");
+
+      slots.forEach((slot, position) => {
+        if (slots.length > 1) window.document.querySelectorAll(".tab")[position].click();
+        expect(result.iframes.map((frame) => frame.style.display))
+          .toEqual(slots.map((_, index) => index === position ? "block" : "none"));
+        expect(window.document.getElementById("instBody").textContent)
+          .toContain(slot === 1 ? "Primary instructions" : `Instructions ${slot}`);
+        expect(window.sessionStorage.getItem("sidebar_activePanel_config-slot-matrix")).toBe(String(position));
+        expect([...window.document.querySelectorAll(".panel-frame")].every((frame, index) => frame === frames[index])).toBe(true);
+      });
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  it("H008 preserves legacy two-panel sizing, instructions, and zoom state across switches", () => {
+    const { dom, window, runtime } = createHtmlRuntime();
+    try {
+      const result = runtime.renderRuntime(panelRecord(2, {
+        sidebar_title: "Legacy primary",
+        sidebar_title1: null,
+        sidebar_instructions2: "",
+        sidebar_embedcode2: "<iframe src='https://copilotstudio.microsoft.com/environments/synthetic'></iframe>",
+        sidebar_iframewidth: 420,
+        sidebar_iframeheight: 640
+      }), "config-legacy-two");
+      const frames = [...result.iframes];
+      const tabs = window.document.querySelectorAll(".tab");
+      expect([...tabs].map((tab) => tab.textContent)).toEqual(["Legacy primary", "Panel 2"]);
+
+      runtime.toggleZoom();
+      expect(frames[0].classList.contains("force-zoom")).toBe(true);
+      tabs[1].click();
+      expect(window.document.getElementById("instBand").style.display).toBe("none");
+      expect(window.document.getElementById("instBody").textContent).toBe("");
+      expect(window.document.getElementById("zoomToggle").style.display).toBe("none");
+      expect(window.document.getElementById("popoutBtn").style.display).toBe("block");
+      expect(frames[1].srcdoc).toContain("https://copilotstudio.microsoft.com/environments/synthetic");
+
+      tabs[0].click();
+      expect(window.document.getElementById("instBand").style.display).toBe("block");
+      expect(window.document.getElementById("instBody").textContent).toContain("Primary instructions");
+      expect(window.document.getElementById("zoomToggle").textContent).toBe("Reset");
+      frames.forEach((frame, index) => {
+        expect(result.iframes[index]).toBe(frame);
+        expect(frame.style.width).toBe("420px");
+        expect(frame.style.height).toBe("640px");
+        expect(frame.style.flexGrow).toBe("0");
+      });
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  it("H008 isolates saved selections and resets stale state after reducing to two panels", () => {
+    const { dom, window, runtime } = createHtmlRuntime();
+    try {
+      const first = runtime.renderRuntime(panelRecord(4), "config-reduced");
+      first.setActivePanel(3);
+      const other = runtime.renderRuntime(panelRecord(2), "config-other");
+      other.setActivePanel(1);
+      const reduced = runtime.renderRuntime(panelRecord(2), "config-reduced");
+
+      expect(reduced.iframes.map((frame) => frame.style.display)).toEqual(["block", "none"]);
+      expect(window.sessionStorage.getItem("sidebar_activePanel_config-reduced")).toBe("0");
+      expect(window.sessionStorage.getItem("sidebar_activePanel_config-other")).toBe("1");
+      const restored = runtime.renderRuntime(panelRecord(2), "config-other");
+      expect(restored.iframes.map((frame) => frame.style.display)).toEqual(["none", "block"]);
+    } finally {
+      dom.window.close();
+    }
   });
 
   it("CORE-003 tab switching changes visible panel", () => {

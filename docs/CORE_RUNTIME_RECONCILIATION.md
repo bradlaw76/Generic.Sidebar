@@ -45,3 +45,24 @@ The generated ZIP is authoritative for installed behavior. The build must use ve
 ## Exclusions
 
 The Core solution must not contain Android, Genesys, ACS, SSO, GenericSoftphone, `gensoft_*`, or any optional simulator/add-in component. Those products retain separate deployment and certification lifecycles.
+
+## H008 Multi-panel Regression Verification
+
+The local runtime suite in `tests/core/runtime.test.js` covers all 15 non-empty
+combinations of the four supported panel slots, including sparse configurations.
+It verifies tab visibility, field ordering, instructions, active-panel storage,
+and retained iframe identity while switching through every configured panel.
+The legacy two-panel regression additionally exercises primary-title fallback,
+URL and Copilot iframe-snippet embeds, configured dimensions, instruction hiding,
+and per-panel zoom state. A separate case verifies saved-selection isolation
+between configurations and recovery after reducing four panels to two.
+
+Run `npm test -- tests/core/runtime.test.js` from the repository root.
+The `Core Runtime and Package Validation` workflow runs the runtime/schema
+validator, complete Core test suite, and committed-package verifier on both
+Windows and Ubuntu for pull requests, main/release pushes, and manual dispatch.
+It uses the locked root dependencies and does not pack, import, deploy, or publish.
+These are local jsdom regressions against the runtime/package reconciliation
+baseline (PR #18), not hosted Dynamics, live Copilot, or Entra SSO acceptance.
+The H008 test-only increment does not change or rebuild the solution package,
+integrate the separate SSO branch, or authorize merging PR #18.
