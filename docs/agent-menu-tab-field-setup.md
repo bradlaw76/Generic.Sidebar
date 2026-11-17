@@ -57,6 +57,20 @@ Create this field only when the environment uses linked **Generic Sidebar Agent*
 - **Tab 1** through **Tab 4** with active linked agents: the selected tab renders the linked-agent picker.
 - Selected tab with no active linked agents: the configured panel embed remains available.
 
+## Linked-agent dependency failures
+
+When the linked-agent picker is loaded in Dynamics, a missing configuration,
+unavailable Generic Sidebar Agent table, or failed read query displays an
+actionable error instead of the successful "No active agents are configured"
+state. The picker does not substitute bundled preview agents for these failures.
+An administrator should verify the parent configuration, the linked-agent
+table/schema, and the user's read permissions before reloading the sidebar.
+
+A successful query with no active rows still displays the normal empty state.
+The existing bundled-agent preview remains available only when Dynamics
+`Xrm.WebApi` is unavailable. These local runtime checks do not certify
+linked-agent solution packaging, live Dataverse permissions, or SSO acceptance.
+
 ## Rollback
 
 Set **Agent Menu Tab** back to **None**, save the configuration record, and reopen the wired form. The sidebar returns to its configured panel embed behavior without requiring a form or solution change.

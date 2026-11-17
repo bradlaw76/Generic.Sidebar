@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    vz_AgentSidePanelHTML
 FILE:         SO Sign In\vz_AgentSidePanelHTML.html
-VERSION:      2.1.2
+VERSION:      2.1.3
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-07-23
+LAST UPDATED: 2026-11-17
 ENVIRONMENT:  HTML | JavaScript | Dynamics 365 Web Resource
 PORTAL URL:   N/A
 
@@ -18,6 +18,8 @@ selected agent through the existing SSO canvas.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v2.1.3  2026-11-17  H007 surfaces linked-agent configuration and dependency failures
+                    without substituting bundled agents in Dynamics.
 v2.1.2  2026-07-23  Fixes pop-out context detection by traversing opener ancestor chain for Xrm
                     so Dataverse-linked agents render instead of bundled fallback list.
 v2.1.1  2026-07-23  Hides disabled/deactivated agents by enforcing both
@@ -811,18 +813,12 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         function getDefaultSidebarConfig() {
             var baseSelect = "$select=sidebar_genericsidebarid,sidebar_title";
             return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$filter=sidebar_default eq true&$top=1")
-                .catch(function () {
-                    return { entities: [] };
-                })
                 .then(function (result) {
-                    if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
+                    if (result.entities && result.entities.length) return result;
                     return state.xrm.WebApi.retrieveMultipleRecords(TABLE, "?" + baseSelect + "&$orderby=createdon desc&$top=1");
                 })
                 .then(function (result) {
                     if (result.entities && result.entities.length) return mapSidebarConfig(result.entities[0]);
-                    return getFallbackSidebarConfig();
-                })
-                .catch(function () {
                     return getFallbackSidebarConfig();
                 });
         }
@@ -849,9 +845,12 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
         }
 
         function loadAgents(configId) {
-            if (!state.xrm || !state.xrm.WebApi || !configId) {
+            if (!state.xrm || !state.xrm.WebApi) {
                 state.usingFallbackAgents = true;
                 return Promise.resolve(FALLBACK_AGENTS.slice());
+            }
+            if (!configId) {
+                return Promise.reject(new Error("No Generic Sidebar configuration is available."));
             }
 
             var guid = normalizeGuid(configId);
@@ -869,10 +868,6 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
                         .map(normalizeAgentRow)
                         .filter(function (agent) { return agent.isActive; });
                     return activeAgents;
-                })
-                .catch(function () {
-                    state.usingFallbackAgents = false;
-                    return [];
                 });
         }
 
@@ -1164,13 +1159,17 @@ v2.0.0  2026-07-22  Replaced hardcoded agent list with Dataverse-backed
                     renderAgentButtons();
                     renderHistory();
                 })
-                .catch(function () {
-                    state.sidebarConfig = getFallbackSidebarConfig();
-                    ensureMsalInstance(state.sidebarConfig);
-                    state.usingFallbackAgents = true;
-                    setAgents(FALLBACK_AGENTS.slice());
-                    updateWelcomeText();
-                    renderAgentButtons();
+                .catch(function (error) {
+                    console.error("[Generic Sidebar] Linked-agent initialization failed.", error);
+                    state.usingFallbackAgents = false;
+                    setAgents([]);
+                    welcomeText.textContent = "Linked agents could not be loaded.";
+                    quickActions.replaceChildren();
+                    var alert = document.createElement("div");
+                    alert.className = "historyEmpty";
+                    alert.setAttribute("role", "alert");
+                    alert.textContent = "Could not load linked agents. Ask an administrator to verify the sidebar configuration, Generic Sidebar Agent table, and read permissions, then reload the sidebar.";
+                    quickActions.appendChild(alert);
                     renderHistory();
                 });
         }

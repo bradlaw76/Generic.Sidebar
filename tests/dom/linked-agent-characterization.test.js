@@ -77,15 +77,70 @@ describe("linked-agent picker characterization", () => {
     expect(resource.document.querySelector("#quickActions").textContent).toContain("No active agents are configured");
   });
 
-  it("currently converts a failed agent query into the same empty-agent state", async () => {
+  it.each([
+    "Generic Sidebar Agent table is missing",
+    "Read access to Generic Sidebar Agent was denied",
+  ])("shows an actionable dependency error when %s", async (message) => {
     const mocks = xrmForAgents({ entities: [] });
     mocks.retrieveMultipleRecords.mockImplementation(async (entityName) => {
-      if (entityName === "sidebar_genericsidebaragent") throw new Error("Synthetic Dataverse failure");
+      if (entityName === "sidebar_genericsidebaragent") throw new Error(message);
       return { entities: [syntheticSidebarRecord()] };
     });
-    resource = await loadLinkedAgentPicker({ parentXrm: mocks.xrm });
+    resource = await loadLinkedAgentPicker({
+      parentXrm: mocks.xrm,
+      allowedConsoleErrors: [/Linked-agent initialization failed/],
+    });
     expect(resource.document.querySelectorAll(".quickBtn")).toHaveLength(0);
-    expect(resource.document.querySelector("#quickActions").textContent).toContain("No active agents are configured");
+    const alert = resource.document.querySelector("#quickActions [role='alert']");
+    expect(alert?.textContent).toContain("Generic Sidebar Agent table");
+    expect(alert?.textContent).toContain("read permissions");
+    expect(resource.document.querySelector("#quickActions").textContent).not.toContain("No active agents are configured");
+    expect(resource.document.querySelector("#welcomeText").textContent).not.toContain("bundled agent list");
+    expect(resource.document.querySelector("#frame").getAttribute("src")).toBe("about:blank");
+  });
+
+  it("does not substitute preview agents when no Dataverse configuration exists", async () => {
+    const mocks = createXrmMock({
+      retrieveRecord: async () => { throw new Error("Synthetic configuration not found"); },
+      retrieveMultipleRecords: async () => ({ entities: [] }),
+    });
+    resource = await loadLinkedAgentPicker({
+      parentXrm: mocks.xrm,
+      allowedConsoleErrors: [/Linked-agent initialization failed/],
+    });
+    expect(resource.document.querySelectorAll(".quickBtn")).toHaveLength(0);
+    expect(resource.document.querySelector("#quickActions [role='alert']")?.textContent).toContain("sidebar configuration");
+    expect(mocks.retrieveMultipleRecords).not.toHaveBeenCalledWith(
+      "sidebar_genericsidebaragent",
+      expect.anything(),
+    );
+  });
+
+  it("surfaces default-configuration query failures without offering bundled agents", async () => {
+    const mocks = createXrmMock({
+      retrieveRecord: async () => { throw new Error("Synthetic configuration not found"); },
+      retrieveMultipleRecords: async () => { throw new Error("Synthetic configuration read denied"); },
+    });
+    resource = await loadLinkedAgentPicker({
+      parentXrm: mocks.xrm,
+      allowedConsoleErrors: [/Linked-agent initialization failed/],
+    });
+    expect(resource.document.querySelectorAll(".quickBtn")).toHaveLength(0);
+    expect(resource.document.querySelector("#quickActions [role='alert']")).not.toBeNull();
+    expect(resource.document.querySelector("#welcomeText").textContent).not.toContain("bundled agent list");
+    expect(mocks.retrieveMultipleRecords).toHaveBeenCalledOnce();
+  });
+
+  it("retains a valid default configuration when the requested record is unavailable", async () => {
+    const mocks = xrmForAgents({ entities: [syntheticAgent()] });
+    mocks.retrieveRecord.mockRejectedValue(new Error("Synthetic configuration not found"));
+    resource = await loadLinkedAgentPicker({ parentXrm: mocks.xrm });
+    expect(mocks.retrieveMultipleRecords).toHaveBeenCalledWith(
+      "sidebar_genericsidebaragent",
+      expect.stringContaining(SYNTHETIC_CONFIG_ID),
+    );
+    expect(resource.document.querySelectorAll(".quickBtn")).toHaveLength(1);
+    expect(resource.document.querySelector(".quickBtn").textContent).toContain("Synthetic Agent");
   });
 
   it("filters inactive rows returned despite the active query", async () => {
