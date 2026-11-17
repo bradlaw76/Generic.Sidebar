@@ -1,8 +1,16 @@
 # Generic Sidebar SSO — Admin Setup Guide
 
-**Version:** 2.1.0
-**Last Updated:** 2026-10-02
+**Version:** 2.2.0
+**Last Updated:** 2026-11-17
 **Audience:** Dynamics 365 Administrators, Power Platform Administrators
+
+**H004 candidate boundary:** These are administrator instructions, not evidence
+that setup has been performed. Use the exact resource names/types in
+[`config/enterprise-resources.json`](config/enterprise-resources.json). In
+particular, `sidebar_sso_canvas.html` is the source filename; its deployed
+logical name is `sidebar_sso_canvas` (without `.html`). The optional delivery
+ZIP is not a Dataverse solution. Environment/identity approval is required
+before any upload, schema script, app registration or hosted test.
 
 ---
 
@@ -74,9 +82,9 @@ Before you start, ensure you have:
    - Select **Single-page application (SPA)**
    - **Redirect URI:** Enter your Dynamics 365 org URL + web resource name:
      ```
-     https://<your-org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html
+     https://<your-org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas
      ```
-     Example: `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html`
+     Example: `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas`
     - Use the SPA platform configuration required by your tenant policy. Generic Sidebar uses authorization code flow with PKCE through MSAL; do not enable implicit-grant settings solely for this sidebar.
    - Click **Configure**
 
@@ -236,7 +244,7 @@ Write-Host "SSO fields added successfully!"
    | `sidebar_auth_tenant_id` | Tenant ID | Text | 100 | No (if SSO enabled: Yes) | From Entra directory |
    | `sidebar_auth_api_scope` | API Scope | Text | 200 | No (if SSO enabled: Yes) | Format: `api://client-id/scope` |
    | `sidebar_auth_token_endpoint` | Token Endpoint | Text | 500 | No (if SSO enabled: Yes) | From Copilot Studio Direct Line |
-   | `sidebar_auth_redirect_uri` | Redirect URI | Text | 300 | No | Default: `https://<org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
+   | `sidebar_auth_redirect_uri` | Redirect URI | Text | 300 | No | Set an explicitly registered same-origin URI, e.g. `https://<org>.crm9.dynamics.com/WebResources/sidebar_sso_canvas` |
    | `sidebar_auth_scopes` | Additional Scopes | Text | 500 | No | Space-separated delegated scopes for the same custom API resource |
 
 4. **Click Save** after adding each field
@@ -261,7 +269,7 @@ Write-Host "SSO fields added successfully!"
    | **Tenant ID** | From Step 1 | `a8037933-4d29-4ef8-8754-e67b2edd480b` |
    | **API Scope** | From Step 2 | `api://3a669365-5420-433a-913f-ad7e39424a8c/Test.Read` |
    | **Token Endpoint** | From Step 4 | `https://...powerplatform...directline/token...` |
-   | **Redirect URI** | Your D365 org URL + canvas web resource | `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas.html` |
+   | **Redirect URI** | Your D365 org URL + deployed canvas resource name | `https://contoso.crm9.dynamics.com/WebResources/sidebar_sso_canvas` |
    | **Additional Scopes** | (Optional) | Leave blank or add another fully qualified scope for the same API resource, such as `api://<client-id>/Agent.Read` |
 
    Do not combine Microsoft Graph scopes such as `User.Read` or `Sites.Read.All` with the custom API scope. Entra issues an access token for one resource audience at a time.
@@ -462,7 +470,7 @@ Run this in hosted Dynamics runtime (not local `file://` preview).
 ### "CORS error" or "Token request failed"
 - **Cause:** Redirect URI mismatch or token endpoint doesn't recognize the request
 - **Fix:**
-  1. Verify Redirect URI exactly matches your D365 org URL + `/WebResources/sidebar_sso_canvas.html`
+  1. Verify Redirect URI exactly matches the registered URL and actual deployed resource (for this inventory, `/WebResources/sidebar_sso_canvas`).
   2. Ensure the Redirect URI is configured in Entra app registration (Step 1, Step 2)
   3. Check browser console for exact error message
 
