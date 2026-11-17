@@ -11,6 +11,10 @@
   OPEN/DRAFT to `main` at that head; hosted Core Windows/Ubuntu and SSO Ubuntu
   checks pass. Existing worktrees, original dirty SSO changes and remote backup
   refs preserved. H004/H003/H007/H008 implementation was not rebuilt.
+- **H009 preparation commit:** `d0ecf4f` (documentation only).
+  **Draft PR:** [#26](https://github.com/bradlaw76/Generic.Sidebar/pull/26)
+  targets `main` and depends on #25; follow-up receipt commits do not replace
+  the preparation milestone. No source draft is merged, closed or replaced.
 - **Evidence:** [H009 acceptance report](H009_ACCEPTANCE.md) includes package
   hashes, environment capability findings, unresolved dependencies, conditional
   execution order, rollback constraints and the live/simulated test matrix.
