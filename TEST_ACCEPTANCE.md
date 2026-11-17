@@ -1,7 +1,73 @@
 # Generic.Sidebar — Test Acceptance Criteria
 
 **Status:** DRAFT
-**Version:** 1.2.0
+**Version:** 1.6.0
+
+## H009 deployment-readiness assessment - 2026-11-17
+
+**BLOCKED; no live acceptance passed.** [Detailed evidence](docs/H009_ACCEPTANCE.md)
+now classifies component identities, Case/app collateral changes, activated
+default-record automation, optional schema and authentication gates, and records
+the proposed A-H deployment/rollback sequence. C06 separately requires actual
+browser/hosted raw-embed origin isolation; legacy characterization does not prove
+isolation. A04 requires persisted agent configuration; D04 covers approved
+automation behavior and prevention of unintended activation.
+
+All 32 original private backup/export checksums reverify; the existing backup
+was listed again and expires November 24, 2026 at 18:36:22 as printed, without
+a timezone. Existing Core/SSO local and hosted evidence remains distinct from
+read-only verification and pending live tests. No runtime/package/tenant changes
+were made for this assessment. Local source/package remediation and a durable
+archive destination need owner approval before the next stage.
+
+## H009 approved backup/export stage - 2026-11-17
+
+Owner confirmed the exact Sidebar Sandbox and authorized only pre-change backup,
+read-only local exports and verification. One backup is independently listed;
+both unmanaged Sidebar solution ZIPs and a separately captured affected Case
+form definition are verified and hashed. Details and limits are in
+[H009 evidence](docs/H009_ACCEPTANCE.md). No import, deploy, publish, restore,
+role/Entra change or live acceptance occurred. Backup/export verification does
+not satisfy hosted integration or restore-drill acceptance.
+
+## H009 acceptance preparation - 2026-11-17
+
+[H009 acceptance evidence and execution gates](docs/H009_ACCEPTANCE.md) records
+the repeated 44 Core/package and 67 SSO/agent local checks, read-only sandbox
+discovery, dependency/schema gaps, conditional import order, backup/rollback
+constraints, and the focused live acceptance matrix. **No live scenario has
+passed yet.** The current enterprise delivery ZIP is not importable.
+Owner target selection and the one backup/export approval are now complete.
+New exact operation approval is required before any additional backup, import,
+publishing, schema/configuration or enterprise change.
+
+## H004 local evidence - 2026-11-17
+
+Historical checkmarks below are acceptance criteria, **not new hosted evidence**.
+The isolated H004 candidate has 44 passing Core/package cases and 67 passing
+SSO/linked-agent cases, plus characterization lint and static runtime/schema
+checks (Windows, Node 22.23.5, PowerShell 7.7.0). The SSO manifest requests
+Node 24; local Node 22 execution does not certify the hosted Node 24 matrix.
+
+- H005: all 15 nonempty panel-slot combinations, legacy two-panel dimensions,
+  instructions, zoom, retained frame identity and per-config persistence.
+- H006: ordered dependency loading, fail-closed read/auth/navigation errors,
+  identity-isolated MSAL clients, single-resource scope validation, trusted
+  endpoints, redirect rejection, expiring/replay-resistant in-memory handoff.
+- H007: linked menu in every tab slot without replacing sibling frames;
+  empty queries versus dependency errors; shared secure selected-agent auth.
+- H008: actual successful Core queries covered by packaged schema; text/binary
+  corruption gates; hostile theme-color regressions; separate complete optional
+  resource delivery bundle verified against canonical UTF-8/LF source text.
+- Core 1.0.0.12: offline PAC pack and four mapped-resource comparisons passed.
+  XML/XAML and PowerShell parsing passed. Core excludes all optional resources
+  and simulator schemas.
+
+**Still required (H009):** authorized nonproduction Dynamics import, real
+customer two-/four-panel acceptance, optional resource/schema setup, real Entra
+and Copilot Studio sign-in/token-exchange and linked-agent tests. These are
+untested, not inferred from mocks or package generation. No production action,
+release publication or PR merge is authorized by these local results.
 
 ---
 

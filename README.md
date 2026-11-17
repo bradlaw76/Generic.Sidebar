@@ -8,6 +8,45 @@ Generic Sidebar is a configuration-driven side pane for Dynamics 365 and other m
 
 **Current Generic Sidebar Core release:** v1.0.0.11
 
+## H004 integration candidate (not a release)
+
+This branch reconciles Core alignment (#18), the H003 manifest (#22), H008
+regressions (#23), and the narrow H007 fix (#24) on `main`. The local unmanaged
+candidate is `GenericSidebar_1_0_0_12.zip`, with HTML 2.16.0 and JavaScript 2.7.0.
+It is **not published, imported, or live-SSO certified**. The historical
+1.0.0.5/1.0.0.7 ZIPs and published 1.0.0.11 asset are separate artifacts;
+the H003 manifest remains historical evidence for #18, not this new candidate.
+
+- Core remains independently installable: one through four panels, retained
+  iframes, per-configuration selection, dimensions, zoom, and pop-out.
+- Optional enterprise SSO and linked agents are separate deployment components.
+  Their exact source-to-web-resource names are in
+  [the enterprise inventory](config/enterprise-resources.json). Upload all six
+  resources using those names and types, plus the optional schema, only in an
+  authorized environment. `GenericSidebarEnterpriseResources_1_0_0.zip` delivers
+  those exact resources, schema scripts and a hashed deployment inventory.
+  It is **not a Dataverse solution ZIP**: do not import it as a solution.
+- Do not enable SSO or select an Agent Menu Tab before the optional dependencies
+  are installed. Missing configured dependencies display an error, not anonymous
+  or bundled agents. SSO tokens use an expiring single-use in-memory handoff.
+- Android, Genesys, ACS and GenericSoftphone stay external; none is a Core
+  package dependency. The Power Apps SDK is an optional development dependency.
+- The welcome acknowledgment is a **shared demo-only row flag**, subject to
+  Dataverse write privileges, not admin-only or per-user production consent.
+- Theme colors support validated hex, named colors and numeric RGB/HSL forms;
+  unsupported values warn and retain the default theme.
+
+See [the reconciliation and acceptance record](docs/CORE_RUNTIME_RECONCILIATION.md)
+and [linked-agent setup](docs/agent-menu-tab-field-setup.md).
+
+Local verification: `npm ci`, `npm test`, `npm run validate:runtime`,
+`npm --prefix tests ci`, `npm run test:sso`, and
+`pwsh -File scripts/verify-core-package.ps1`.
+Build locally with `pwsh -File scripts/build-core-solution.ps1` (offline PAC
+packaging; no login/import). Build the separate delivery bundle with
+`pwsh -File scripts/build-enterprise-resources.ps1`.
+H009 hosted Dynamics/Entra acceptance remains open.
+
 ## Current Repository Scope
 
 This repository contains the core Generic Sidebar solution plus optional applications and demo assets that can be embedded in it. These are separate deployment units.

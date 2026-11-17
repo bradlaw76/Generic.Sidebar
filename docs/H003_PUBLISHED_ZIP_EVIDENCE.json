@@ -1,0 +1,332 @@
+{
+  "hNumber": "H003",
+  "observedAt": "2026-11-17",
+  "repository": "bradlaw76/Generic.Sidebar",
+  "releaseTag": "GenericSidebar_1_0_0_11.zip",
+  "tagCommit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+  "assetSha256": "482CD5B5860B8858A6525616856225FF3C5BEBB3263B5F79F577CAA6D1A78942",
+  "assetBytes": 61873,
+  "expectedGithubDigestMatches": true,
+  "solution": {
+    "uniqueName": "GenericSidebar",
+    "version": "1.0.0.11",
+    "managed": "0"
+  },
+  "resources": [
+    {
+      "name": "sidebar_sidebar.js",
+      "entry": "WebResources/sidebar_sidebarjsD2CAC84A-F484-F011-B4CC-001DD8099980",
+      "bytes": 15196,
+      "sha256": "E1B31AAB7EA76049907F121257FD9BCCFAF9FAFB2867FE7C978BBC850AE396D7",
+      "declaredHeaderVersion": "2.2.0",
+      "sourceComparisons": [
+        {
+          "baseline": "corePr18",
+          "commit": "28daba33efce0088464f322de3a675edb748563f",
+          "sourcePath": "web resources/sidebar_sidebar.js",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "22DBC177524EE368EF23E12F08C719B51F6DF96DAF8EC490F245F0BF1D3FFFCB",
+          "publishedTextSha256": "76C9C8EF26514C6A9493277A45E4FEDDF41D1A3B753CCAE8F75A818CA8872B8C",
+          "matches": false
+        },
+        {
+          "baseline": "committedSso",
+          "commit": "7e09de74e7fa0d4ac7199a47f3fad650980c1bbf",
+          "sourcePath": "web resources/sidebar_sidebar.js",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "645DFB38EF82222BC5807F0C8B57BBAFAF911D600C2962284DA24C57E4590115",
+          "publishedTextSha256": "76C9C8EF26514C6A9493277A45E4FEDDF41D1A3B753CCAE8F75A818CA8872B8C",
+          "matches": false
+        },
+        {
+          "baseline": "publishedTag",
+          "commit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+          "sourcePath": "web resources/sidebar_sidebar.js",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "C02E91A39DCB0820CE835AF3F04CD878BE691BDA7C2D3E6379D0B59561ACE91A",
+          "publishedTextSha256": "76C9C8EF26514C6A9493277A45E4FEDDF41D1A3B753CCAE8F75A818CA8872B8C",
+          "matches": false
+        }
+      ]
+    },
+    {
+      "name": "sidebar_sidebar.html",
+      "entry": "WebResources/sidebar_sidebarhtmlD3801FFD-F584-F011-B4CC-001DD8099980",
+      "bytes": 29566,
+      "sha256": "6A9EBAD8DE2135F5781AAD590DA2558321194F328AE11279DCFFEB8843527D52",
+      "declaredHeaderVersion": "2.15.5",
+      "sourceComparisons": [
+        {
+          "baseline": "corePr18",
+          "commit": "28daba33efce0088464f322de3a675edb748563f",
+          "sourcePath": "web resources/sidebar_sidebar.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "931FE14EB9E2563A26342EC631D224FFEFBD67D11F74E5160464A0DCC11DFFDC",
+          "publishedTextSha256": "0638E157CEE52EC5DC05325F0FFC7E5DB811201BF9E3C6F1136E8221C3203FB7",
+          "matches": false
+        },
+        {
+          "baseline": "committedSso",
+          "commit": "7e09de74e7fa0d4ac7199a47f3fad650980c1bbf",
+          "sourcePath": "web resources/sidebar_sidebar.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "0638E157CEE52EC5DC05325F0FFC7E5DB811201BF9E3C6F1136E8221C3203FB7",
+          "publishedTextSha256": "0638E157CEE52EC5DC05325F0FFC7E5DB811201BF9E3C6F1136E8221C3203FB7",
+          "matches": true
+        },
+        {
+          "baseline": "publishedTag",
+          "commit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+          "sourcePath": "web resources/sidebar_sidebar.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "3D2783D4E22F58987860CE34E798A1EB0C19A7F8FB9FD52B8BDE67DBA4A1580B",
+          "publishedTextSha256": "0638E157CEE52EC5DC05325F0FFC7E5DB811201BF9E3C6F1136E8221C3203FB7",
+          "matches": false
+        }
+      ]
+    },
+    {
+      "name": "sidebar_welcome",
+      "entry": "WebResources/sidebar_welcomeE0806AF3-908D-F011-B4CC-001DD809C74F",
+      "bytes": 24373,
+      "sha256": "5401C1B5069F70AF653D0E64FE4298C3EF46E6A6A7CA1B96A5B7C1A4A532F4AD",
+      "declaredHeaderVersion": "1.3.0",
+      "sourceComparisons": [
+        {
+          "baseline": "corePr18",
+          "commit": "28daba33efce0088464f322de3a675edb748563f",
+          "sourcePath": "web resources/sidebar_welcome.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "1DBF82F52A958C01FEC723662D6A509C8782D60834A4F8879E8AB1E7139D875F",
+          "publishedTextSha256": "7B3C911B6B3481A4960DE993286EA4918DC6A10E06FDAB59AD1C248A07C4517E",
+          "matches": false
+        },
+        {
+          "baseline": "committedSso",
+          "commit": "7e09de74e7fa0d4ac7199a47f3fad650980c1bbf",
+          "sourcePath": "web resources/sidebar_welcome.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "7B3C911B6B3481A4960DE993286EA4918DC6A10E06FDAB59AD1C248A07C4517E",
+          "publishedTextSha256": "7B3C911B6B3481A4960DE993286EA4918DC6A10E06FDAB59AD1C248A07C4517E",
+          "matches": true
+        },
+        {
+          "baseline": "publishedTag",
+          "commit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+          "sourcePath": "web resources/sidebar_welcome.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "1DBF82F52A958C01FEC723662D6A509C8782D60834A4F8879E8AB1E7139D875F",
+          "publishedTextSha256": "7B3C911B6B3481A4960DE993286EA4918DC6A10E06FDAB59AD1C248A07C4517E",
+          "matches": false
+        }
+      ]
+    },
+    {
+      "name": "sidebar_genericsidebarlogo",
+      "entry": "WebResources/sidebar_genericsidebarlogo98C31835-328F-F011-B4CC-001DD809C7DE",
+      "bytes": 394,
+      "sha256": "3B717BEAE8CEB7543D6337CBDF28F0564F752AA396A535374AEEC70A3FA225DA",
+      "declaredHeaderVersion": null,
+      "sourceComparisons": []
+    },
+    {
+      "name": "sidebar_GenericSidebarAgent",
+      "entry": "WebResources/sidebar_GenericSidebarAgentB734B432-DC93-F011-B4CC-001DD80BCF93",
+      "bytes": 1295,
+      "sha256": "F8E250766C69DD11E5D6A34C1B62A306809192FBA205543BDE4C6EBA19D84E41",
+      "declaredHeaderVersion": null,
+      "sourceComparisons": [
+        {
+          "baseline": "corePr18",
+          "commit": "28daba33efce0088464f322de3a675edb748563f",
+          "sourcePath": "web resources/sidebar_GenericSidebarAgent.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "F25CB450EC87618C6EBF9AB8DBC7E049BE28393D05ACAC6DB6D9AC8698BA26CE",
+          "publishedTextSha256": "F8E250766C69DD11E5D6A34C1B62A306809192FBA205543BDE4C6EBA19D84E41",
+          "matches": false
+        },
+        {
+          "baseline": "committedSso",
+          "commit": "7e09de74e7fa0d4ac7199a47f3fad650980c1bbf",
+          "sourcePath": "web resources/sidebar_GenericSidebarAgent.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "F25CB450EC87618C6EBF9AB8DBC7E049BE28393D05ACAC6DB6D9AC8698BA26CE",
+          "publishedTextSha256": "F8E250766C69DD11E5D6A34C1B62A306809192FBA205543BDE4C6EBA19D84E41",
+          "matches": false
+        },
+        {
+          "baseline": "publishedTag",
+          "commit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+          "sourcePath": "web resources/sidebar_GenericSidebarAgent.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "F25CB450EC87618C6EBF9AB8DBC7E049BE28393D05ACAC6DB6D9AC8698BA26CE",
+          "publishedTextSha256": "F8E250766C69DD11E5D6A34C1B62A306809192FBA205543BDE4C6EBA19D84E41",
+          "matches": false
+        }
+      ]
+    },
+    {
+      "name": "sidebar_GenericSidebar_AdminSurvey",
+      "entry": "WebResources/sidebar_GenericSidebar_AdminSurvey8E15C29B-C497-F011-B4CC-001DD80BCF93",
+      "bytes": 5510,
+      "sha256": "53909FE38F7264284EB39DD2BA399C0C3FA3FCBAF663098E8018B8430FDC9346",
+      "declaredHeaderVersion": "1.0.1",
+      "sourceComparisons": [
+        {
+          "baseline": "corePr18",
+          "commit": "28daba33efce0088464f322de3a675edb748563f",
+          "sourcePath": "web resources/sidebar_GenericSidebar_AdminSurvey.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "4E2C8192092FCF864AE1CD7A37BB4E6638B35F198039C62AD481492D84A15D0E",
+          "publishedTextSha256": "53909FE38F7264284EB39DD2BA399C0C3FA3FCBAF663098E8018B8430FDC9346",
+          "matches": false
+        },
+        {
+          "baseline": "committedSso",
+          "commit": "7e09de74e7fa0d4ac7199a47f3fad650980c1bbf",
+          "sourcePath": "web resources/sidebar_GenericSidebar_AdminSurvey.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "53909FE38F7264284EB39DD2BA399C0C3FA3FCBAF663098E8018B8430FDC9346",
+          "publishedTextSha256": "53909FE38F7264284EB39DD2BA399C0C3FA3FCBAF663098E8018B8430FDC9346",
+          "matches": true
+        },
+        {
+          "baseline": "publishedTag",
+          "commit": "fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936",
+          "sourcePath": "web resources/sidebar_GenericSidebar_AdminSurvey.html",
+          "mode": "DecodedTextWithNormalizedLineEndings",
+          "sourceTextSha256": "4E2C8192092FCF864AE1CD7A37BB4E6638B35F198039C62AD481492D84A15D0E",
+          "publishedTextSha256": "53909FE38F7264284EB39DD2BA399C0C3FA3FCBAF663098E8018B8430FDC9346",
+          "matches": false
+        }
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "Incident",
+      "fields": [],
+      "fieldCount": 0
+    },
+    {
+      "name": "sidebar_GenericSidebar",
+      "fields": [
+        "CreatedBy",
+        "CreatedOn",
+        "CreatedOnBehalfBy",
+        "ImportSequenceNumber",
+        "ModifiedBy",
+        "ModifiedOn",
+        "ModifiedOnBehalfBy",
+        "OverriddenCreatedOn",
+        "OwnerId",
+        "OwningBusinessUnit",
+        "OwningTeam",
+        "OwningUser",
+        "sidebar_Acknowledged",
+        "sidebar_agentmenutab",
+        "sidebar_auth_api_scope",
+        "sidebar_auth_client_id",
+        "sidebar_auth_client_secret",
+        "sidebar_auth_redirect_uri",
+        "sidebar_auth_scopes",
+        "sidebar_auth_tenant_id",
+        "sidebar_auth_token_endpoint",
+        "sidebar_DaysActive",
+        "sidebar_Default",
+        "sidebar_DefaultStartDate",
+        "sidebar_Embedcode",
+        "sidebar_Embedcode2",
+        "sidebar_Embedcode3",
+        "sidebar_Embedcode4",
+        "sidebar_FileType",
+        "sidebar_GenericSidebarId",
+        "sidebar_icon",
+        "sidebar_iframeallow",
+        "sidebar_iframeheight",
+        "sidebar_iframestyle",
+        "sidebar_iframetheme",
+        "sidebar_iframewidth",
+        "sidebar_Instructions",
+        "sidebar_Instructions2",
+        "sidebar_Instructions3",
+        "sidebar_Instructions4",
+        "sidebar_linkcolor",
+        "sidebar_primarycolor",
+        "sidebar_QuickNotes",
+        "sidebar_QuickTitle",
+        "sidebar_sidebaricon",
+        "sidebar_sso_enabled",
+        "sidebar_textcolor",
+        "sidebar_TItle",
+        "sidebar_Title1",
+        "sidebar_Title2",
+        "sidebar_Title3",
+        "sidebar_Title4",
+        "sidebar_TotalDaysSinceCreated",
+        "statecode",
+        "statuscode",
+        "TimeZoneRuleVersionNumber",
+        "UTCConversionTimeZoneCode"
+      ],
+      "fieldCount": 57
+    },
+    {
+      "name": "sidebar_genericsidebaragent",
+      "fields": [
+        "CreatedBy",
+        "CreatedOn",
+        "CreatedOnBehalfBy",
+        "ImportSequenceNumber",
+        "ModifiedBy",
+        "ModifiedOn",
+        "ModifiedOnBehalfBy",
+        "OverriddenCreatedOn",
+        "OwnerId",
+        "OwningBusinessUnit",
+        "OwningTeam",
+        "OwningUser",
+        "sidebar_agentkey",
+        "sidebar_agenttype",
+        "sidebar_authscopeoverride",
+        "sidebar_description",
+        "sidebar_displayname",
+        "sidebar_embedcode",
+        "sidebar_genericsidebaragentId",
+        "sidebar_genericsidebarid",
+        "sidebar_iconurl",
+        "sidebar_isactive",
+        "sidebar_isdefaultagent",
+        "sidebar_name",
+        "sidebar_sortorder",
+        "sidebar_tokenendpoint",
+        "statecode",
+        "statuscode",
+        "TimeZoneRuleVersionNumber",
+        "UTCConversionTimeZoneCode"
+      ],
+      "fieldCount": 30
+    }
+  ],
+  "zipEntryCount": 12,
+  "missingEnterpriseResources": [
+    "sidebar_sso_bootstrap",
+    "sidebar_sso_setup",
+    "sidebar_sso_canvas",
+    "sidebar_sso_canvas_fallback.html",
+    "sidebar_sso_config_validator.html",
+    "vz_AgentSidePanelHTML.html"
+  ],
+  "acceptance": {
+    "assetBytesAndInventoryVerified": true,
+    "completePublishedSourceParityCertified": false,
+    "dataverseImportVerified": false,
+    "liveSsoVerified": false
+  },
+  "notes": [
+    "Exact existing asset downloaded read-only using the approved GitHub identity; no release was changed.",
+    "Text comparisons ignore CRLF/CR differences and decode text; binary SHA-256 is recorded independently.",
+    "Per-resource differences are evidence of drift, not a successful source-parity certificate.",
+    "Published v11, historical local v7 and integrated local v12 are distinct artifacts."
+  ]
+}

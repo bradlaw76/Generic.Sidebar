@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "status": "source-inventory-not-a-solution",
+  "coreSolution": "GenericSidebar",
+  "coreSolutionVersion": "1.0.0.12",
+  "resources": [
+    { "name": "sidebar_sso_bootstrap", "type": 3, "source": "web resources/sidebar_sso_bootstrap.js" },
+    { "name": "sidebar_sso_setup", "type": 3, "source": "web resources/sidebar_sso_setup.js" },
+    { "name": "sidebar_sso_canvas", "type": 1, "source": "web resources/sidebar_sso_canvas.html" },
+    { "name": "sidebar_sso_canvas_fallback.html", "type": 1, "source": "web resources/sidebar_sso_canvas_fallback.html" },
+    { "name": "sidebar_sso_config_validator.html", "type": 1, "source": "web resources/sidebar_sso_config_validator.html" },
+    { "name": "vz_AgentSidePanelHTML.html", "type": 1, "source": "SO Sign In/vz_AgentSidePanelHTML.html" }
+  ],
+  "schemaProvisioningSources": [
+    "Add-SidebarSSOFields.ps1",
+    "scripts/create-generic-sidebar-agent-table.ps1"
+  ],
+  "acceptance": {
+    "solutionPackagingVerified": false,
+    "dataverseImportVerified": false,
+    "liveSsoVerified": false
+  }
+}
