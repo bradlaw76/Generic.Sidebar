@@ -6,6 +6,14 @@
   Existing H009 draft [#26](https://github.com/bradlaw76/Generic.Sidebar/pull/26)
   remains dependent on H004 draft #25 at `32a2681`; no competing writer/new
   H-number/PR, merge, production action or tenant modification.
+- **Published assessment:** `895f5a653baf52e14b0fe59dcdaba8bf241a2ffe` on
+  `docs/h009-nonproduction-acceptance`; all three hosted checks passed:
+  [Core Windows/Ubuntu](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44156223115),
+  [SSO/agents Ubuntu](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44156223111).
+  [H000 receipt](https://github.com/bradlaw76/Generic.Sidebar/issues/21#issuecomment-6958221731)
+  and [draft receipt](https://github.com/bradlaw76/Generic.Sidebar/pull/26#issuecomment-6958221267)
+  coordinate the existing hourly monitor. This follow-up records publication,
+  not another implementation or live-acceptance milestone.
 - **Preserved:** registered worktrees, original dirty SSO files and Git backup
   refs; no locks found. Published H009 starting point was `001b9bbb`.
   All 32 original private evidence hashes pass. Both exports and separate Case

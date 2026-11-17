@@ -429,6 +429,13 @@ form/app payloads and private exports. The previously passing 111 automated case
 and exact-head hosted CI remain historical local/CI evidence, not new live results.
 No dependency install, solution rebuild, schema script or test deployment was needed.
 
+Assessment commit `895f5a653baf52e14b0fe59dcdaba8bf241a2ffe` is published in
+draft #26. Hosted [Core Windows/Ubuntu](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44156223115)
+and [SSO/agents Ubuntu](https://github.com/bradlaw76/Generic.Sidebar/actions/runs/44156223111)
+all passed at that exact commit. Fifteen local documentation links and
+`git diff --check` passed. This publication receipt does not change runtime
+source, package hashes or live acceptance status.
+
 The hourly monitor's [H004 finding](https://github.com/bradlaw76/Generic.Sidebar/pull/25#issuecomment-6955624945)
 and [H009 request](https://github.com/bradlaw76/Generic.Sidebar/pull/26#issuecomment-6956920608)
 are acknowledged: [Core HTML](../web%20resources/sidebar_sidebar.html) and
