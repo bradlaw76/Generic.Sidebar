@@ -1,0 +1,87 @@
+{
+  "FormatVersion": 1,
+  "HNumber": "H003",
+  "Status": "LocalBaselineVerified-PublishedParityUnverified",
+  "GeneratedAtUtc": "2026-11-17T09:52:45.9135322Z",
+  "Repository": "bradlaw76/Generic.Sidebar",
+  "Source": {
+    "GitCommit": "28daba33efce0088464f322de3a675edb748563f",
+    "BaselineBranch": "fix/core-runtime-package-alignment",
+    "BaselineDependency": "PR #18",
+    "PackagePath": "GenericSidebar_1_0_0_7.zip",
+    "VerifierPath": "scripts/verify-core-package.ps1",
+    "TrackedPackageAndSourceInputsClean": true,
+    "RuntimeVersions": {
+      "sidebar_sidebar.html": "2.15.3",
+      "sidebar_sidebar.js": "2.6.0"
+    }
+  },
+  "PublishedRelease": {
+    "Queried": false,
+    "ParityVerified": false,
+    "Tag": null,
+    "PackageSha256": null,
+    "Blocker": "Explicit scoped GitHub read authorization is required; the unavailable H001 denial report does not authorize a retry."
+  },
+  "Acceptance": {
+    "LocalPackageSourceParity": true,
+    "HostedDynamics": "NotVerified",
+    "EntraSSO": "NotVerified",
+    "LinkedAgentDependencyPackaging": "NotCertifiedByThisBaseline",
+    "ProductionReleaseCandidate": false
+  },
+  "LocalVerifierReport": {
+    "SolutionName": "GenericSidebar",
+    "SolutionVersion": "1.0.0.7",
+    "Managed": "0",
+    "Inventory": [
+      "[Content_Types].xml",
+      "customizations.xml",
+      "Formulas/sidebar_genericsidebar-sidebar_daysactive.xaml",
+      "Formulas/sidebar_genericsidebar-sidebar_totaldayssincecreated.xaml",
+      "solution.xml",
+      "WebResources/sidebar_genericsidebarlogo98C31835-328F-F011-B4CC-001DD809C7DE",
+      "WebResources/sidebar_sidebarhtmlD3801FFD-F584-F011-B4CC-001DD8099980",
+      "WebResources/sidebar_sidebarjsD2CAC84A-F484-F011-B4CC-001DD8099980",
+      "WebResources/sidebar_welcomeE0806AF3-908D-F011-B4CC-001DD809C74F",
+      "Workflows/GenericSidebar-ManageDefaultRecord-2C237473-988D-F011-B4CC-001DD809C7DE.json"
+    ],
+    "ResourceComparisons": [
+      {
+        "Name": "sidebar_genericsidebarlogo",
+        "EntryName": "WebResources/sidebar_genericsidebarlogo98C31835-328F-F011-B4CC-001DD809C7DE",
+        "Mode": "ExactBytes",
+        "SourceHash": "7D02852F9C3D55D995E0357F39D6F73FB25F3EB13DEE94D2FD3CA13E8BD89B44",
+        "PackagedHash": "7D02852F9C3D55D995E0357F39D6F73FB25F3EB13DEE94D2FD3CA13E8BD89B44"
+      },
+      {
+        "Name": "sidebar_sidebar.html",
+        "EntryName": "WebResources/sidebar_sidebarhtmlD3801FFD-F584-F011-B4CC-001DD8099980",
+        "Mode": "NormalizedText",
+        "SourceHash": "931FE14EB9E2563A26342EC631D224FFEFBD67D11F74E5160464A0DCC11DFFDC",
+        "PackagedHash": "931FE14EB9E2563A26342EC631D224FFEFBD67D11F74E5160464A0DCC11DFFDC"
+      },
+      {
+        "Name": "sidebar_sidebar.js",
+        "EntryName": "WebResources/sidebar_sidebarjsD2CAC84A-F484-F011-B4CC-001DD8099980",
+        "Mode": "NormalizedText",
+        "SourceHash": "22DBC177524EE368EF23E12F08C719B51F6DF96DAF8EC490F245F0BF1D3FFFCB",
+        "PackagedHash": "22DBC177524EE368EF23E12F08C719B51F6DF96DAF8EC490F245F0BF1D3FFFCB"
+      },
+      {
+        "Name": "sidebar_welcome",
+        "EntryName": "WebResources/sidebar_welcomeE0806AF3-908D-F011-B4CC-001DD809C74F",
+        "Mode": "NormalizedText",
+        "SourceHash": "296652C3819CD9ACDB6A89703CFCD2AC8E7D673FCAA7276FC99C98A702FE22C6",
+        "PackagedHash": "296652C3819CD9ACDB6A89703CFCD2AC8E7D673FCAA7276FC99C98A702FE22C6"
+      }
+    ],
+    "HtmlComparisonMode": "NormalizedText",
+    "JavaScriptComparisonMode": "NormalizedText",
+    "SourceHtmlSha256": "931FE14EB9E2563A26342EC631D224FFEFBD67D11F74E5160464A0DCC11DFFDC",
+    "SourceJavaScriptSha256": "22DBC177524EE368EF23E12F08C719B51F6DF96DAF8EC490F245F0BF1D3FFFCB",
+    "PackagedHtmlSha256": "931FE14EB9E2563A26342EC631D224FFEFBD67D11F74E5160464A0DCC11DFFDC",
+    "PackagedJavaScriptSha256": "22DBC177524EE368EF23E12F08C719B51F6DF96DAF8EC490F245F0BF1D3FFFCB",
+    "PackageSha256": "D2D63699C2A87350C322C6402ADB4662E80304CD6D47CD6534043D48957F447C"
+  }
+}
