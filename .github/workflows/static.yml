@@ -9,11 +9,18 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  # Read-only staging verification; no Pages deployment from pull requests.
+  pull_request:
+    paths:
+      - '.github/workflows/static.yml'
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'pages/agent/index.html'
+      - 'pages/copilot/index.html'
+
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -22,8 +29,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
+  validate:
+    name: Verify Pages allowlist without deployment
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+  # Production Pages deployment remains push-to-main/manual only.
   deploy:
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
