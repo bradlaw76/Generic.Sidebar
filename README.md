@@ -8,7 +8,7 @@ This repository contains three separate deployment layers. They share integratio
 
 | Layer | Current version evidence | Deployment boundary |
 | --- | --- | --- |
-| **Generic Sidebar Core** | Installable solution `1.0.0.5`: packaged HTML has no embedded version marker; packaged JS is marked 2.3.0. Development source: HTML 2.14.0; JS 2.5.0. | Independently installable base Dynamics 365 solution. Requires only `sidebar_*` components and does not include or depend on Android, Genesys, GenericSoftphone, or `gensoft_*` components. Packaged and source runtimes differ functionally and require separate reconciliation. |
+| **Generic Sidebar Core** | Installable solution `1.0.0.5`: packaged HTML has no embedded version marker; packaged JS is marked 2.3.0. Development source: HTML 2.14.0; JS 2.5.0. | Separately deployable Core-only solution: no Android, Genesys, GenericSoftphone, or `gensoft_*` add-in dependency. **Host-platform dependencies still apply**: the 1.0.0.5 ZIP's `solution.xml` references Microsoft Dynamics 365 Customer Service components, including components from `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. These are not packaged in Core and must be present as compatible prerequisites in the target environment. Packaged/source runtime parity remains blocked. |
 | **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.6.0 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
 | **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.6.0 through `localStorage.genericSimCall`. Never add it to the base Core package. |
 
@@ -17,6 +17,12 @@ The historical SSO release label `v2.0.0`, specification versions, solution pack
 ### Base Package Verification
 
 On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only. The ZIP is authoritative for installed behavior; its single-content HTML renderer and 2.3.0 JavaScript differ from the multi-panel 2.14.0 HTML and 2.5.0 JavaScript development sources. Do not use source-only behavior to certify the installable package.
+
+### Host-platform prerequisites (historical Core 1.0.0.5)
+
+**Core-only does not mean dependency-free in every model-driven environment.** The embedded `solution.xml` declares required Microsoft first-party components, including dependencies associated with `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. These are host solution prerequisites, **not** Android/Genesys/GenericSoftphone add-ins and **not** components included in this Core ZIP. The examples are not a complete dependency inventory.
+
+Before any separately authorized import, inspect the **exact ZIP's** `solution.xml` dependency entries and verify every required component and compatible host solution version in the designated target environment. A missing dependency can block solution import. No clean-environment import, host dependency reconciliation, or live certification is established by this documentation or the August 27 package inspection. The separate package/source runtime mismatch remains a release blocker.
 
 ✨ What’s New in v1.0.5
 
@@ -88,8 +94,8 @@ See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/RE
 
 
 ⚡ Usage Instructions
-1. Import the Solution
-2. Import the managed/unmanaged solution into your Dynamics 365 environment.
+1. Check the exact Core ZIP's `solution.xml` prerequisites against the target environment's installed Microsoft host solutions and versions. Do not infer compatibility merely from the absence of optional simulator components.
+2. Only after prerequisite validation and separate import authorization, import the applicable managed/unmanaged Core solution into the target Dynamics 365 environment.
 3. Create a Config Row
    Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
 4. Set Key Fields
