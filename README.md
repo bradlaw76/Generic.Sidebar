@@ -1,8 +1,21 @@
-Generic Sidebar for Dynamics 365 — Deployment Layer and Artifact Evidence
+<p align="center">
+  <img src="./screenshots/generic-sidebar-banner.png" alt="Generic Sidebar for Dynamics 365" />
+</p>
+
+# Generic Sidebar for Dynamics 365 — Deployment Layer and Artifact Evidence
 The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps.
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, and theming.
 
 **Current published Core release (separate from the historical repository ZIP):** `GenericSidebar_1_0_0_11.zip` (solution `1.0.0.11`), release tag commit `fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936`, GitHub asset SHA-256 `482cd5b5860b8858a6525616856225ff3c5bebb3263b5f79f577caa6d1a78942`. H003 records the release inventory and source drift; this is **not** a full package/source parity or live acceptance certificate. The checked-in `GenericSidebar_1_0_0_5.zip` is a historical archive, not the current release. H004's local unmanaged candidate `1.0.0.12` has not been published or approved for distribution.
+
+## Repository navigation
+
+The current `main` branch's overview and the evidence in this PR serve different purposes. Keep these existing entry points available while reconciling documentation; the files linked here are not deployment or certification approval.
+
+- [Android Phone Simulator overview and embed instructions](./Generic.AndroidCellPhone/README.md)
+- [Android simulator detailed behavior and prerequisites](./Generic.AndroidCellPhone/DOCUMENTATION.md)
+- [Core acceptance criteria](./TEST_ACCEPTANCE.md), [system manifest](./SYSTEM_MANIFEST.json.md), and [binding certification](./BINDING_CERTIFICATION.md)
+- [Core specification](./SPEC.md), [UX invariants](./UX_INVARIANTS.md), and [license](./LICENSE)
 
 ## Deployment Layers
 
@@ -102,13 +115,16 @@ See [Genesys Softphone add-in documentation](SidecarItems/Genesys%20Softphone/RE
    Open the Generic Sidebar Configuration table (sidebar_genericsidebar) and create one record with sidebar_default = Yes.
 4. Set Key Fields
    Fill in:
-   * sidebar_title — header title (shown in the pane chrome).
-   * sidebar_instructions — rich text instructions (bullets/headings supported).
-   * sidebar_embedcode — choose:
+   * `sidebar_title` — legacy/default pane-chrome title; retained as a fallback in H004's development JavaScript/HTML.
+   * `sidebar_title1` — first panel title in the H004 1–4-panel development HTML, with `sidebar_title` as its compatibility fallback.
+   * `sidebar_instructions` — first-panel rich-text instructions.
+   * `sidebar_embedcode` — first-panel embed content; choose:
 
    https://... (External URL)
    <iframe ...></iframe> (Copilot or Canvas App)
    Raw HTML
+
+Candidate-specific multi-panel field names above were checked against H004 `integration/h004-core-sso` source, not certified against published Core 1.0.0.11. Confirm the exact ZIP's table schema and packaged runtime before attempting an authorized import; the historical 1.0.0.5 archive and unpublished 1.0.0.12 candidate are not substitutes for that inspection.
 
 Example of HTML Configuration
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.HTML.png)
