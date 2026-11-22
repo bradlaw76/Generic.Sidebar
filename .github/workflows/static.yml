@@ -43,7 +43,7 @@ jobs:
           install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
           touch _site/.nojekyll
           actual="$(find _site -type f | sort)"
-          expected="$(printf '%s\\n' \
+          expected="$(printf '%s\n' \
             _site/.nojekyll \
             _site/index.html \
             _site/downloads/index.html \
