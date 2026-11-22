@@ -1,10 +1,10 @@
 <!--
 =============================================================================
-DOCUMENT:     Android Cell Phone Simulator — Full Documentation
+DOCUMENT:     Android Phone Simulator - Full Documentation
 FILE:         Generic.AndroidCellPhone/DOCUMENTATION.md
-VERSION:      1.0.0
+VERSION:      1.2.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-10-02
+LAST UPDATED: 2026-11-22
 ENVIRONMENT:  Markdown (GitHub / Docs)
 
 -----------------------------------------------------------------------------
@@ -17,18 +17,21 @@ integration as a web resource, softphone interop, and demo control panel.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
-v1.1.0  2026-10-02  Align version and outgoing call state with application 2.6.0
+v1.2.1  2026-11-22  Reconcile main's 2026-10-02 RINGING corrections with optional add-in and Dataverse validation guidance
+v1.2.0  2026-08-27  Align version, call behavior, compatibility, and validation with the checked-in runtime
+v1.1.0  2026-08-27  Clarify optional deployment boundary, version compatibility, and RINGING outgoing contract
 v1.0.0  2026-03-06  Initial documentation created
 =============================================================================
 -->
 
-# Android Cell Phone Simulator — Full Documentation
+# Android Phone Simulator - Full Documentation
 
 **Component:** Samsung S25 Ultra Android Phone Simulator  
 **File:** `Generic.AndroidCellPhone/AndroidCellPhone.html`  
-**Version:** 2.6.0
+**Component Version:** 2.6.0
+**Deployment Layer:** Optional add-in; not included in Generic Sidebar Core
 **Author:** Generic.Sidebar Team  
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-11-22
 
 ---
 
@@ -52,12 +55,15 @@ v1.0.0  2026-03-06  Initial documentation created
 16. [Non-Negotiables (Architecture Contract)](#16-non-negotiables-architecture-contract)
 17. [Related Components](#17-related-components)
 18. [Troubleshooting](#18-troubleshooting)
+19. [Deployment and Compatibility](#19-deployment-and-compatibility)
 
 ---
 
 ## 1. Overview
 
-The Android Cell Phone Simulator is a **single self-contained HTML file** that renders a pixel-accurate Samsung Galaxy S25 Ultra phone simulator in the browser. It is designed for **contact center demo scenarios** within the Generic.Sidebar ecosystem.
+The Android Phone Simulator is a **single self-contained HTML file** that renders a Samsung Galaxy S25 Ultra phone simulator in the browser. It is an optional contact-center demo add-in that can run standalone or be configured as separately deployed content in Generic Sidebar Core.
+
+The add-in is not part of `GenericSidebar_1_0_0_5.zip`, is not required by Generic Sidebar Core, and must not be added to the base Core solution. Android validation and GenericSoftphone schema validation are separate from Core certification.
 
 The simulator serves as a **visual phone UI** that places outgoing calls and handles incoming calls. It does **not** replace the existing Generic Softphone architecture — instead, it acts as **another writer** to the shared `localStorage.genericSimCall` event bus, triggering the Genesys Softphone.html to render the call on the agent-side.
 
@@ -65,7 +71,7 @@ The simulator serves as a **visual phone UI** that places outgoing calls and han
 
 | Capability | Description |
 |---|---|
-| Outgoing calls | User selects a contact → phone dials → writes `RINGING` payload to localStorage for the agent-side softphone |
+| Outgoing calls | User selects a contact → phone shows Calling → after about three seconds enters its local in-call state, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback; a compatible softphone may independently answer and write `CONNECTED` |
 | Incoming calls | Listens for `RINGING` payloads from the Generic Call Simulator → shows incoming call screen |
 | Transcript streaming | Plays back scripted conversations line-by-line during calls |
 | Dual mode | Works both inside Dynamics 365 (Dataverse-driven) and standalone (file://, any browser) |
@@ -117,7 +123,7 @@ The simulator serves as a **visual phone UI** that places outgoing calls and han
 | Element | Value | Notes |
 |---|---|---|
 | **localStorage Key** | `genericSimCall` | Shared event bus — must never change |
-| **Outgoing Payload State** | `RINGING` | Phone writes RINGING; the compatible agent-side softphone transitions an answered call to CONNECTED |
+| **Outgoing Payload State** | `RINGING` | Phone writes RINGING with `startTime: null` after entering its own local in-call state; Genesys may independently write CONNECTED when answered, but Android 2.6.0 does not observe or wait for that update |
 | **Incoming Payload State** | `RINGING` | Phone listens for RINGING from call simulator |
 | **Auth Model** | `Xrm.WebApi` | All Dataverse reads go through Xrm — never bypassed |
 | **Payload Format** | JSON (see §7) | Identical to existing simulator payload structure |
@@ -182,7 +188,7 @@ If `Xrm.WebApi` is not available, the simulator falls back to standalone mode.
 3. Tap Phone icon → **Phone App** with Recents / Contacts / Keypad tabs
 4. Tap a contact → **Calling Screen** (3-second ring animation)
 5. Auto-connects → **In-Call Screen** with transcript streaming
-6. localStorage payload is written at connect — if Genesys Softphone.html is open in another tab of the same browser, it will receive the call
+6. A `RINGING` localStorage payload with `startTime: null` is written when the phone enters its local in-call screen. If a compatible Genesys Softphone is open under the same browser origin, it receives the call and can answer it.
 
 ### No Network Required
 
@@ -198,7 +204,7 @@ When the HTML file is deployed as a **Dynamics 365 web resource**, it gains acce
 
 1. Upload `AndroidCellPhone.html` as a web resource in the Power Apps maker portal
 2. Set the type to **Webpage (HTML)**
-3. Add it to the **GenericSoftphone** solution (publisher prefix: `gensoft_`)
+3. Add it to a separate add-in solution such as **GenericSoftphone** (publisher prefix: `gensoft_`); do not add it to the Generic Sidebar Core solution
 4. The file can be embedded in a sidebar pane, opened in a new tab, or rendered in an iframe
 
 ### Xrm.WebApi Discovery
@@ -284,7 +290,7 @@ The Android Phone Simulator integrates with the existing Generic Softphone ecosy
 
 | Component | File | Role |
 |---|---|---|
-| **Android Phone Simulator** | `AndroidCellPhone.html` | Places outgoing calls (writes `RINGING`) and receives incoming calls (listens for `RINGING`) |
+| **Android Phone Simulator** | `AndroidCellPhone.html` | Places outgoing calls (writes `RINGING` with null `startTime`) and receives incoming calls (listens for `RINGING`) |
 | **Genesys Softphone** | `Genesys Softphone.html` | Agent-side softphone UI — reads localStorage, renders call card, runs transcript, performs screen pops |
 | **Generic Call Simulator** | `sidebar_generic_call_simulator.html` | Admin tool — writes `RINGING` payloads to simulate incoming calls |
 
@@ -296,14 +302,17 @@ User taps contact on phone
         ▼
 AndroidCellPhone.html shows Calling → In-Call screens
         │
-        ▼ (at connect, writes to localStorage)
-localStorage.genericSimCall = {state: "RINGING", ...}
+        ▼ (after local dial transition, writes to localStorage)
+      localStorage.genericSimCall = {state: "RINGING", startTime: null, ...}
         │
         ▼ (storage event fires)
 Genesys Softphone.html detects change
         │
         ▼
-Softphone renders the ringing call for answer or decline
+Softphone renders a "RINGING" call card
+  │
+  ▼ (agent answers)
+Softphone writes {state: "CONNECTED", startTime: "..."}
         │
         ▼
 Softphone starts transcript playback
@@ -435,14 +444,14 @@ function navTo(key, back) {
 }
 ```
 
-9. **Genesys Softphone** detects the `storage` event and presents the call for answer or decline
-10. When answered, the softphone transitions the call to `CONNECTED`
-11. Transcript playback can continue on the phone and compatible softphone
-12. **End Call** → clears localStorage, shows Ended screen (2.5s), returns to Home
+9. Android starts scripted demo transcript playback locally after writing the shared payload; this is not transcript capture, does not indicate a confirmed connection, and does not wait for an agent answer
+10. **Genesys Softphone** may independently detect the `storage` event and render its own call card as RINGING
+11. When the agent answers, Genesys writes `CONNECTED` and assigns `startTime`; Android 2.6.0 does not observe or wait for that shared-state change
+12. **End Call** clears localStorage, shows the Ended screen, and returns to Home
 
-### Why State is RINGING
+### Why Outgoing State Starts as RINGING
 
-The Android phone represents the **customer's device**, but the compatible agent-side softphone still needs to present an incoming interaction to the agent. The phone therefore writes `RINGING`; the softphone owns the answer or decline action and changes an answered interaction to `CONNECTED`.
+The Android phone represents the customer's device initiating a call. After about three seconds on its Calling screen, Android 2.6.0 enters its own local in-call state, writes `RINGING` with `startTime: null`, and starts scripted demo transcript playback locally. This is not transcript capture and does not indicate a confirmed connection. Genesys may independently consume that event, own its ringing and answer flow, and write `CONNECTED` with a real start time. Android does not observe or wait for that Genesys update.
 
 ---
 
@@ -731,7 +740,7 @@ function avInit(name) {
 These rules are **inviolable** and must be preserved across all future changes:
 
 1. **localStorage key `genericSimCall`** — must never be renamed or changed
-2. **Payload state `RINGING`** for outgoing calls — the compatible agent-side softphone depends on this
+2. **Outgoing payload starts as `RINGING` with `startTime: null`**; the compatible softphone owns the transition to `CONNECTED`
 3. **All Dataverse reads via `Xrm.WebApi`** — never use fetch/XMLHttpRequest to Dataverse directly
 4. **Do NOT modify `Genesys Softphone.html`** — the phone is an additive component
 5. **All changes must be additive** — no breaking changes to existing contracts
@@ -766,6 +775,25 @@ These rules are **inviolable** and must be preserved across all future changes:
 
 - **Cause:** The softphone and phone are in different browser tabs or windows that don't share localStorage
 - **Fix:** Both must be in the **same browser** and **same origin**. When running as D365 web resources, they share the D365 domain. When running standalone, both must be opened from the same `file://` or `http://` origin.
+
+---
+
+## 19. Deployment and Compatibility
+
+### Requirements
+
+| Mode | Requirements |
+| --- | --- |
+| Standalone simulated mode | Modern browser with localStorage; camera and audio features require corresponding browser APIs and user permission |
+| Dynamics simulated mode | Separately deployed HTML web resource and read access to the configured Dataverse records. The `gensoft_genericsoftphone` configuration table must also expose the `gensoft_callerid` lookup backing `_gensoft_callerid_value`; the checked-in GenericSoftphone schema guide and creation script do **not** define or create that lookup. Without it, the Dataverse configuration query can fail and fall back to embedded settings. Verify the lookup independently before claiming Dataverse-backed acceptance. |
+
+### Compatibility Matrix
+
+| Android version | Generic Sidebar Core | Genesys interoperability | Status |
+| --- | --- | --- | --- |
+| 2.6.0 | Solution 1.0.0.5; compatible as standalone or separately configured panel content | Current checked-in Genesys file accepts `RINGING` and can independently transition it to `CONNECTED`; Android does not observe that transition | Interface-compatible; validate add-in separately |
+
+The current Genesys file reports component header 1.0.0 and embedded UI marker 1.7.1. This document does not choose between them; reconcile that metadata before claiming a certified add-in version pair.
 
 ### Contacts list is empty
 

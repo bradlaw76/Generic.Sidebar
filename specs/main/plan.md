@@ -1,13 +1,23 @@
-# Implementation Plan: Generic.Sidebar — Sidebar UX Demo
+# Implementation Plan: Generic Sidebar Core and Optional Add-ins
 
-**Branch**: `main` | **Date**: 2026-02-17 | **Spec**: /specs/main/spec.md (to be created)
-**Input**: UX demo requirements for Dynamics 365 sidebar kit; configuration-driven behavior via Dataverse
+**Branch**: `feature/sso-integration-v2` | **Date**: 2026-08-27 | **Spec**: `/specs/main/spec.md`
+**Input**: Configuration-driven Dynamics 365 sidebar Core with separately deployed Android and Genesys demo add-ins
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
-Implement a configuration-driven Dynamics 365 sidebar that renders up to four panels (title, instructions band, embed content) inside a model-driven app side pane. Panels read from Dataverse (`sidebar_genericsidebar`) and support Copilot, Canvas App, URL, and raw HTML embeds. GitHub Pages provide public documentation, release statistics, and agent guidance.
+Maintain a separately packaged, configuration-driven Generic Sidebar Core that renders up to four panels inside a model-driven app side pane, subject to the selected ZIP's required Microsoft host-platform dependencies. Core reads `sidebar_genericsidebar` and supports generic Copilot, Canvas App, URL, and approved HTML embeds. Android Phone and Genesys Softphone remain optional demo add-ins with separate packaging, requirements, deployment, validation, and certification. GitHub Pages provide public documentation, release statistics, and agent guidance.
+
+## Deployment Layers
+
+| Layer | Required assets | Excluded from layer |
+| --- | --- | --- |
+| Generic Sidebar Core | Historical `GenericSidebar_1_0_0_5.zip`, `sidebar_*` Dataverse/web resources, and compatible Microsoft Customer Service host prerequisites from the exact ZIP's `solution.xml` | Android, Genesys, GenericSoftphone, and all `gensoft_*` components |
+| Android Phone Simulator add-in | `Generic.AndroidCellPhone/AndroidCellPhone.html` 2.6.0; optional separate GenericSoftphone schema for Dynamics mode | Base Core solution package |
+| Genesys Softphone Simulator add-in | `SidecarItems/Genesys Softphone/Genesys Softphone.html`; optional separate GenericSoftphone schema | Base Core solution package |
+
+The historical 1.0.0.5 add-in exclusion boundary was verified read-only on 2026-08-27. This archive is not the currently published Core 1.0.0.11 or the unpublished H004 1.0.0.12 local candidate. The historical `solution.xml` also declares Microsoft first-party Customer Service host dependencies, with examples associated with `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. These are not optional simulator dependencies. The list is not exhaustive: identify all prerequisites and compatible target-environment versions from the **exact selected ZIP** before any separately authorized import. This plan does not certify compatibility or rebuild, import, deploy, publish, or overwrite any package.
 
 ## Technical Context
 
@@ -18,14 +28,14 @@ Implement a configuration-driven Dynamics 365 sidebar that renders up to four pa
 -->
 
 **Language/Version**: HTML5, CSS3, JavaScript (ES6+); PowerShell scripts for agent context  
-**Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only)  
-**Storage**: Dataverse (table: `sidebar_genericsidebar`)  
-**Testing**: Manual acceptance using `TEST_ACCEPTANCE.md`; automated tests NEEDS CLARIFICATION  
+**Primary Dependencies**: Dynamics 365 `Xrm.WebApi`, `Xrm.App.sidePanes`, and the selected ZIP's Microsoft first-party Customer Service host prerequisites; Chart.js (GitHub Pages); Tailwind CDN (GitHub Pages only)  
+**Storage**: Core uses Dataverse table `sidebar_genericsidebar`; optional add-ins may separately use `gensoft_*` tables and `localStorage.genericSimCall`
+**Testing**: Layer-specific manual acceptance in `TEST_ACCEPTANCE.md`; documentation integrity validation uses `git diff --check`, exact conflict-marker scans, local Markdown link checks, and JSON parsing for `SYSTEM_MANIFEST.json.md`
 **Target Platform**: Dynamics 365 model-driven apps (side pane), GitHub Pages  
 **Project Type**: web (Dynamics 365 web resources + static website)  
 **Performance Goals**: NEEDS CLARIFICATION  
 **Constraints**: Zero redeployment for config changes; Safe embedding (`referrerPolicy`, explicit `allow`); WCAG 2.1 AA; graceful degradation on API failures  
-**Scale/Scope**: NEEDS CLARIFICATION
+**Scale/Scope**: One independently deployable Core solution plus two optional demo add-ins
 
 ## Constitution Check
 
@@ -83,7 +93,7 @@ specs/main/
     └── requirements.md
 
 Generic.AndroidCellPhone/
-├── AndroidCellPhone.html          # Samsung S25 Ultra phone simulator (v2.5.0)
+├── AndroidCellPhone.html          # Optional Samsung S25 Ultra simulator (2.6.0)
 ├── AndroidCellPhone_v2.4.0.html   # Archived v2.4.0 (lock screen, camera, Demo Panel)
 ├── DOCUMENTATION.md               # Comprehensive technical documentation
 ├── plans/
@@ -98,7 +108,8 @@ SidecarItems/
 ├── Copilot.html
 ├── Veteran Journey.html
 └── Genesys Softphone/
-    ├── Genesys Softphone.html      # DO NOT MODIFY
+    ├── README.md                    # Optional add-in deployment and compatibility
+    ├── Genesys Softphone.html      # Separately deployed simulator; version metadata unresolved
     ├── android_phone_simulator.html
     └── sidebar_generic_call_simulator.html
 
@@ -107,7 +118,7 @@ SidecarItems/
 └── scripts/powershell/*
 ```
 
-**Structure Decision**: Use Dynamics 365 web resources for runtime (under `web resources/`) and GitHub Pages for public site (`pages/`, `downloads/`). Feature documentation lives under `specs/main/`.
+**Structure Decision**: Core runtime remains under `web resources/` and in the `sidebar`-prefixed solution. Optional add-ins remain in `Generic.AndroidCellPhone/` and `SidecarItems/Genesys Softphone/`; their `gensoft_*` schema and scripts are not Core assets. GitHub Pages public content remains under the root site entry point, `pages/`, and `downloads/` pending a separately authorized site-only `dist/` workflow.
 
 ## Complexity Tracking
 
