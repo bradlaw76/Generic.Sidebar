@@ -3,7 +3,7 @@
 **Overall Status:** NOT CERTIFIED
 **Certification Document Version:** 0.4.0
 **Core Spec:** `SPEC.md` 0.2.0 (checked-in draft; not approved)
-**Updated:** 2026-08-27
+**Updated:** 2026-11-22 (host dependency documentation only; no new certification)
 **Certification Date:** -
 
 ---
@@ -21,11 +21,15 @@ Generic Sidebar Core, Android Phone Simulator, and Genesys Softphone Simulator a
 - [x] Package inspected without modification on 2026-08-27
 - [x] Package contains no Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_*` names or textual payloads
 - [x] Package publisher prefix is `sidebar`
+- [ ] Exact Core ZIP `solution.xml` host-component dependencies inventoried, including Microsoft first-party Customer Service prerequisites, and compatible target-environment versions verified
+- [ ] Required host components available in an approved nonproduction environment and import acceptance evidenced
 - [ ] All Core acceptance criteria met, including hosted Dynamics and SSO checks
 - [ ] Open release-blocking Core security findings resolved
 - [ ] Core release reviewer approval recorded
 
 The verified installable package is solution `GenericSidebar` version 1.0.0.5. Its packaged HTML web resource has no embedded runtime version marker, and its packaged JavaScript is marked 2.3.0. The development sources are marked separately: `web resources/sidebar_sidebar.html` 2.14.0 and `web resources/sidebar_sidebar.js` 2.5.0. The packaged and source files differ functionally, so they are not one unified Core runtime version and Core certification remains blocked pending a separate runtime/package reconciliation. No solution package was rebuilt, overwritten, imported, deployed, or published during this verification.
+
+**Host-dependency boundary:** Core's exclusion of Android, Genesys, GenericSoftphone, and `gensoft_*` add-ins does **not** establish that the Core ZIP imports into an otherwise empty model-driven environment. The historical `GenericSidebar_1_0_0_5.zip` `solution.xml` contains Microsoft Customer Service host dependencies, including components associated with `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. This is an illustrative, not exhaustive, set: inspect the exact ZIP's dependency declarations and verify all required components/versions against the proposed environment before any separately authorized import. This prerequisite verification and any real-environment import remain **unchecked**, independently of the package/source drift blocker.
 
 ## Android Phone Simulator Add-in Certification
 
