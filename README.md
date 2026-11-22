@@ -1,20 +1,22 @@
-🚀 Generic Sidebar for Dynamics 365 — Release v1.0.5
+Generic Sidebar for Dynamics 365 — Deployment Layer and Artifact Evidence
 The Generic Sidebar kit provides a flexible, table-driven side pane for Dynamics 365 Customer Service and other model-driven apps.
 Instead of writing custom HTML/JS each time, you configure a single Dataverse table row to control instructions, embeds, icons, and theming.
+
+**Current published Core release (separate from the historical repository ZIP):** `GenericSidebar_1_0_0_11.zip` (solution `1.0.0.11`), release tag commit `fd1ac1fbb775443f6f9a5a2d6ea04aa5ddcad936`, GitHub asset SHA-256 `482cd5b5860b8858a6525616856225ff3c5bebb3263b5f79f577caa6d1a78942`. H003 records the release inventory and source drift; this is **not** a full package/source parity or live acceptance certificate. The checked-in `GenericSidebar_1_0_0_5.zip` is a historical archive, not the current release. H004's local unmanaged candidate `1.0.0.12` has not been published or approved for distribution.
 
 ## Deployment Layers
 
 This repository contains three separate deployment layers. They share integration contracts, not a single solution package or certification result.
 
-| Layer | Current version evidence | Deployment boundary |
+| Layer | Artifact evidence (versions are not interchangeable) | Deployment boundary |
 | --- | --- | --- |
-| **Generic Sidebar Core** | Installable solution `1.0.0.5`: packaged HTML has no embedded version marker; packaged JS is marked 2.3.0. Development source: HTML 2.14.0; JS 2.5.0. | Separately deployable Core-only solution: no Android, Genesys, GenericSoftphone, or `gensoft_*` add-in dependency. **Host-platform dependencies still apply**: the 1.0.0.5 ZIP's `solution.xml` references Microsoft Dynamics 365 Customer Service components, including components from `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. These are not packaged in Core and must be present as compatible prerequisites in the target environment. Packaged/source runtime parity remains blocked. |
+| **Generic Sidebar Core** | Current published solution `1.0.0.11` is separate from the historical repository archive `1.0.0.5` (packaged HTML unmarked; packaged JS 2.3.0) and H004's unpublished local candidate `1.0.0.12`. The development source markers inspected with the historical archive were HTML 2.14.0 and JS 2.5.0. | Separately deployable Core-only solution: no Android, Genesys, GenericSoftphone, or `gensoft_*` add-in dependency. **Host-platform dependencies still apply**: the 1.0.0.5 ZIP's `solution.xml` references Microsoft Dynamics 365 Customer Service components, including components from `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`. These are not packaged in Core and must be present as compatible prerequisites in the target environment. Packaged/source runtime parity remains blocked. |
 | **Android Phone Simulator add-in** | `AndroidCellPhone.html` 2.6.0 | Optional demo add-in. Deploy standalone or as a separate web resource. Its optional Dataverse mode uses the separate GenericSoftphone schema. Never add it to the base Core package. |
 | **Genesys Softphone Simulator add-in** | Current file has component header 1.0.0 and embedded UI marker 1.7.1; version identity remains unresolved | Optional demo add-in deployed separately. It can interoperate with Android 2.6.0 through `localStorage.genericSimCall`. Never add it to the base Core package. |
 
 The historical SSO release label `v2.0.0`, specification versions, solution package version, and individual web-resource versions identify different artifacts. They are intentionally reported separately rather than being overwritten with one arbitrary version.
 
-### Base Package Verification
+### Historical Repository Package Verification (1.0.0.5 only)
 
 On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only. The ZIP is authoritative for installed behavior; its single-content HTML renderer and 2.3.0 JavaScript differ from the multi-panel 2.14.0 HTML and 2.5.0 JavaScript development sources. Do not use source-only behavior to certify the installable package.
 
@@ -24,12 +26,12 @@ On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without modi
 
 Before any separately authorized import, inspect the **exact ZIP's** `solution.xml` dependency entries and verify every required component and compatible host solution version in the designated target environment. A missing dependency can block solution import. No clean-environment import, host dependency reconciliation, or live certification is established by this documentation or the August 27 package inspection. The separate package/source runtime mismatch remains a release blocker.
 
-✨ What’s New in v1.0.5
+### Historical v1.0.0.5 feature notes — not current release or production acceptance
 
 ✅ Admin Acknowledgement Banner
-* Added a demo disclaimer banner visible only to admins.
-* Includes a “Acknowledge” button that flips sidebar_acknowledged = Yes in the default row.
-* Ensures clear consent before use in production.
+* Added a demo disclaimer banner. The welcome page itself does not enforce an administrator-only role check.
+* Includes an “Acknowledge” button that updates `sidebar_acknowledged` on a shared default configuration row only if the caller has Dataverse write access; it does not record individual consent.
+* Does not establish per-user consent, administrator identity or production authorization.
 
 ✅ PowerApps Canvas App support
 * The sidebar_embedcode field now accepts Canvas App embed code alongside Copilot, URLs, HTML snippets, and web resources.
@@ -125,7 +127,7 @@ Help, Issue Reporting and Survey\
 ![Import Solution Screenshot](./screenshots/Generic.Sidebar.Admin.AgentSurvey.png)
 
 How to Add JS to a new Form
-1. Add the generic_sidebar.js web resource to your form and set OnLoad handler → Generic_OpenSidebar.
+1. Add the `sidebar_sidebar.js` web resource to your form and set OnLoad handler → `Generic_OpenSidebar` (passing the form execution context).
 2. Publish & Refresh
 3. Publish all customizations, then hard refresh (Ctrl/Cmd+Shift+R).
 
@@ -142,4 +144,4 @@ The recommended future approach is to assemble a site-only `dist/` directory con
 
 ⚠️ Disclaimer
 This kit is provided as-is. It is intended primarily for demo / proof-of-concept purposes.
-Before production use, admins must acknowledge the disclaimer via the welcome banner (sets sidebar_acknowledged = Yes).
+The shared welcome-banner acknowledgment is not an administrator-only gate or per-user consent record. Production use requires a separately approved security, governance and acceptance process.
