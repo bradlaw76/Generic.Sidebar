@@ -33,11 +33,30 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+      - name: Upload allowlisted site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          path: '_site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
