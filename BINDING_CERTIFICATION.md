@@ -2,7 +2,7 @@
 
 **Overall Status:** NOT CERTIFIED
 **Certification Document Version:** 0.4.0
-**Core Spec:** `SPEC.md` 2.1.0
+**Core Spec:** `SPEC.md` 0.2.0 (checked-in draft; not approved)
 **Updated:** 2026-08-27
 **Certification Date:** -
 
