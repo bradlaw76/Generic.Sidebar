@@ -784,7 +784,7 @@ These rules are **inviolable** and must be preserved across all future changes:
 | Mode | Requirements |
 | --- | --- |
 | Standalone simulated mode | Modern browser with localStorage; camera and audio features require corresponding browser APIs and user permission |
-| Dynamics simulated mode | Separately deployed HTML web resource, user access to configured Dataverse records, and optional separately deployed GenericSoftphone 1.0.0.11 schema |
+| Dynamics simulated mode | Separately deployed HTML web resource and read access to the configured Dataverse records. The `gensoft_genericsoftphone` configuration table must also expose the `gensoft_callerid` lookup backing `_gensoft_callerid_value`; the checked-in GenericSoftphone schema guide and creation script do **not** define or create that lookup. Without it, the Dataverse configuration query can fail and fall back to embedded settings. Verify the lookup independently before claiming Dataverse-backed acceptance. |
 
 ### Compatibility Matrix
 
