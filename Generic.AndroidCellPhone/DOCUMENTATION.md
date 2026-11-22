@@ -2,9 +2,9 @@
 =============================================================================
 DOCUMENT:     Android Phone Simulator - Full Documentation
 FILE:         Generic.AndroidCellPhone/DOCUMENTATION.md
-VERSION:      1.2.0
+VERSION:      1.2.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-08-27
+LAST UPDATED: 2026-11-22
 ENVIRONMENT:  Markdown (GitHub / Docs)
 
 -----------------------------------------------------------------------------
@@ -17,6 +17,7 @@ integration as a web resource, softphone interop, and demo control panel.
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.2.1  2026-11-22  Reconcile main's 2026-10-02 RINGING corrections with optional add-in and Dataverse validation guidance
 v1.2.0  2026-08-27  Align version, call behavior, compatibility, and validation with the checked-in runtime
 v1.1.0  2026-08-27  Clarify optional deployment boundary, version compatibility, and RINGING outgoing contract
 v1.0.0  2026-03-06  Initial documentation created
@@ -30,7 +31,7 @@ v1.0.0  2026-03-06  Initial documentation created
 **Component Version:** 2.6.0
 **Deployment Layer:** Optional add-in; not included in Generic Sidebar Core
 **Author:** Generic.Sidebar Team  
-**Last Updated:** 2026-08-27
+**Last Updated:** 2026-11-22
 
 ---
 

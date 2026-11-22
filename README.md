@@ -29,6 +29,10 @@ This repository contains three separate deployment layers. They share integratio
 
 The historical SSO release label `v2.0.0`, specification versions, solution package version, and individual web-resource versions identify different artifacts. They are intentionally reported separately rather than being overwritten with one arbitrary version.
 
+### Core capabilities and source-versus-package boundary
+
+The Core configuration model supports rich panel instructions, URL/HTML/iframe, Power Apps and Copilot Studio content, optional theming, effective iframe dimensions, URL pop-out and a shared default row. The H004 **development** runtime supports one through four panels, including legacy two-panel compatibility. These are source-level descriptions, **not proof that the published 1.0.0.11 ZIP provides every feature**; inspect its own packaged runtime/schema and complete H009 acceptance before making a deployment claim.
+
 ### Historical Repository Package Verification (1.0.0.5 only)
 
 On 2026-08-27, `GenericSidebar_1_0_0_5.zip` was inspected in memory without modification. The solution identifies itself as `GenericSidebar` 1.0.0.5 with publisher prefix `sidebar`. No archive entry name or textual payload contains Android, AndroidCellPhone, Genesys, Softphone, GenericSoftphone, or `gensoft_` content. The package must remain Core-only. The ZIP is authoritative for installed behavior; its single-content HTML renderer and 2.3.0 JavaScript differ from the multi-panel 2.14.0 HTML and 2.5.0 JavaScript development sources. Do not use source-only behavior to certify the installable package.
