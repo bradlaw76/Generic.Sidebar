@@ -3,7 +3,7 @@
 **Status:** DRAFT
 **Version:** 0.2.0
 **Created:** 2026-03-04
-**Updated:** 2026-08-27
+**Updated:** 2026-11-22 (historical artifact and host-dependency clarification only)
 
 ---
 
@@ -34,13 +34,13 @@ Define the functional and non-functional behavior of Generic Sidebar Core as a c
 
 ### Layer 1: Generic Sidebar Core
 
-- Independently installable Dynamics 365 solution: `GenericSidebar_1_0_0_5.zip` (solution version 1.0.0.5, publisher prefix `sidebar`).
+- Independently packaged Core-only Dynamics 365 solution: historical repository archive `GenericSidebar_1_0_0_5.zip` (solution version 1.0.0.5, publisher prefix `sidebar`). This is not the currently published `GenericSidebar_1_0_0_11.zip` or H004's unpublished local candidate 1.0.0.12.
 - The installable package and development source have separate runtime evidence. Package HTML has no embedded version marker and package JavaScript is marked 2.3.0; development source HTML is marked 2.14.0 and source JavaScript is marked 2.5.0.
 - The package and source differ functionally. The ZIP is authoritative for installed behavior, and source-only multi-panel, pop-out, and navigation-preservation behavior MUST NOT be used to certify solution 1.0.0.5 until a separate runtime/package reconciliation is completed.
-- Requires `sidebar_*` configuration and web-resource components only.
+- Core-owned configuration and web-resource components use the `sidebar_*` prefix. **Core-only does not mean host-dependency-free:** importing a selected ZIP also requires compatible Microsoft first-party Dynamics 365 Customer Service components declared in that exact ZIP's `solution.xml`. Historical 1.0.0.5 examples include `msdynce_Service`, `msdyn_ModernCaseManagement`, and `msdyn_CSIntelligence`; this is not an exhaustive inventory.
 - MUST NOT depend on or include Android Phone Simulator, Genesys Softphone Simulator, GenericSoftphone, or `gensoft_*` components.
 
-The package was inspected in memory on 2026-08-27. No Android, Genesys, Softphone, GenericSoftphone, or `gensoft_` string was present in archive names or textual payloads. No package was rebuilt or modified during verification.
+The historical package was inspected in memory on 2026-08-27. No Android, Genesys, Softphone, GenericSoftphone, or `gensoft_` string was present in archive names or textual payloads. No package was rebuilt or modified during verification. This inspection does not certify import prerequisites or target-environment compatibility, published 1.0.0.11 byte/source parity, or H009 live acceptance; inspect the exact intended artifact and environment separately before an authorized import.
 
 ### Layer 2: Optional Android Phone Simulator Add-in
 
