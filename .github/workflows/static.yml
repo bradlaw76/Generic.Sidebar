@@ -24,8 +24,10 @@ permissions:
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Isolate read-only PR validation from production Pages deployment queuing.
+# Preserve the existing "pages" group for main pushes and manual deployments.
 concurrency:
-  group: "pages"
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: false
 
 jobs:
