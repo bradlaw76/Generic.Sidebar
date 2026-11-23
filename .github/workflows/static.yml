@@ -9,21 +9,81 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  # Read-only staging verification; no Pages deployment from pull requests.
+  pull_request:
+    paths:
+      - '.github/workflows/static.yml'
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'pages/agent/index.html'
+      - 'pages/copilot/index.html'
+
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Isolate read-only PR validation from production Pages deployment queuing.
+# Preserve the existing "pages" group for main pushes and manual deployments.
 concurrency:
-  group: "pages"
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
+  validate:
+    name: Verify Pages allowlist without deployment
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+  # Production Pages deployment remains push-to-main/manual only.
   deploy:
+    # Manual dispatch accepts arbitrary branch/tag refs; publish from main only.
+    # PR validation always remains read-only and cannot enter this job.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -33,11 +93,45 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+      - name: Upload allowlisted site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          path: '_site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
