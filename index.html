@@ -404,16 +404,21 @@ NON-NEGOTIABLES (Architecture Contract)
     document.getElementById('toggleLegendButton').addEventListener('click',()=>{
       if(chart){chart.options.plugins.legend.display=!chart.options.plugins.legend.display;chart.update();}
     });
+    // GitHub release metadata can contain spreadsheet formula-like text.
+    // Prefix such cells before ordinary CSV escaping so exports open as data.
+    function csvEscapeCell(cell) {
+      const raw = String(cell ?? '');
+      const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(raw) ? "'" + raw : raw;
+      const escaped = safe.replace(/"/g, '""');
+      return /[",\r\n]/.test(safe) ? '"' + escaped + '"' : escaped;
+    }
+
     document.getElementById('exportCsvBtn').addEventListener('click',()=>{
       if(!releaseData.length) return;
       const header=['Release Date','Tag','Name','Asset','Downloads','Total Downloads'];
       const rows=releaseData.flatMap(r=>r.assets.map(a=>[r.date,r.tag,r.name,a.name,a.downloads,r.total]));
-      const csv=[header,...rows].map(r=>r.map(cell=>{
-        const s=String(cell);
-        const needsQuote=/[",\n]/.test(s);
-        let v=s.replace(/"/g,'""');
-        return needsQuote?`"${v}"`:v;
-      }).join(',')).join('\n');
+      const csv=[header,...rows].map(r=>r.map(csvEscapeCell).join(',')).join('\n');
+
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
       const link=document.createElement('a');
       link.href=URL.createObjectURL(blob);
