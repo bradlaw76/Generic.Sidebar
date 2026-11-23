@@ -172,6 +172,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     iframe { width: 100%; border: 0; display: block; }
+    /* Keep the loading/failure state reliable if the Tailwind CDN is blocked. */
+    .hidden { display: none !important; }
   </style>
 </head>
 <body class="flex flex-col h-screen">
