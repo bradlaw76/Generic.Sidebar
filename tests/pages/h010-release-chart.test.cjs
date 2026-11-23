@@ -111,3 +111,22 @@ for (const page of pages) {
     assert.equal(h.note, null);
   });
 }
+
+for (const page of pages) {
+  test(page + ': formula-like CSV metadata is exported as text, not spreadsheet code', () => {
+    const { source } = readChartScript(page);
+    const start = source.indexOf('function csvEscapeCell(cell) {');
+    const end = source.indexOf('\n    }', start);
+    assert.ok(start >= 0 && end > start, page + ': expected CSV escaping helper');
+    assert.match(source, /\.map\(csvEscapeCell\)/, page + ': exporter must use the helper');
+    const escape = vm.runInNewContext(source.slice(start, end + '\n    }'.length) + '\ncsvEscapeCell');
+    assert.equal(escape('=1+1'), "'=1+1");
+    assert.equal(escape(' +SUM(1)'), "' +SUM(1)");
+    assert.equal(escape('\t@SUM(A1:A2)'), "'\t@SUM(A1:A2)");
+    assert.equal(escape('-1'), "'-1");
+    assert.equal(escape(25), '25');
+    assert.equal(escape('alpha,beta'), '"alpha,beta"');
+    assert.equal(escape('alpha "beta"'), '"alpha ""beta"""');
+    assert.equal(escape('\r=1+1'), '"\'\r=1+1"');
+  });
+}
