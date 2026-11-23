@@ -75,6 +75,88 @@ jobs:
             echo 'Unexpected/missing file in GitHub Pages artifact' >&2
             exit 1
           fi
+      - name: Verify staged HTML routes and anchors without network access
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import unquote, urljoin, urlsplit
+
+          origin = "https://bradlaw76.github.io"
+          prefix = "/Generic.Sidebar/"
+          routes = {
+              "index.html", "downloads/index.html",
+              "pages/agent/index.html", "pages/copilot/index.html",
+          }
+
+          class Page(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+                  self.anchors = set()
+
+              def handle_starttag(self, tag, attrs):
+                  for key, value in attrs:
+                      if value is None:
+                          continue
+                      if tag == "base" and key == "href":
+                          raise ValueError("Unexpected base href in staged page")
+                      if key in ("href", "src"):
+                          self.links.append((value, self.getpos()[0]))
+                      if key == "id" or (tag == "a" and key == "name"):
+                          self.anchors.add(value)
+
+          def target(source, value):
+              url = urlsplit(urljoin(origin + prefix + source, value))
+              if url.scheme not in ("http", "https") or url.netloc != urlsplit(origin).netloc:
+                  return None
+              path = unquote(url.path)
+              if not path.startswith(prefix):
+                  raise ValueError("same-origin link escapes project path")
+              path = path[len(prefix):]
+              if not path or path.endswith("/"):
+                  path += "index.html"
+              if path not in routes:
+                  raise ValueError(f"not in staged allowlist: {path}")
+              return path, unquote(url.fragment)
+
+          # Positive and negative fixtures verify the resolver itself.
+          assert target("pages/copilot/index.html", "../../downloads/#main") == ("downloads/index.html", "main")
+          assert target("index.html", origin + prefix + "pages/agent/") == ("pages/agent/index.html", "")
+          assert target("index.html", "https://github.com/bradlaw76/Generic.Sidebar") is None
+          for missing in ("/Generic.Sidebar/missing.html", "/outside/", "downloads/absent.js"):
+              try:
+                  target("index.html", missing)
+              except ValueError:
+                  pass
+              else:
+                  raise AssertionError(f"Accepted unstaged route: {missing}")
+
+          parsed = {}
+          for route in sorted(routes):
+              parser = Page()
+              parser.feed((Path("_site") / route).read_text(encoding="utf-8"))
+              parser.close()
+              parsed[route] = parser
+          count = 0
+          errors = []
+          for source, page in parsed.items():
+              for value, line in page.links:
+                  try:
+                      dest = target(source, value)
+                      if dest is None:
+                          continue
+                      count += 1
+                      route, anchor = dest
+                      if anchor and anchor not in parsed[route].anchors:
+                          raise ValueError(f"missing anchor #{anchor} in {route}")
+                  except ValueError as error:
+                      errors.append(f"{source}:{line}: {error}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print(f"Verified {count} same-origin staged href/src references across {len(parsed)} HTML files")
+          PY
   # Production Pages deployment remains push-to-main/manual only.
   deploy:
     # Manual dispatch accepts arbitrary branch/tag refs; publish from main only.
