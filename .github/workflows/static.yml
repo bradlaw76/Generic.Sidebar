@@ -44,6 +44,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
           # Reject symlinked file or directory components before publishing.
           site_root="$(pwd -P)"
           for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
@@ -88,6 +95,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
           # Reject symlinked file or directory components before publishing.
           site_root="$(pwd -P)"
           for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
