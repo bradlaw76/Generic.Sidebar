@@ -172,6 +172,16 @@ NON-NEGOTIABLES (Architecture Contract)
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     iframe { width: 100%; border: 0; display: block; }
+    /* Keep the loading/failure state reliable if the Tailwind CDN is blocked. */
+    .hidden { display: none !important; }
+    /* Preserve the full-height chat and error overlay when Tailwind is unavailable. */
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    nav { flex-shrink: 0; }
+    main { position: relative; flex: 1 1 auto; min-height: 0; }
+    #fallback:not(.hidden) { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; background: #f9fafb; }
+    /* A cross-origin iframe can emit load even when blocked; always offer a manual exit. */
+    .manual-fallback-link { position: fixed; top: 72px; right: 12px; z-index: 10; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1d4ed8; font: 600 13px/1.4 system-ui, sans-serif; text-decoration: underline; }
+    .manual-fallback-link:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
   </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -191,6 +201,7 @@ NON-NEGOTIABLES (Architecture Contract)
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       style="width:100%;height:100%;">
     </iframe>
+    <a id="manualFallback" class="manual-fallback-link" href="/Generic.Sidebar/pages/agent/">Chat blank or blocked? View agent instructions</a>
     <div id="fallback" class="hidden absolute inset-0 flex items-center justify-center bg-gray-50">
       <div class="text-center p-8">
         <p class="text-lg text-gray-700 mb-4">The Copilot agent could not be loaded.</p>
@@ -201,21 +212,24 @@ NON-NEGOTIABLES (Architecture Contract)
   </main>
   <script>
     const frame = document.getElementById('copilotFrame');
-    frame.addEventListener('error', () => {
+    const fallback = document.getElementById('fallback');
+    let loaded = false;
+    let timeoutId;
+    function showFallback() {
+      clearTimeout(timeoutId);
       frame.classList.add('hidden');
-      document.getElementById('fallback').classList.remove('hidden');
+      fallback.classList.remove('hidden');
+    }
+    frame.addEventListener('error', showFallback);
+    frame.addEventListener('load', () => {
+      loaded = true;
+      clearTimeout(timeoutId);
     });
-    // Timeout fallback: if iframe hasn't loaded within 15s, show fallback
-    const timer = setTimeout(() => {
-      try {
-        // Accessing cross-origin frame will throw; if it doesn't, the frame loaded. 
-        // We just rely on the fact that if it loaded, the content is visible.
-      } catch(e) {
-        frame.classList.add('hidden');
-        document.getElementById('fallback').classList.remove('hidden');
-      }
+    // Show a fallback only when no iframe load event arrives within 15 seconds.
+    // A load event is not proof the cross-origin bot is usable; live acceptance is separate.
+    timeoutId = setTimeout(() => {
+      if (!loaded) showFallback();
     }, 15000);
-    frame.addEventListener('load', () => clearTimeout(timer));
   </script>
 </body>
 </html>
