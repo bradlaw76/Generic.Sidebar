@@ -398,20 +398,37 @@ NON-NEGOTIABLES (Architecture Contract)
       return datasets;
     }
 
+    function showChartUnavailable() {
+      const canvas = document.getElementById('releaseChart');
+      canvas.style.display = 'none';
+      if (!document.getElementById('chartUnavailable')) {
+        const note = document.createElement('p');
+        note.id = 'chartUnavailable';
+        note.setAttribute('role', 'status');
+        note.textContent = 'Chart unavailable; release data is available in the table below.';
+        canvas.parentElement.appendChild(note);
+      }
+    }
+
+    // Chart rendering is optional; its failure must not interrupt table/CSV updates.
+    function updateChartSafely(data) {
+      try {
+        updateChart(data);
+      } catch (error) {
+        console.warn('Optional release chart rendering failed:', error);
+        chart = null;
+        showChartUnavailable();
+      }
+    }
+
     function updateChart(data) {
-      // Keep release metadata accessible if the external Chart.js script is unavailable.
       if (typeof Chart !== 'function') {
-        const canvas = document.getElementById('releaseChart');
-        canvas.style.display = 'none';
-        if (!document.getElementById('chartUnavailable')) {
-          const note = document.createElement('p');
-          note.id = 'chartUnavailable';
-          note.setAttribute('role', 'status');
-          note.textContent = 'Chart unavailable; release data is available in the table below.';
-          canvas.parentElement.appendChild(note);
-        }
+        showChartUnavailable();
         return;
       }
+      // A late/local Chart.js recovery should restore a previously hidden canvas.
+      document.getElementById('releaseChart').style.display = '';
+      document.getElementById('chartUnavailable')?.remove();
       const labels = data.map(r => r.tagName || '(no tag)').reverse();
       const datasets = buildDatasets(data);
 
@@ -546,8 +563,8 @@ NON-NEGOTIABLES (Architecture Contract)
         // Check rate limit from last fetch headers (if available)
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
       } catch (e) {
         console.error(e);
         showStatus('error', e.message || 'Unexpected error while loading releases.');
@@ -566,8 +583,8 @@ NON-NEGOTIABLES (Architecture Contract)
 
     releaseCountSel.addEventListener('change', () => {
       viewData = applyViewFilters();
-      updateChart(viewData);
       updateTable(viewData);
+      updateChartSafely(viewData);
     });
 
     let filterDebounce;
@@ -575,8 +592,8 @@ NON-NEGOTIABLES (Architecture Contract)
       clearTimeout(filterDebounce);
       filterDebounce = setTimeout(() => {
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
       }, 250);
     });
 
