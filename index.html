@@ -285,20 +285,37 @@ NON-NEGOTIABLES (Architecture Contract)
       });
     }
 
+    function showChartUnavailable() {
+      const canvas = document.getElementById('releaseChart');
+      canvas.style.display = 'none';
+      if (!document.getElementById('chartUnavailable')) {
+        const note = document.createElement('p');
+        note.id = 'chartUnavailable';
+        note.setAttribute('role', 'status');
+        note.textContent = 'Chart unavailable; release data is available in the table below.';
+        canvas.parentElement.appendChild(note);
+      }
+    }
+
+    // Chart rendering is optional; its failure must not interrupt table/CSV updates.
+    function updateChartSafely(data) {
+      try {
+        updateChart(data);
+      } catch (error) {
+        console.warn('Optional release chart rendering failed:', error);
+        chart = null;
+        showChartUnavailable();
+      }
+    }
+
     function updateChart(data){
-      // Keep release metadata accessible if the external Chart.js script is unavailable.
       if (typeof Chart !== 'function') {
-        const canvas = document.getElementById('releaseChart');
-        canvas.style.display = 'none';
-        if (!document.getElementById('chartUnavailable')) {
-          const note = document.createElement('p');
-          note.id = 'chartUnavailable';
-          note.setAttribute('role', 'status');
-          note.textContent = 'Chart unavailable; release data is available in the table below.';
-          canvas.parentElement.appendChild(note);
-        }
+        showChartUnavailable();
         return;
       }
+      // A late/local Chart.js recovery should restore a previously hidden canvas.
+      document.getElementById('releaseChart').style.display = '';
+      document.getElementById('chartUnavailable')?.remove();
       const ctx = document.getElementById('releaseChart').getContext('2d');
       const labels = data.map(r => r.tag).reverse();
       const datasets = [];
@@ -377,8 +394,8 @@ NON-NEGOTIABLES (Architecture Contract)
       try{
         const releases = await fetchReleases();
         releaseData = processData(releases);
-        updateChart(releaseData);
         updateTable(releaseData);
+        updateChartSafely(releaseData);
       }catch(e){
         console.error(e);
       }
