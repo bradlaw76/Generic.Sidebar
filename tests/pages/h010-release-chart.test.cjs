@@ -133,9 +133,9 @@ for (const page of pages) {
 
 
 // Exercise the actual landing-page API/load functions; never contact GitHub.
-function statsHarness(fetch) {
+function statsHarness(fetch, timers = { setTimeout, clearTimeout }) {
   const { source } = readChartScript('index.html');
-  const start = source.indexOf('async function fetchReleases()');
+  const start = source.indexOf('async function withReleaseDeadline(');
   const end = source.indexOf('function showChartUnavailable()', start);
   const loadStart = source.indexOf('async function loadStats()');
   const loadEnd = source.indexOf("document.getElementById('toggleLegendButton').addEventListener", loadStart);
@@ -145,6 +145,8 @@ function statsHarness(fetch) {
   const calls = [];
   const context = {
     fetch,
+    AbortController,
+    ...timers,
     document: { getElementById(id) {
       if (id === 'releaseStatsStatus') return status;
       if (id === 'exportCsvBtn') return button;
@@ -201,7 +203,7 @@ test('landing page: loaded assets enable CSV after table-first updates', async (
 
 
 // Exercise the downloads page's actual API/load path, with no network.
-function downloadsHarness(fetch) {
+function downloadsHarness(fetch, timers = { setTimeout, clearTimeout }) {
   const { source } = readChartScript('downloads/index.html');
   const start = source.indexOf('function fmtDateISO(');
   const end = source.indexOf('function applyViewFilters(', start);
@@ -214,6 +216,8 @@ function downloadsHarness(fetch) {
   let loading = false;
   const context = {
     fetch,
+    AbortController,
+    ...timers,
     exportCsvBtn: button,
     loadingEl: { classList: {
       remove() { loading = true; },
@@ -277,4 +281,100 @@ test('downloads: successful asset load clears loading status and enables CSV', a
   assert.equal(h.loading, false);
   assert.equal(h.status.type, null);
   assert.deepEqual(h.calls, [['table', 1], ['chart', 1]]);
+});
+
+
+// Deterministic deadline tests: no real wait, network, or external dependency.
+function deadlineTimers() {
+  let callback;
+  let cleared = false;
+  return {
+    setTimeout(fn, delay) {
+      assert.equal(delay, 15000);
+      callback = fn;
+      return 1;
+    },
+    clearTimeout(id) { assert.equal(id, 1); cleared = true; },
+    expire() { assert.ok(callback); callback(); },
+    get cleared() { return cleared; }
+  };
+}
+
+for (const [name, makeHarness] of [
+  ['landing', statsHarness], ['downloads', downloadsHarness]
+]) {
+  test(name + ': stalled fetch times out, aborts and ignores a late response', async () => {
+    const clock = deadlineTimers();
+    let finish, signal;
+    const h = makeHarness((_url, options) => {
+      signal = options.signal;
+      return new Promise(resolve => { finish = resolve; });
+    }, clock);
+    const pending = h.load();
+    assert.equal(h.button.disabled, true);
+    clock.expire();
+    await pending;
+    assert.equal(signal.aborted, true);
+    assert.equal(clock.cleared, true);
+    assert.equal(h.button.disabled, true);
+    assert.match(h.status.textContent || h.status.message, /unavailable|timed out/i);
+    if (name === 'downloads') assert.equal(h.loading, false);
+    finish({ ok: true, json: async () => [{
+      published_at: '2026-01-01T00:00:00Z', tag_name: 'v1',
+      assets: [{ name: 'late.zip', download_count: 1 }]
+    }] });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(h.calls, []);
+    assert.equal(h.button.disabled, true);
+  });
+
+  test(name + ': stalled response body is also bounded and late body cannot render', async () => {
+    const clock = deadlineTimers();
+    let finishBody, signal;
+    const h = makeHarness(async (_url, options) => {
+      signal = options.signal;
+      return { ok: true, json: () => new Promise(resolve => { finishBody = resolve; }) };
+    }, clock);
+    const pending = h.load();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(typeof finishBody, 'function');
+    clock.expire();
+    await pending;
+    assert.equal(signal.aborted, true);
+    assert.equal(clock.cleared, true);
+    assert.equal(h.button.disabled, true);
+    finishBody([]);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(h.calls, []);
+  });
+
+  test(name + ': successful fetch clears the deadline without aborting', async () => {
+    const clock = deadlineTimers();
+    let signal;
+    const h = makeHarness(async (_url, options) => {
+      signal = options.signal;
+      return { ok: true, json: async () => [] };
+    }, clock);
+    await h.load();
+    assert.equal(clock.cleared, true);
+    assert.equal(signal.aborted, false);
+    assert.deepEqual(h.calls, [['table', 0], ['chart', 0]]);
+  });
+}
+
+test('downloads: late full page after deadline does not start another API request', async () => {
+  const clock = deadlineTimers();
+  let calls = 0, finishBody;
+  const h = downloadsHarness(async () => {
+    calls++;
+    return { ok: true, json: () => new Promise(resolve => { finishBody = resolve; }) };
+  }, clock);
+  const pending = h.load();
+  await new Promise(resolve => setImmediate(resolve));
+  clock.expire();
+  await pending;
+  finishBody(Array.from({ length: 100 }, () => ({ tag_name: 'v1', assets: [] })));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 1);
+  assert.deepEqual(h.calls, []);
 });

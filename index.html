@@ -266,8 +266,27 @@ NON-NEGOTIABLES (Architecture Contract)
     let chart;
     let releaseData = [];
 
-    async function fetchReleases() {
-      const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`);
+    // Bound the entire release request, including pagination and JSON parsing.
+    async function withReleaseDeadline(request) {
+      const controller = new AbortController();
+      let timer;
+      try {
+        return await Promise.race([
+          new Promise((_, reject) => {
+            timer = setTimeout(() => {
+              reject(new Error('Release request timed out. Refresh the page or visit GitHub Releases.'));
+              controller.abort();
+            }, 15000);
+          }),
+          request(controller.signal)
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchReleases(signal) {
+      const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }
@@ -397,7 +416,7 @@ NON-NEGOTIABLES (Architecture Contract)
       status.textContent = 'Loading release statistics…';
       exportButton.disabled = true;
       try{
-        const releases = await fetchReleases();
+        const releases = await withReleaseDeadline(fetchReleases);
         releaseData = processData(releases);
         updateTable(releaseData);
         updateChartSafely(releaseData);

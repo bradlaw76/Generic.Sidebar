@@ -313,14 +313,34 @@ NON-NEGOTIABLES (Architecture Contract)
       return d.toISOString().split('T')[0];
     }
 
-    async function fetchAllReleases() {
+    // Bound the entire release request, including pagination and JSON parsing.
+    async function withReleaseDeadline(request) {
+      const controller = new AbortController();
+      let timer;
+      try {
+        return await Promise.race([
+          new Promise((_, reject) => {
+            timer = setTimeout(() => {
+              reject(new Error('Release request timed out. Refresh the page or visit GitHub Releases.'));
+              controller.abort();
+            }, 15000);
+          }),
+          request(controller.signal)
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchAllReleases(signal) {
       // Paginate through /releases (30 per page by default). We'll request 100/page to minimize calls.
       const perPage = 100;
       let page = 1;
       let all = [];
       while (true) {
         const url = `${API_BASE}/releases?per_page=${perPage}&page=${page}`;
-        const res = await fetch(url);
+        if (signal.aborted) throw new Error('Release request cancelled.');
+        const res = await fetch(url, { signal });
         if (!res.ok) {
           let detail = `HTTP ${res.status}`;
           try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
@@ -561,7 +581,7 @@ NON-NEGOTIABLES (Architecture Contract)
       loadingEl.classList.remove('hidden');
       try {
         // Get all releases
-        const releases = await fetchAllReleases();
+        const releases = await withReleaseDeadline(fetchAllReleases);
         // Check rate limit from last fetch headers (if available)
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
