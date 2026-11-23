@@ -218,12 +218,12 @@ NON-NEGOTIABLES (Architecture Contract)
       </div>
       <div class="flex items-center gap-2 justify-start sm:justify-end">
         <button id="toggleLegendButton" class="text-sm px-3 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">Toggle Legend</button>
-        <button id="exportCsvBtn" class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
+        <button id="exportCsvBtn" disabled class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
       </div>
     </section>
 
     <!-- Status / Alerts -->
-    <section id="statusBox" class="hidden mb-4 p-3 rounded-md border text-sm"></section>
+    <section id="statusBox" role="status" class="hidden mb-4 p-3 rounded-md border text-sm"></section>
 
     <!-- Chart -->
     <section class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
@@ -556,19 +556,24 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     async function load() {
-      clearStatus();
+      exportCsvBtn.disabled = true;
+      showStatus('info', 'Loading release data…');
       loadingEl.classList.remove('hidden');
       try {
         // Get all releases
         const releases = await fetchAllReleases();
-        if (!releases || releases.length === 0) {
-          showStatus('warn', 'No releases found for this repository.');
-        }
         // Check rate limit from last fetch headers (if available)
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
         updateTable(viewData);
         updateChartSafely(viewData);
+        if (!releases.length) {
+          showStatus('warn', 'No releases found for this repository.');
+        } else if (!fullData.some(r => r.assets.length)) {
+          showStatus('warn', 'No downloadable release assets found.');
+        } else {
+          clearStatus();
+        }
       } catch (e) {
         console.error(e);
         showStatus('error', e.message || 'Unexpected error while loading releases.');
@@ -601,7 +606,9 @@ NON-NEGOTIABLES (Architecture Contract)
       }, 250);
     });
 
-    exportCsvBtn.addEventListener('click', () => exportToCSV(viewData));
+    exportCsvBtn.addEventListener('click', () => {
+      if (!exportCsvBtn.disabled) exportToCSV(viewData);
+    });
 
     // Kick off
     load();

@@ -198,3 +198,83 @@ test('landing page: loaded assets enable CSV after table-first updates', async (
   assert.match(html, /id="releaseStatsStatus" role="status"/);
   assert.match(html, /id="exportCsvBtn" disabled/);
 });
+
+
+// Exercise the downloads page's actual API/load path, with no network.
+function downloadsHarness(fetch) {
+  const { source } = readChartScript('downloads/index.html');
+  const start = source.indexOf('function fmtDateISO(');
+  const end = source.indexOf('function applyViewFilters(', start);
+  const loadStart = source.indexOf('async function load()');
+  const loadEnd = source.indexOf('// --- Events ---', loadStart);
+  assert.ok(start >= 0 && end > start && loadStart >= 0 && loadEnd > loadStart);
+  const button = { disabled: true };
+  const status = { type: null, message: '' };
+  const calls = [];
+  let loading = false;
+  const context = {
+    fetch,
+    exportCsvBtn: button,
+    loadingEl: { classList: {
+      remove() { loading = true; },
+      add() { loading = false; }
+    } },
+    showStatus(type, message) { status.type = type; status.message = message; },
+    clearStatus() { status.type = null; status.message = ''; },
+    updateTable(data) {
+      calls.push(['table', data.length]);
+      button.disabled = !data.some(r => r.assets.length);
+    },
+    updateChartSafely(data) { calls.push(['chart', data.length]); },
+    console: { error() {} }
+  };
+  const load = vm.runInNewContext(
+    'const API_BASE = "https://example.invalid"; let fullData = [], viewData = [];\n' +
+    'function applyViewFilters() { return fullData; }\n' +
+    source.slice(start, end) + '\n' + source.slice(loadStart, loadEnd) + '\nload',
+    context
+  );
+  return { load, button, status, calls, get loading() { return loading; } };
+}
+
+test('downloads: initial and pending load keep CSV disabled, HTTP failure is announced', async () => {
+  const html = fs.readFileSync(path.join(root, 'downloads/index.html'), 'utf8');
+  assert.match(html, /id="exportCsvBtn" disabled/);
+  assert.match(html, /id="statusBox" role="status"/);
+  let finish;
+  const h = downloadsHarness(() => new Promise(resolve => { finish = resolve; }));
+  const pending = h.load();
+  assert.equal(h.loading, true);
+  assert.equal(h.button.disabled, true);
+  assert.match(h.status.message, /Loading release data/);
+  finish({ ok: false, status: 403, json: async () => ({ message: 'Rate limited' }) });
+  await pending;
+  assert.equal(h.loading, false);
+  assert.equal(h.button.disabled, true);
+  assert.equal(h.status.type, 'error');
+  assert.match(h.status.message, /HTTP 403/);
+  assert.deepEqual(h.calls, []);
+});
+
+test('downloads: empty releases and releases without assets keep CSV disabled', async () => {
+  for (const releases of [[], [{ tag_name: 'v1', assets: [] }]]) {
+    const h = downloadsHarness(async () => ({ ok: true, json: async () => releases }));
+    await h.load();
+    assert.equal(h.button.disabled, true);
+    assert.equal(h.loading, false);
+    assert.equal(h.status.type, 'warn');
+    assert.match(h.status.message, /No (releases|downloadable release assets) found/);
+    assert.deepEqual(h.calls, [['table', releases.length], ['chart', releases.length]]);
+  }
+});
+
+test('downloads: successful asset load clears loading status and enables CSV', async () => {
+  const h = downloadsHarness(async () => ({
+    ok: true, json: async () => [{ tag_name: 'v1', assets: [{ name: 'demo.zip', download_count: 2 }] }]
+  }));
+  await h.load();
+  assert.equal(h.button.disabled, false);
+  assert.equal(h.loading, false);
+  assert.equal(h.status.type, null);
+  assert.deepEqual(h.calls, [['table', 1], ['chart', 1]]);
+});
