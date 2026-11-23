@@ -508,6 +508,15 @@ NON-NEGOTIABLES (Architecture Contract)
       exportCsvBtn.disabled = !rows;
     }
 
+    // GitHub release metadata can contain spreadsheet formula-like text.
+    // Prefix such cells before ordinary CSV escaping so exports open as data.
+    function csvEscapeCell(cell) {
+      const raw = String(cell ?? '');
+      const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(raw) ? "'" + raw : raw;
+      const escaped = safe.replace(/"/g, '""');
+      return /[",\r\n]/.test(safe) ? '"' + escaped + '"' : escaped;
+    }
+
     function exportToCSV(data) {
       const header = ['Release Date','Tag','Release Name','Release URL','Asset','Asset URL','Downloads','Total Downloads'];
       const rows = [];
@@ -525,12 +534,7 @@ NON-NEGOTIABLES (Architecture Contract)
           ]);
         }
       }
-      const csv = [header, ...rows].map(row => row.map(cell => {
-        // CSV-escape cell
-        const needsQuote = /[",\n]/.test(cell);
-        let v = cell.replace(/"/g, '""');
-        return needsQuote ? `"${v}"` : v;
-      }).join(',')).join('\n');
+      const csv = [header, ...rows].map(row => row.map(csvEscapeCell).join(',')).join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
