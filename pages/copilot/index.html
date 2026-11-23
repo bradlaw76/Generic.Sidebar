@@ -201,21 +201,24 @@ NON-NEGOTIABLES (Architecture Contract)
   </main>
   <script>
     const frame = document.getElementById('copilotFrame');
-    frame.addEventListener('error', () => {
+    const fallback = document.getElementById('fallback');
+    let loaded = false;
+    let timeoutId;
+    function showFallback() {
+      clearTimeout(timeoutId);
       frame.classList.add('hidden');
-      document.getElementById('fallback').classList.remove('hidden');
+      fallback.classList.remove('hidden');
+    }
+    frame.addEventListener('error', showFallback);
+    frame.addEventListener('load', () => {
+      loaded = true;
+      clearTimeout(timeoutId);
     });
-    // Timeout fallback: if iframe hasn't loaded within 15s, show fallback
-    const timer = setTimeout(() => {
-      try {
-        // Accessing cross-origin frame will throw; if it doesn't, the frame loaded. 
-        // We just rely on the fact that if it loaded, the content is visible.
-      } catch(e) {
-        frame.classList.add('hidden');
-        document.getElementById('fallback').classList.remove('hidden');
-      }
+    // Show a fallback only when no iframe load event arrives within 15 seconds.
+    // A load event is not proof the cross-origin bot is usable; live acceptance is separate.
+    timeoutId = setTimeout(() => {
+      if (!loaded) showFallback();
     }, 15000);
-    frame.addEventListener('load', () => clearTimeout(timer));
   </script>
 </body>
 </html>
