@@ -398,7 +398,37 @@ NON-NEGOTIABLES (Architecture Contract)
       return datasets;
     }
 
+    function showChartUnavailable() {
+      const canvas = document.getElementById('releaseChart');
+      canvas.style.display = 'none';
+      if (!document.getElementById('chartUnavailable')) {
+        const note = document.createElement('p');
+        note.id = 'chartUnavailable';
+        note.setAttribute('role', 'status');
+        note.textContent = 'Chart unavailable; release data is available in the table below.';
+        canvas.parentElement.appendChild(note);
+      }
+    }
+
+    // Chart rendering is optional; its failure must not interrupt table/CSV updates.
+    function updateChartSafely(data) {
+      try {
+        updateChart(data);
+      } catch (error) {
+        console.warn('Optional release chart rendering failed:', error);
+        chart = null;
+        showChartUnavailable();
+      }
+    }
+
     function updateChart(data) {
+      if (typeof Chart !== 'function') {
+        showChartUnavailable();
+        return;
+      }
+      // A late/local Chart.js recovery should restore a previously hidden canvas.
+      document.getElementById('releaseChart').style.display = '';
+      document.getElementById('chartUnavailable')?.remove();
       const labels = data.map(r => r.tagName || '(no tag)').reverse();
       const datasets = buildDatasets(data);
 
@@ -478,6 +508,15 @@ NON-NEGOTIABLES (Architecture Contract)
       exportCsvBtn.disabled = !rows;
     }
 
+    // GitHub release metadata can contain spreadsheet formula-like text.
+    // Prefix such cells before ordinary CSV escaping so exports open as data.
+    function csvEscapeCell(cell) {
+      const raw = String(cell ?? '');
+      const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(raw) ? "'" + raw : raw;
+      const escaped = safe.replace(/"/g, '""');
+      return /[",\r\n]/.test(safe) ? '"' + escaped + '"' : escaped;
+    }
+
     function exportToCSV(data) {
       const header = ['Release Date','Tag','Release Name','Release URL','Asset','Asset URL','Downloads','Total Downloads'];
       const rows = [];
@@ -495,12 +534,7 @@ NON-NEGOTIABLES (Architecture Contract)
           ]);
         }
       }
-      const csv = [header, ...rows].map(row => row.map(cell => {
-        // CSV-escape cell
-        const needsQuote = /[",\n]/.test(cell);
-        let v = cell.replace(/"/g, '""');
-        return needsQuote ? `"${v}"` : v;
-      }).join(',')).join('\n');
+      const csv = [header, ...rows].map(row => row.map(csvEscapeCell).join(',')).join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -533,8 +567,8 @@ NON-NEGOTIABLES (Architecture Contract)
         // Check rate limit from last fetch headers (if available)
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
       } catch (e) {
         console.error(e);
         showStatus('error', e.message || 'Unexpected error while loading releases.');
@@ -553,8 +587,8 @@ NON-NEGOTIABLES (Architecture Contract)
 
     releaseCountSel.addEventListener('change', () => {
       viewData = applyViewFilters();
-      updateChart(viewData);
       updateTable(viewData);
+      updateChartSafely(viewData);
     });
 
     let filterDebounce;
@@ -562,8 +596,8 @@ NON-NEGOTIABLES (Architecture Contract)
       clearTimeout(filterDebounce);
       filterDebounce = setTimeout(() => {
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
       }, 250);
     });
 

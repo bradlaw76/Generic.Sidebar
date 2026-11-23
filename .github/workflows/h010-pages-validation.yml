@@ -1,0 +1,34 @@
+name: H010 Public Pages Read-only Validation
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'tests/pages/h010-release-chart.test.cjs'
+      - '.github/workflows/h010-pages-validation.yml'
+  push:
+    branches:
+      - 'fix/h010-chart-cdn-fallback'
+    paths:
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'tests/pages/h010-release-chart.test.cjs'
+      - '.github/workflows/h010-pages-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-release-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.x'
+      - name: Validate page scripts and chart isolation
+        run: node --test tests/pages/h010-release-chart.test.cjs
