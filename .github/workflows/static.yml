@@ -44,6 +44,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
           install -Dm644 index.html _site/index.html
           install -Dm644 downloads/index.html _site/downloads/index.html
           install -Dm644 pages/agent/index.html _site/pages/agent/index.html
@@ -80,6 +88,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
           install -Dm644 index.html _site/index.html
           install -Dm644 downloads/index.html _site/downloads/index.html
           install -Dm644 pages/agent/index.html _site/pages/agent/index.html
