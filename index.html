@@ -286,6 +286,19 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     function updateChart(data){
+      // Keep release metadata accessible if the external Chart.js script is unavailable.
+      if (typeof Chart !== 'function') {
+        const canvas = document.getElementById('releaseChart');
+        canvas.style.display = 'none';
+        if (!document.getElementById('chartUnavailable')) {
+          const note = document.createElement('p');
+          note.id = 'chartUnavailable';
+          note.setAttribute('role', 'status');
+          note.textContent = 'Chart unavailable; release data is available in the table below.';
+          canvas.parentElement.appendChild(note);
+        }
+        return;
+      }
       const ctx = document.getElementById('releaseChart').getContext('2d');
       const labels = data.map(r => r.tag).reverse();
       const datasets = [];
