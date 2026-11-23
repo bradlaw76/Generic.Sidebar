@@ -1,0 +1,32 @@
+name: H010 Copilot Iframe Fallback Read-only Validation
+
+on:
+  pull_request:
+    paths:
+      - 'pages/copilot/index.html'
+      - 'tests/pages/h010-copilot-iframe.test.cjs'
+      - '.github/workflows/h010-copilot-fallback-validation.yml'
+  push:
+    branches:
+      - 'fix/h010-copilot-iframe-fallback'
+    paths:
+      - 'pages/copilot/index.html'
+      - 'tests/pages/h010-copilot-iframe.test.cjs'
+      - '.github/workflows/h010-copilot-fallback-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-copilot-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.x'
+      - name: Characterize no-load, error, late-load and CSS fallback
+        run: node --test tests/pages/h010-copilot-iframe.test.cjs
