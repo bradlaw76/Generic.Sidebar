@@ -130,3 +130,71 @@ for (const page of pages) {
     assert.equal(escape('\r=1+1'), '"\'\r=1+1"');
   });
 }
+
+
+// Exercise the actual landing-page API/load functions; never contact GitHub.
+function statsHarness(fetch) {
+  const { source } = readChartScript('index.html');
+  const start = source.indexOf('async function fetchReleases()');
+  const end = source.indexOf('function showChartUnavailable()', start);
+  const loadStart = source.indexOf('async function loadStats()');
+  const loadEnd = source.indexOf("document.getElementById('toggleLegendButton').addEventListener", loadStart);
+  assert.ok(start >= 0 && end > start && loadStart >= 0 && loadEnd > loadStart);
+  const status = { textContent: '' };
+  const button = { disabled: false };
+  const calls = [];
+  const context = {
+    fetch,
+    document: { getElementById(id) {
+      if (id === 'releaseStatsStatus') return status;
+      if (id === 'exportCsvBtn') return button;
+      throw new Error('Unexpected element: ' + id);
+    } },
+    updateTable(data) { calls.push(['table', data.length]); },
+    updateChartSafely(data) { calls.push(['chart', data.length]); },
+    console: { error() {} }
+  };
+  const load = vm.runInNewContext(
+    'const REPO = "bradlaw76/Generic.Sidebar"; let releaseData = [];\n' +
+    source.slice(start, end) + '\n' + source.slice(loadStart, loadEnd) + '\nloadStats',
+    context
+  );
+  return { load, status, button, calls };
+}
+
+test('landing page: API error is announced and CSV stays disabled', async () => {
+  for (const fetch of [
+    async () => ({ ok: false, status: 403 }),
+    async () => { throw new Error('synthetic network failure'); }
+  ]) {
+    const h = statsHarness(fetch);
+    await h.load();
+    assert.match(h.status.textContent, /Release statistics unavailable/);
+    assert.equal(h.button.disabled, true);
+    assert.deepEqual(h.calls, []);
+  }
+});
+
+test('landing page: successful empty response differs from API failure', async () => {
+  const h = statsHarness(async () => ({ ok: true, json: async () => [] }));
+  await h.load();
+  assert.match(h.status.textContent, /No downloadable release assets/);
+  assert.equal(h.button.disabled, true);
+  assert.deepEqual(h.calls, [['table', 0], ['chart', 0]]);
+});
+
+test('landing page: loaded assets enable CSV after table-first updates', async () => {
+  const h = statsHarness(async () => ({
+    ok: true, json: async () => [{
+      published_at: '2026-01-01T00:00:00Z', tag_name: 'v1',
+      assets: [{ name: 'demo.zip', download_count: 1 }]
+    }]
+  }));
+  await h.load();
+  assert.equal(h.status.textContent, 'Release statistics loaded.');
+  assert.equal(h.button.disabled, false);
+  assert.deepEqual(h.calls, [['table', 1], ['chart', 1]]);
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.match(html, /id="releaseStatsStatus" role="status"/);
+  assert.match(html, /id="exportCsvBtn" disabled/);
+});

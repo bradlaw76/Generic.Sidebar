@@ -232,8 +232,9 @@ NON-NEGOTIABLES (Architecture Contract)
         </div>
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-lg font-medium text-gray-900">Release Data Table</h3>
-          <button id="exportCsvBtn" class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
+          <button id="exportCsvBtn" disabled class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
         </div>
+        <p id="releaseStatsStatus" role="status" class="text-sm text-gray-700 mb-2">Loading release statistics…</p>
         <div class="overflow-x-auto overflow-y-auto max-h-96 border border-gray-200 rounded-md">
           <table id="releaseTable" class="min-w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
@@ -391,13 +392,24 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     async function loadStats(){
+      const status = document.getElementById('releaseStatsStatus');
+      const exportButton = document.getElementById('exportCsvBtn');
+      status.textContent = 'Loading release statistics…';
+      exportButton.disabled = true;
       try{
         const releases = await fetchReleases();
         releaseData = processData(releases);
         updateTable(releaseData);
         updateChartSafely(releaseData);
+        const hasAssets = releaseData.some(release => release.assets.length > 0);
+        exportButton.disabled = !hasAssets;
+        status.textContent = hasAssets
+          ? 'Release statistics loaded.'
+          : 'No downloadable release assets were returned.';
       }catch(e){
         console.error(e);
+        releaseData = [];
+        status.textContent = 'Release statistics unavailable. Refresh the page or visit GitHub Releases.';
       }
     }
 
