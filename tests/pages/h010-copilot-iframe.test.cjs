@@ -114,3 +114,20 @@ test('manual agent-instructions escape remains available even if iframe fires lo
   assert.match(html, /src="https:\/\/gcc\.powerva\.microsoft\.us\/environments\//);
   assert.match(html, /sandbox="allow-scripts allow-same-origin allow-forms allow-popups"/);
 });
+
+test('optional Tailwind loads asynchronously and iframe fallback starts independently', () => {
+  const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);
+  assert.ok(head, 'Page head must exist');
+  const cdn = [...head[1].matchAll(/<script\b([^>]*)>/gi)]
+    .filter(([, attrs]) => /\bsrc\s*=\s*["']https:\/\/cdn\.tailwindcss\.com["']/i.test(attrs));
+  assert.equal(cdn.length, 1);
+  assert.match(cdn[0][1], /(?:^|\s)async(?:\s|$)/i,
+    'A stalled optional CDN must not block HTML parsing');
+  assert.ok(html.indexOf('id="copilotFrame"') < html.indexOf('function showFallback()'));
+  assert.ok(html.indexOf('id="manualFallback"') < html.indexOf('function showFallback()'));
+  // The VM harness has no Tailwind, CDN completion or document-ready callback.
+  const h = harness();
+  h.expireTimer();
+  assert.equal(h.frame.classList.contains('hidden'), true);
+  assert.equal(h.fallback.classList.contains('hidden'), false);
+});
