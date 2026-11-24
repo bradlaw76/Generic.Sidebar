@@ -577,3 +577,86 @@ test('downloads: loading and status visibility do not depend on Tailwind CSS', (
   assert.equal(statusBox.hidden, true);
   assert.equal(statusBox.textContent, '');
 });
+
+// Execute the actual Agent page badge script, including its deadline and pagination.
+function agentBadgeHarness(fetch) {
+  const html = fs.readFileSync(path.join(root, 'pages/agent/index.html'), 'utf8');
+  const script = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+    .find(([, attrs, source]) => !/\bsrc\s*=/.test(attrs) && source.includes('function fetchTotalDownloads('));
+  assert.ok(script, 'expected Agent download badge script');
+  const badge = { innerHTML: '', title: '' };
+  const year = {};
+  let deadline, cleared = false;
+  const completion = vm.runInNewContext(script[2], {
+    document: { getElementById(id) { return id === 'downloadBadge' ? badge : year; } },
+    fetch, AbortController,
+    setTimeout(fn, delay) { assert.equal(delay, 10000); deadline = fn; return 1; },
+    clearTimeout(id) { assert.equal(id, 1); cleared = true; },
+    console: { error() {} }
+  });
+  return { badge, completion, expire() { deadline(); }, get cleared() { return cleared; } };
+}
+
+function agentResponse(data, next = null) {
+  return { ok: true, json: async () => data, headers: { get() { return next ? '<' + next + '>; rel="next"' : null; } } };
+}
+
+test('Agent badge: all release pages counted, drafts ignored, deadline cleared', async () => {
+  const calls = [];
+  const next = 'https://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?page=2';
+  const h = agentBadgeHarness(async (url, options) => {
+    calls.push([url, options.signal]);
+    return calls.length === 1
+      ? agentResponse([{ assets: [{ download_count: 3 }] }, { draft: true, assets: [{ download_count: 99 }] }], next)
+      : agentResponse([{ assets: [{ download_count: 4 }] }]);
+  });
+  await h.completion;
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1][0], next);
+  assert.equal(calls[0][1], calls[1][1]);
+  assert.match(h.badge.innerHTML, /Downloads<\/small> 7$/);
+  assert.equal(h.cleared, true);
+});
+
+test('Agent badge: stalled fetch fails visibly; late response cannot continue pagination', async () => {
+  let signal, releaseFetch, calls = 0;
+  const h = agentBadgeHarness((url, options) => {
+    calls++;
+    signal = options.signal;
+    return new Promise(resolve => { releaseFetch = resolve; });
+  });
+  h.expire();
+  await h.completion;
+  assert.equal(signal.aborted, true);
+  assert.match(h.badge.innerHTML, /n\/a$/);
+  assert.equal(h.cleared, true);
+  releaseFetch(agentResponse([{ assets: [{ download_count: 99 }] }], 'https://api.github.com/next'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 1);
+  assert.match(h.badge.innerHTML, /n\/a$/);
+});
+
+test('Agent badge: stalled JSON also reaches the deadline and ignores late data', async () => {
+  let signal, releaseJson;
+  const h = agentBadgeHarness(async (url, options) => {
+    signal = options.signal;
+    return { ok: true, json: () => new Promise(resolve => { releaseJson = resolve; }), headers: { get() { return null; } } };
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  h.expire();
+  await h.completion;
+  assert.equal(signal.aborted, true);
+  assert.match(h.badge.innerHTML, /n\/a$/);
+  releaseJson([{ assets: [{ download_count: 99 }] }]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(h.badge.innerHTML, /n\/a$/);
+});
+
+test('Agent badge: API and malformed payload errors show unavailable, not a partial total', async () => {
+  for (const response of [{ ok: false, status: 403 }, agentResponse({ message: 'bad payload' })]) {
+    const h = agentBadgeHarness(async () => response);
+    await h.completion;
+    assert.match(h.badge.innerHTML, /n\/a$/);
+    assert.equal(h.cleared, true);
+  }
+});
