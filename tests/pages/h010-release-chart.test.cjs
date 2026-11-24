@@ -213,16 +213,13 @@ function downloadsHarness(fetch, timers = { setTimeout, clearTimeout }) {
   const button = { disabled: true };
   const status = { type: null, message: '' };
   const calls = [];
-  let loading = false;
+  const loadingEl = { hidden: true };
   const context = {
     fetch,
     AbortController,
     ...timers,
     exportCsvBtn: button,
-    loadingEl: { classList: {
-      remove() { loading = true; },
-      add() { loading = false; }
-    } },
+    loadingEl,
     showStatus(type, message) { status.type = type; status.message = message; },
     clearStatus() { status.type = null; status.message = ''; },
     updateTable(data) {
@@ -238,7 +235,7 @@ function downloadsHarness(fetch, timers = { setTimeout, clearTimeout }) {
     source.slice(start, end) + '\n' + source.slice(loadStart, loadEnd) + '\nload',
     context
   );
-  return { load, button, status, calls, get loading() { return loading; } };
+  return { load, button, status, calls, get loading() { return !loadingEl.hidden; } };
 }
 
 test('downloads: initial and pending load keep CSV disabled, HTTP failure is announced', async () => {
@@ -555,4 +552,28 @@ test('downloads: late Chart load during a pending filter waits for the new view'
   h.pendingFilter(false);
   h.update(h.data('filtered'));
   assert.deepEqual(h.labels, [['filtered']]);
+});
+
+
+test('downloads: loading and status visibility do not depend on Tailwind CSS', () => {
+  const { source } = readChartScript('downloads/index.html');
+  const html = fs.readFileSync(path.join(root, 'downloads/index.html'), 'utf8');
+  assert.match(html, /id="statusBox" role="status" hidden\b/);
+  assert.match(html, /id="loading" hidden\b/);
+  assert.match(html, /#statusBox\[hidden\],\s*#loading\[hidden\]\s*\{\s*display:\s*none\s*!important;/);
+  const start = source.indexOf('function showStatus(');
+  const end = source.indexOf('function fmtDateISO(', start);
+  assert.ok(start >= 0 && end > start);
+  // No stylesheet or visibility effects from classList in this harness.
+  const statusBox = { hidden: true, textContent: '', className: '', classList: { add() {} } };
+  const status = vm.runInNewContext(source.slice(start, end) + '\n({showStatus,clearStatus})', { statusBox });
+  status.showStatus('info', 'Loading release data…');
+  assert.equal(statusBox.hidden, false);
+  assert.match(statusBox.textContent, /Loading/);
+  status.showStatus('error', 'Request failed');
+  assert.equal(statusBox.hidden, false);
+  assert.equal(statusBox.textContent, 'Request failed');
+  status.clearStatus();
+  assert.equal(statusBox.hidden, true);
+  assert.equal(statusBox.textContent, '');
 });

@@ -175,6 +175,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <style>
     /* Keep chart area responsive without causing layout shift */
     #chartWrap { height: 480px; }
+    /* Loading/status visibility must work even if Tailwind never loads. */
+    #statusBox[hidden], #loading[hidden] { display: none !important; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -223,13 +225,13 @@ NON-NEGOTIABLES (Architecture Contract)
     </section>
 
     <!-- Status / Alerts -->
-    <section id="statusBox" role="status" class="hidden mb-4 p-3 rounded-md border text-sm"></section>
+    <section id="statusBox" role="status" hidden class="mb-4 p-3 rounded-md border text-sm"></section>
 
     <!-- Chart -->
     <section class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-lg font-semibold text-gray-900">Asset Downloads for Latest Releases</h2>
-        <div id="loading" class="hidden text-sm text-gray-600">Loading…</div>
+        <div id="loading" hidden class="text-sm text-gray-600">Loading…</div>
       </div>
       <div id="chartWrap" class="relative">
         <canvas id="releaseChart" aria-label="Line chart showing asset downloads per release" role="img"></canvas>
@@ -294,7 +296,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
     // --- Helpers ---
     function showStatus(type, msg) {
-      statusBox.classList.remove('hidden');
+      statusBox.hidden = false;
       statusBox.textContent = msg;
       statusBox.className = '';
       statusBox.classList.add('mb-4','p-3','rounded-md','border','text-sm');
@@ -306,7 +308,7 @@ NON-NEGOTIABLES (Architecture Contract)
         statusBox.classList.add('border-blue-300','bg-blue-50','text-blue-800');
       }
     }
-    function clearStatus(){ statusBox.classList.add('hidden'); }
+    function clearStatus(){ statusBox.hidden = true; statusBox.textContent = ''; }
 
     function fmtDateISO(dateStr){
       const d = new Date(dateStr);
@@ -573,7 +575,7 @@ NON-NEGOTIABLES (Architecture Contract)
     async function load() {
       exportCsvBtn.disabled = true;
       showStatus('info', 'Loading release data…');
-      loadingEl.classList.remove('hidden');
+      loadingEl.hidden = false;
       try {
         // Get the maximum selectable release dataset.
         const releases = await withReleaseDeadline(fetchRecentReleases);
@@ -592,7 +594,7 @@ NON-NEGOTIABLES (Architecture Contract)
         console.error(e);
         showStatus('error', e.message || 'Unexpected error while loading releases.');
       } finally {
-        loadingEl.classList.add('hidden');
+        loadingEl.hidden = true;
       }
     }
 
