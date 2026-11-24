@@ -744,7 +744,6 @@ function releaseLinkHarness(page) {
       static revokeObjectURL() {}
     },
     Blob: class { constructor(parts) { this.text = parts.join(''); } },
-    fmtDateISO() { return '2026-01-01'; },
     rowCountEl: {}, exportCsvBtn: {},
     document: { querySelector() { return tbody; }, createElement: element, body: element('body') }
   };
@@ -755,7 +754,9 @@ function releaseLinkHarness(page) {
     assert.ok(csvEnd > csvStart);
     exporter = source.slice(csvStart, csvEnd);
   }
-  const api = vm.runInNewContext(source.slice(start, end) + '\n' +
+  const dateHelper = downloads ? source.slice(source.indexOf('function fmtDateISO('),
+    source.indexOf('async function withReleaseDeadline(')) : '';
+  const api = vm.runInNewContext(dateHelper + '\n' + source.slice(start, end) + '\n' +
     source.slice(table, tableEnd) + '\n' + exporter + '\n' +
     (downloads ? '({process:processReleaseData, render:updateTable, exportToCSV})'
       : '({process:processData, render:updateTable})'), context);
@@ -950,3 +951,39 @@ test('downloads: filtered table and unchanged CSV schema explicitly retain full 
   assert.match(html, /All Assets \(Release Total\)/);
   assert.match(html, /retain the full release total \(all assets\)/);
 });
+
+
+// H010: optional release-date metadata must not suppress accurate download counts.
+for (const page of pages) {
+  test(page + ': missing or invalid publication dates fall back to creation date or blank', () => {
+    const h = releaseLinkHarness(page);
+    const cases = [
+      ['2026-01-02T12:00:00Z', '2025-12-31T12:00:00Z', '2026-01-02'],
+      [null, '2025-12-31T12:00:00Z', '2025-12-31'],
+      ['not-a-date', '2025-12-31T12:00:00Z', '2025-12-31'],
+      [undefined, undefined, ''], [null, null, ''],
+      [42, false, ''], ['0', 'invalid', '']
+    ];
+    for (const [published_at, created_at, expected] of cases) {
+      const fixture = linkFixture(releaseUrl, assetUrl);
+      Object.assign(fixture[0], { published_at, created_at });
+      const data = h.api.process(fixture);
+      assert.equal(data[0].date, expected);
+      assert.equal(data[0].total ?? data[0].totalDownloads, 3);
+    }
+  });
+}
+for (const [name, makeHarness] of [
+  ['landing', statsHarness], ['downloads', downloadsHarness]
+]) {
+  test(name + ': invalid optional date does not discard otherwise valid release data', async () => {
+    const releases = [
+      { published_at: 'not-a-date', tag_name: 'v1', assets: [{ name: 'one.zip', download_count: 2 }] },
+      { published_at: '2026-01-02T12:00:00Z', tag_name: 'v2', assets: [{ name: 'two.zip', download_count: 3 }] }
+    ];
+    const h = makeHarness(async () => ({ ok: true, json: async () => releases }));
+    await h.load();
+    assert.equal(h.button.disabled, false);
+    assert.deepEqual(h.calls, [['table', 2], ['chart', 2]]);
+  });
+}

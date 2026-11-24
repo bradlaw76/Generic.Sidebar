@@ -311,10 +311,14 @@ NON-NEGOTIABLES (Architecture Contract)
     }
     function clearStatus(){ statusBox.hidden = true; statusBox.textContent = ''; }
 
-    function fmtDateISO(dateStr){
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) return '';
-      return d.toISOString().split('T')[0];
+    function fmtDateISO(published, created) {
+      // Dates are optional display metadata; a missing date must not hide valid counts.
+      for (const value of [published, created]) {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) continue;
+        const time = Date.parse(value);
+        if (Number.isFinite(time)) return new Date(time).toISOString().split('T')[0];
+      }
+      return '';
     }
 
     // Bound the entire release request, including JSON parsing.
@@ -389,7 +393,7 @@ NON-NEGOTIABLES (Architecture Contract)
         }
         return {
           id: release.id,
-          date: fmtDateISO(release.published_at || release.created_at),
+          date: fmtDateISO(release.published_at, release.created_at),
           tagName: release.tag_name,
           releaseName: release.name || release.tag_name || 'Untitled',
           htmlUrl: trustedReleaseUrl(release.html_url),
