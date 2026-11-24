@@ -680,3 +680,40 @@ test('Agent badge: rejects malformed release records, missing assets and unsafe 
   await valid.completion;
   assert.match(valid.badge.innerHTML, /Downloads<\/small> 0$/);
 });
+
+
+// Reject malformed count data consistently across both public statistics pages.
+for (const [name, makeHarness] of [
+  ['landing', statsHarness], ['downloads', downloadsHarness]
+]) {
+  const release = assets => ({
+    published_at: '2026-01-01T00:00:00Z', tag_name: 'v1', assets
+  });
+  const asset = download_count => ({ name: 'demo.zip', download_count });
+  test(name + ': malformed counts or release records fail before rendering or export', async () => {
+    const badPayloads = [
+      {}, [null], [{ tag_name: 'v1' }], [release([null])],
+      [release([{ download_count: 3 }])],
+      [release([asset(Number.MAX_SAFE_INTEGER), asset(1)])],
+      ...['4', -1, 1.5, null, undefined, Number.MAX_SAFE_INTEGER + 1].map(
+        count => [release([asset(3)]), release([asset(count)])]
+      )
+    ];
+    for (const payload of badPayloads) {
+      const h = makeHarness(async () => ({ ok: true, json: async () => payload }));
+      await h.load();
+      assert.equal(h.button.disabled, true);
+      assert.deepEqual(h.calls, []);
+      assert.match(h.status.textContent || h.status.message, /unavailable|Unexpected/i);
+      if (name === 'downloads') assert.equal(h.loading, false);
+    }
+  });
+  test(name + ': valid zero and positive counts remain renderable and exportable', async () => {
+    const h = makeHarness(async () => ({
+      ok: true, json: async () => [release([asset(0), asset(3)])]
+    }));
+    await h.load();
+    assert.equal(h.button.disabled, false);
+    assert.deepEqual(h.calls, [['table', 1], ['chart', 1]]);
+  });
+}

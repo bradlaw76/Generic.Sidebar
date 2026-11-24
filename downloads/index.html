@@ -348,21 +348,34 @@ NON-NEGOTIABLES (Architecture Contract)
       }
       const batch = await res.json();
       if (signal.aborted) throw new Error('Release request cancelled.');
+      if (!Array.isArray(batch)) throw new Error('Unexpected releases response');
       return batch.slice(0, maxReleases);
     }
 
     function processReleaseData(releases) {
+      if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
       return releases.map(release => {
-        const totalDownloads = (release.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
+        if (!release || typeof release !== 'object' || Array.isArray(release) || !Array.isArray(release.assets)) {
+          throw new Error('Unexpected release assets');
+        }
+        let totalDownloads = 0;
+        for (const asset of release.assets) {
+          const count = asset && asset.download_count;
+          if (!asset || typeof asset.name !== 'string' || !Number.isSafeInteger(count) ||
+              count < 0 || !Number.isSafeInteger(totalDownloads + count)) {
+            throw new Error('Unexpected asset download data');
+          }
+          totalDownloads += count;
+        }
         return {
           id: release.id,
           date: fmtDateISO(release.published_at || release.created_at),
           tagName: release.tag_name,
           releaseName: release.name || release.tag_name || 'Untitled',
           htmlUrl: release.html_url,
-          assets: (release.assets || []).map(a => ({
+          assets: release.assets.map(a => ({
             name: a.name,
-            downloadCount: a.download_count || 0,
+            downloadCount: a.download_count,
             url: a.browser_download_url
           })),
           totalDownloads

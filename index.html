@@ -293,14 +293,26 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     function processData(releases) {
+      if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
       return releases.map(r => {
-        const totalDownloads = (r.assets || []).reduce((s,a) => s + (a.download_count||0), 0);
+        if (!r || typeof r !== 'object' || Array.isArray(r) || !Array.isArray(r.assets)) {
+          throw new Error('Unexpected release assets');
+        }
+        let totalDownloads = 0;
+        for (const asset of r.assets) {
+          const count = asset && asset.download_count;
+          if (!asset || typeof asset.name !== 'string' || !Number.isSafeInteger(count) ||
+              count < 0 || !Number.isSafeInteger(totalDownloads + count)) {
+            throw new Error('Unexpected asset download data');
+          }
+          totalDownloads += count;
+        }
         return {
           date: new Date(r.published_at).toISOString().split('T')[0],
           tag: r.tag_name,
           name: r.name || r.tag_name,
           url: r.html_url,
-          assets: (r.assets||[]).map(a => ({name: a.name, downloads: a.download_count, url: a.browser_download_url})),
+          assets: r.assets.map(a => ({name: a.name, downloads: a.download_count, url: a.browser_download_url})),
           total: totalDownloads
         };
       });
