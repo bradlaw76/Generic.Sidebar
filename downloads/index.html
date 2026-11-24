@@ -244,6 +244,7 @@ NON-NEGOTIABLES (Architecture Contract)
         <h2 class="text-lg font-semibold text-gray-900">Release Data</h2>
         <span id="rowCount" class="text-sm text-gray-500"></span>
       </div>
+      <p class="text-sm text-gray-600 mb-2">The chart totals count displayed assets only. The table and CSV "Total Downloads" column retain the full release total (all assets), even when filtered.</p>
       <div class="overflow-x-auto overflow-y-auto max-h-[28rem] rounded-md border border-gray-200">
         <table class="min-w-full text-sm" id="releaseTable">
           <thead class="bg-gray-50 text-gray-600">
@@ -253,7 +254,7 @@ NON-NEGOTIABLES (Architecture Contract)
               <th scope="col" class="px-4 py-2 text-left">Release</th>
               <th scope="col" class="px-4 py-2 text-left">Asset</th>
               <th scope="col" class="px-4 py-2 text-left">Downloads</th>
-              <th scope="col" class="px-4 py-2 text-left">Total Downloads</th>
+              <th scope="col" class="px-4 py-2 text-left">All Assets (Release Total)</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -413,6 +414,7 @@ NON-NEGOTIABLES (Architecture Contract)
       // If filtering by asset name, keep releases but filter assets
       return latest.map(r => ({
         ...r,
+        assetFilterActive: true,
         assets: r.assets.filter(a => a.name.toLowerCase().includes(filter))
       }));
     }
@@ -431,10 +433,10 @@ NON-NEGOTIABLES (Architecture Contract)
         fill: false,
         tension: 0.25
       }));
-      // Total Downloads line
+      // Sum only the assets included in the current chart view.
       datasets.unshift({
-        label: 'Total Downloads',
-        data: data.map(r => r.totalDownloads).reverse(),
+        label: 'Total Downloads (shown assets)',
+        data: data.map(r => r.assets.reduce((sum, asset) => sum + asset.downloadCount, 0)).reverse(),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         fill: true,
@@ -455,6 +457,9 @@ NON-NEGOTIABLES (Architecture Contract)
         note.setAttribute('role', 'status');
         note.textContent = 'Chart unavailable; release data is available in the table below.';
         canvas.parentElement.appendChild(note);
+      } else {
+        document.getElementById('chartUnavailable').textContent =
+          'Chart unavailable; release data is available in the table below.';
       }
     }
 
@@ -471,6 +476,13 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     function updateChart(data) {
+      if (data.some(r => r.assetFilterActive) && !data.some(r => r.assets.length)) {
+        if (chart) chart.destroy();
+        chart = null;
+        showChartUnavailable();
+        document.getElementById('chartUnavailable').textContent = 'No assets match the current filter.';
+        return;
+      }
       if (typeof Chart !== 'function') {
         showChartUnavailable();
         return;

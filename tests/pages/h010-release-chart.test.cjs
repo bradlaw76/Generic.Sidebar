@@ -877,3 +877,76 @@ test('Agent badge: rejects repeated, skipped, malformed and changed-size page re
   assert.equal(calls, 2, 'second page cannot be counted repeatedly');
   assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
 });
+
+ 
+// H010: the chart aggregate follows visible assets, while the legacy CSV
+// schema and all-assets release total remain stable.
+function chartFilterFixture() {
+  const { source } = readChartScript('downloads/index.html');
+  const start = source.indexOf('function applyViewFilters(');
+  const end = source.indexOf('function showChartUnavailable()', start);
+  assert.ok(start >= 0 && end > start);
+  const releaseCountSel = { value: '10' }, assetFilterInp = { value: '' };
+  const fullData = [{ tagName: 'v1', releaseName: 'Release one', date: '2026-01-01',
+    totalDownloads: 10, assets: [
+      { name: 'demo.zip', downloadCount: 2 }, { name: 'guide.pdf', downloadCount: 8 }
+    ] }];
+  const api = vm.runInNewContext(source.slice(start, end) +
+    '\n({ applyViewFilters, buildDatasets })', { releaseCountSel, assetFilterInp, fullData });
+  return { api, fullData, view(filter) {
+    assetFilterInp.value = filter;
+    return api.applyViewFilters();
+  } };
+}
+
+test('downloads: chart totals track visible assets and recover when filter clears', () => {
+  const f = chartFilterFixture();
+  const zip = f.view(' ZIP ');
+  const datasets = f.api.buildDatasets(zip);
+  assert.equal(datasets[0].label, 'Total Downloads (shown assets)');
+  assert.equal(datasets[0].data[0], 2);
+  assert.equal(datasets[1].data[0], 2);
+  assert.equal(datasets.length, 2);
+  assert.equal(zip[0].totalDownloads, 10);
+  assert.equal(f.fullData[0].assets.length, 2);
+  assert.equal(f.api.buildDatasets(f.view(''))[0].data[0], 10);
+});
+
+test('downloads: no-match chart is explicitly empty and clears stale notices on recovery', () => {
+  const f = chartFilterFixture();
+  const h = harness(readChartScript('downloads/index.html').fragment);
+  h.goodChart();
+  h.update(f.view(''));
+  h.update(f.view('missing'));
+  assert.equal(h.destroys, 1);
+  assert.equal(h.canvas.style.display, 'none');
+  assert.equal(h.note.textContent, 'No assets match the current filter.');
+  assert.equal(h.note.role, 'status');
+  h.update(f.view('missing'));
+  assert.equal(h.destroys, 1);
+  h.context.Chart = undefined;
+  h.update(f.view('zip'));
+  assert.match(h.note.textContent, /Chart unavailable/);
+  h.goodChart();
+  h.update(f.view(''));
+  assert.equal(h.canvas.style.display, '');
+  assert.equal(h.note, null);
+});
+
+test('downloads: filtered table and unchanged CSV schema explicitly retain full release total', () => {
+  const f = chartFilterFixture();
+  const h = releaseLinkHarness('downloads/index.html');
+  const data = f.view('zip');
+  h.api.render(data);
+  const cells = h.tbody.children[0].children;
+  assert.equal(String(cells[4].textContent), '2');
+  assert.equal(String(cells[5].textContent), '10');
+  h.api.exportToCSV(data);
+  const lines = h.csv.split('\n');
+  assert.equal(lines[0], 'Release Date,Tag,Release Name,Release URL,Asset,Asset URL,Downloads,Total Downloads');
+  assert.equal(lines.length, 2);
+  assert.match(lines[1], /demo\.zip,,2,10$/);
+  const html = fs.readFileSync(path.join(root, 'downloads/index.html'), 'utf8');
+  assert.match(html, /All Assets \(Release Total\)/);
+  assert.match(html, /retain the full release total \(all assets\)/);
+});
