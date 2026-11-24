@@ -366,6 +366,16 @@ NON-NEGOTIABLES (Architecture Contract)
         updateChart(data);
       } catch (error) {
         console.warn('Optional release chart rendering failed:', error);
+        // A constructor can fail after registering the canvas, before assigning chart.
+        // Release that instance so a later filter change can recover.
+        try {
+          if (typeof Chart === 'function' && typeof Chart.getChart === 'function') {
+            const registered = Chart.getChart(document.getElementById('releaseChart'));
+            if (registered) registered.destroy();
+          }
+        } catch (cleanupError) {
+          console.warn('Optional release chart cleanup failed:', cleanupError);
+        }
         chart = null;
         showChartUnavailable();
       }

@@ -987,3 +987,37 @@ for (const [name, makeHarness] of [
     assert.deepEqual(h.calls, [['table', 2], ['chart', 2]]);
   });
 }
+
+
+// H010: model a Chart.js constructor which claims its canvas before throwing.
+for (const page of pages) {
+  test(page + ': failed constructor releases registered canvas for later recovery', () => {
+    const h = harness(readChartScript(page).fragment);
+    const data = page === 'index.html'
+      ? [{ tag: 'v1', assets: [], total: 0 }]
+      : [{ tagName: 'v1', assets: [], totalDownloads: 0 }];
+    let registered;
+    let fail = true;
+    let destroyed = 0;
+    function RegisteredChart() {
+      if (registered) throw new Error('canvas already in use');
+      registered = { destroy() { registered = undefined; destroyed++; } };
+      if (fail) throw new Error('initialization failed after registration');
+      return registered;
+    }
+    RegisteredChart.getChart = canvas => {
+      assert.equal(canvas, h.canvas);
+      return registered;
+    };
+    h.context.Chart = RegisteredChart;
+    assert.doesNotThrow(() => h.update(data));
+    assert.equal(h.note?.id, 'chartUnavailable');
+    assert.equal(registered, undefined);
+    assert.equal(destroyed, 1);
+    fail = false;
+    assert.doesNotThrow(() => h.update(data));
+    assert.ok(registered);
+    assert.equal(h.canvas.style.display, '');
+    assert.equal(h.note, null);
+  });
+}
