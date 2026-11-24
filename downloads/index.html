@@ -284,7 +284,7 @@ NON-NEGOTIABLES (Architecture Contract)
     const rowCountEl = document.getElementById('rowCount');
 
     let chart;        // Chart.js instance
-    let fullData = []; // processed releases (all pages)
+    let fullData = []; // processed releases (up to 50)
     let viewData = []; // filtered by controls (count, asset filter)
 
     // Init static links
@@ -313,7 +313,7 @@ NON-NEGOTIABLES (Architecture Contract)
       return d.toISOString().split('T')[0];
     }
 
-    // Bound the entire release request, including pagination and JSON parsing.
+    // Bound the entire release request, including JSON parsing.
     async function withReleaseDeadline(request) {
       const controller = new AbortController();
       let timer;
@@ -332,27 +332,20 @@ NON-NEGOTIABLES (Architecture Contract)
       }
     }
 
-    async function fetchAllReleases(signal) {
-      // Paginate through /releases (30 per page by default). We'll request 100/page to minimize calls.
-      const perPage = 100;
-      let page = 1;
-      let all = [];
-      while (true) {
-        const url = `${API_BASE}/releases?per_page=${perPage}&page=${page}`;
-        if (signal.aborted) throw new Error('Release request cancelled.');
-        const res = await fetch(url, { signal });
-        if (!res.ok) {
-          let detail = `HTTP ${res.status}`;
-          try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
-          throw new Error(detail);
-        }
-        const batch = await res.json();
-        all = all.concat(batch);
-        if (batch.length < perPage) break; // no more pages
-        page++;
-        if (page > 10) break; // safety cap (1000 releases)
+    async function fetchRecentReleases(signal) {
+      // The largest supported view is 50 releases. One request supplies every option.
+      const maxReleases = 50;
+      const url = `${API_BASE}/releases?per_page=${maxReleases}&page=1`;
+      if (signal.aborted) throw new Error('Release request cancelled.');
+      const res = await fetch(url, { signal });
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
+        throw new Error(detail);
       }
-      return all;
+      const batch = await res.json();
+      if (signal.aborted) throw new Error('Release request cancelled.');
+      return batch.slice(0, maxReleases);
     }
 
     function processReleaseData(releases) {
@@ -580,9 +573,8 @@ NON-NEGOTIABLES (Architecture Contract)
       showStatus('info', 'Loading release data…');
       loadingEl.classList.remove('hidden');
       try {
-        // Get all releases
-        const releases = await withReleaseDeadline(fetchAllReleases);
-        // Check rate limit from last fetch headers (if available)
+        // Get the maximum selectable release dataset.
+        const releases = await withReleaseDeadline(fetchRecentReleases);
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
         updateTable(viewData);
@@ -610,16 +602,21 @@ NON-NEGOTIABLES (Architecture Contract)
       chart.update();
     });
 
+    let filterDebounce;
     releaseCountSel.addEventListener('change', () => {
+      clearTimeout(filterDebounce);
+      filterDebounce = undefined;
       viewData = applyViewFilters();
       updateTable(viewData);
       updateChartSafely(viewData);
     });
 
-    let filterDebounce;
     assetFilterInp.addEventListener('input', () => {
       clearTimeout(filterDebounce);
+      // Never export the previous filter's rows while an update is pending.
+      exportCsvBtn.disabled = true;
       filterDebounce = setTimeout(() => {
+        filterDebounce = undefined;
         viewData = applyViewFilters();
         updateTable(viewData);
         updateChartSafely(viewData);

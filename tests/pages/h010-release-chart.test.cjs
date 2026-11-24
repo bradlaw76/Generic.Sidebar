@@ -373,8 +373,109 @@ test('downloads: late full page after deadline does not start another API reques
   await new Promise(resolve => setImmediate(resolve));
   clock.expire();
   await pending;
-  finishBody(Array.from({ length: 100 }, () => ({ tag_name: 'v1', assets: [] })));
+  finishBody(Array.from({ length: 50 }, () => ({ tag_name: 'v1', assets: [] })));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(calls, 1);
   assert.deepEqual(h.calls, []);
+});
+
+
+test('downloads: one request supplies the largest selectable release dataset', async () => {
+  const urls = [];
+  const releases = Array.from({ length: 50 }, (_, i) => ({
+    tag_name: 'v' + i, assets: [{ name: 'demo.zip', download_count: i }]
+  }));
+  const h = downloadsHarness(async url => {
+    urls.push(url);
+    assert.equal(urls.length, 1, 'unnecessary later API page');
+    return { ok: true, json: async () => releases };
+  });
+  await h.load();
+  assert.match(urls[0], /per_page=50&page=1$/);
+  assert.deepEqual(h.calls, [['table', 50], ['chart', 50]]);
+  assert.equal(h.button.disabled, false);
+});
+
+// Actual filter and event handlers, with synthetic data and a deterministic clock.
+function filterHarness() {
+  const { source } = readChartScript('downloads/index.html');
+  const start = source.indexOf('function applyViewFilters(');
+  const end = source.indexOf('function buildDatasets(', start);
+  const events = source.indexOf('    // --- Events ---');
+  const finish = source.indexOf('    // Kick off', events);
+  assert.ok(start >= 0 && end > start && events >= 0 && finish > events);
+  let next = 0;
+  const pending = new Map();
+  const names = data => Array.from(data.flatMap(r => r.assets.map(a => a.name)));
+  function element(value) {
+    const handlers = {};
+    return { value, disabled: false,
+      addEventListener(type, callback) { handlers[type] = callback; },
+      fire(type) { handlers[type](); }
+    };
+  }
+  const releaseCountSel = element('10'), assetFilterInp = element('a.zip');
+  const exportCsvBtn = element(''), toggleLegendButton = element('');
+  const tables = [], charts = [], exports = [];
+  const context = {
+    releaseCountSel, assetFilterInp, exportCsvBtn, toggleLegendButton,
+    setTimeout(callback, delay) { assert.equal(delay, 250); pending.set(++next, callback); return next; },
+    clearTimeout(id) { pending.delete(id); },
+    updateTable(data) { const rows = names(data); tables.push(rows); exportCsvBtn.disabled = !rows.length; },
+    updateChartSafely(data) { charts.push(names(data)); },
+    exportToCSV(data) { exports.push(names(data)); }
+  };
+  vm.runInNewContext(
+    'let chart; let fullData = [{assets:[{name:"a.zip"},{name:"b.zip"}]}], viewData;\n' +
+    source.slice(start, end) + '\n' + source.slice(events, finish) +
+    '\nviewData=applyViewFilters(); updateTable(viewData); updateChartSafely(viewData);',
+    context
+  );
+  return { tables, charts, exports, exportCsvBtn,
+    input(value) { assetFilterInp.value = value; assetFilterInp.fire('input'); },
+    count(value) { releaseCountSel.value = value; releaseCountSel.fire('change'); },
+    click() { exportCsvBtn.fire('click'); },
+    flush() { for (const [id, cb] of [...pending]) { pending.delete(id); cb(); } },
+    get pending() { return pending.size; }
+  };
+}
+
+test('downloads: pending filter cannot export stale rows; stable export matches table', () => {
+  const h = filterHarness();
+  h.click();
+  assert.deepEqual(h.exports, [['a.zip']]);
+  h.input('b.zip');
+  assert.equal(h.exportCsvBtn.disabled, true);
+  h.click();
+  assert.deepEqual(h.exports, [['a.zip']]);
+  h.flush();
+  assert.equal(h.exportCsvBtn.disabled, false);
+  h.click();
+  assert.deepEqual(h.exports, [['a.zip'], ['b.zip']]);
+  assert.deepEqual(h.tables.at(-1), h.exports.at(-1));
+  assert.deepEqual(h.charts.at(-1), h.tables.at(-1));
+});
+
+test('downloads: no-match filter never exports previous or empty rows', () => {
+  const h = filterHarness();
+  h.input('missing');
+  h.click();
+  h.flush();
+  h.click();
+  assert.equal(h.exportCsvBtn.disabled, true);
+  assert.deepEqual(h.tables.at(-1), []);
+  assert.deepEqual(h.exports, []);
+});
+
+test('downloads: count change cancels pending filter and immediately synchronizes export', () => {
+  const h = filterHarness();
+  h.input('b.zip');
+  assert.equal(h.pending, 1);
+  h.count('6');
+  assert.equal(h.pending, 0);
+  h.click();
+  assert.deepEqual(h.exports, [['b.zip']]);
+  const renders = h.tables.length;
+  h.flush();
+  assert.equal(h.tables.length, renders);
 });
