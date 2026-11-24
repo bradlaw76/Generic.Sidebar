@@ -170,8 +170,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <meta name="description" content="Downloads per release and per-asset for bradlaw76/Generic.Sidebar with CSV export." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script async src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Keep chart area responsive without causing layout shift */
     #chartWrap { height: 480px; }
@@ -284,6 +284,7 @@ NON-NEGOTIABLES (Architecture Contract)
     const rowCountEl = document.getElementById('rowCount');
 
     let chart;        // Chart.js instance
+    let lastChartData;
     let fullData = []; // processed releases (up to 50)
     let viewData = []; // filtered by controls (count, asset filter)
 
@@ -425,6 +426,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
     // Chart rendering is optional; its failure must not interrupt table/CSV updates.
     function updateChartSafely(data) {
+      lastChartData = data;
       try {
         updateChart(data);
       } catch (error) {
@@ -628,6 +630,11 @@ NON-NEGOTIABLES (Architecture Contract)
     });
 
     // Kick off
+    // Recover optional chart after its asynchronous script loads. The release
+    // request starts immediately, even if the CDN never responds.
+    document.getElementById('releaseChartScript').addEventListener('load', () => {
+      if (lastChartData !== undefined && filterDebounce === undefined) updateChartSafely(lastChartData);
+    }, { once: true });
     load();
   </script>
 </body>

@@ -168,8 +168,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <title>Generic.Sidebar</title>
   <meta name="description" content="Generic Sidebar for Dynamics 365 — a flexible, table-driven side pane for model-driven apps." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script async src="https://cdn.tailwindcss.com"></script>
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
   <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>
@@ -264,6 +264,7 @@ NON-NEGOTIABLES (Architecture Contract)
     // === Stats Script ===
     const REPO = "bradlaw76/Generic.Sidebar";
     let chart;
+    let lastChartData;
     let releaseData = [];
 
     // Bound the entire release request, including pagination and JSON parsing.
@@ -319,6 +320,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
     // Chart rendering is optional; its failure must not interrupt table/CSV updates.
     function updateChartSafely(data) {
+      lastChartData = data;
       try {
         updateChart(data);
       } catch (error) {
@@ -457,6 +459,11 @@ NON-NEGOTIABLES (Architecture Contract)
       link.click();
     });
 
+    // Recover optional chart after its asynchronous script loads. The release
+    // request starts immediately, even if the CDN never responds.
+    document.getElementById('releaseChartScript').addEventListener('load', () => {
+      if (lastChartData !== undefined) updateChartSafely(lastChartData);
+    }, { once: true });
     loadStats();
   </script>
 </body>

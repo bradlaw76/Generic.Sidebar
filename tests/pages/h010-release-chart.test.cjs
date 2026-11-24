@@ -55,7 +55,7 @@ function harness(fragment) {
     console: { warn() { warnings++; } },
     buildDatasets() { return []; }
   });
-  vm.runInContext('let chart;\n' + fragment, context);
+  vm.runInContext('let chart; let lastChartData;\n' + fragment, context);
   const update = vm.runInContext('updateChartSafely', context);
   return {
     context, canvas, update,
@@ -478,4 +478,81 @@ test('downloads: count change cancels pending filter and immediately synchronize
   const renders = h.tables.length;
   h.flush();
   assert.equal(h.tables.length, renders);
+});
+
+
+// Exercise the actual startup wiring and chart renderer in both ordering cases.
+function asyncChartHarness(page) {
+  const { source, fragment } = readChartScript(page);
+  const h = harness(fragment);
+  const kickoff = source.indexOf('    // Recover optional chart after');
+  assert.ok(kickoff >= 0, 'missing asynchronous startup');
+  let onLoad, starts = 0;
+  const originalGet = h.context.document.getElementById;
+  h.context.document.getElementById = id => id === 'releaseChartScript'
+    ? { addEventListener(type, callback, options) {
+        assert.equal(type, 'load');
+        assert.equal(options.once, true);
+        onLoad = callback;
+      } }
+    : originalGet(id);
+  h.context.loadStats = h.context.load = () => { starts++; };
+  const isDownloads = page === 'downloads/index.html';
+  vm.runInContext((isDownloads ? 'let filterDebounce;\n' : '') + source.slice(kickoff), h.context);
+  assert.equal(starts, 1, 'release request must start without the CDN load event');
+  const labels = [];
+  return {
+    ...h, labels,
+    data(tag) { return [{ tag, tagName: tag, assets: [], total: 1 }]; },
+    chartArrives() {
+      h.context.Chart = function Chart(ctx, config) {
+        labels.push(Array.from(config.data.labels));
+        return { destroy() {} };
+      };
+      onLoad();
+    },
+    pendingFilter(value) {
+      vm.runInContext(value ? 'filterDebounce = 1' : 'filterDebounce = undefined', h.context);
+    }
+  };
+}
+
+for (const page of pages) {
+  test(page + ': optional CDN scripts are parser-nonblocking and API starts independently', () => {
+    const html = fs.readFileSync(path.join(root, page), 'utf8');
+    for (const host of ['cdn.tailwindcss.com', 'cdn.jsdelivr.net/npm/chart.js']) {
+      const tag = [...html.matchAll(/<script\b([^>]*)>/gi)]
+        .map(match => match[1]).find(attrs => attrs.includes(host));
+      assert.ok(tag, 'missing expected dependency ' + host);
+      assert.match(tag, /(?:^|\s)async(?:\s|$)/);
+    }
+    const h = asyncChartHarness(page);
+    h.update(h.data('first'));
+    assert.equal(h.canvas.style.display, 'none', 'table-first path tolerates stalled Chart');
+    assert.deepEqual(h.labels, []);
+    h.update(h.data('current'));
+    h.chartArrives();
+    assert.equal(h.canvas.style.display, '');
+    assert.deepEqual(h.labels, [['current']], 'late recovery uses latest rendered data');
+  });
+
+  test(page + ': Chart arriving before release data does not render stale or empty results', () => {
+    const h = asyncChartHarness(page);
+    h.chartArrives();
+    assert.deepEqual(h.labels, []);
+    h.update(h.data('ready'));
+    assert.deepEqual(h.labels, [['ready']]);
+    assert.equal(h.canvas.style.display, '');
+  });
+}
+
+test('downloads: late Chart load during a pending filter waits for the new view', () => {
+  const h = asyncChartHarness('downloads/index.html');
+  h.update(h.data('previous'));
+  h.pendingFilter(true);
+  h.chartArrives();
+  assert.deepEqual(h.labels, []);
+  h.pendingFilter(false);
+  h.update(h.data('filtered'));
+  assert.deepEqual(h.labels, [['filtered']]);
 });
