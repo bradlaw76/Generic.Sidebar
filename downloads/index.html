@@ -352,6 +352,25 @@ NON-NEGOTIABLES (Architecture Contract)
       return batch.slice(0, maxReleases);
     }
 
+    // API-supplied links are optional; never turn unknown destinations into links.
+    function trustedReleaseUrl(value, asset = false) {
+      if (typeof value !== 'string' || !/^https:\/\//i.test(value) ||
+          /[\s\\\u0000-\u001f\u007f]/u.test(value)) return null;
+      try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.hostname !== 'github.com' ||
+            url.username || url.password || url.port) return null;
+        const prefix = '/bradlaw76/generic.sidebar/releases/' + (asset ? 'download/' : 'tag/');
+        if (!url.pathname.toLowerCase().startsWith(prefix) ||
+            url.pathname.length <= prefix.length) return null;
+        // A release asset must have both a tag and filename.
+        if (asset && !/^[^/]+\/.+$/.test(url.pathname.slice(prefix.length))) return null;
+        return url.href;
+      } catch {
+        return null;
+      }
+    }
+
     function processReleaseData(releases) {
       if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
       return releases.map(release => {
@@ -372,11 +391,11 @@ NON-NEGOTIABLES (Architecture Contract)
           date: fmtDateISO(release.published_at || release.created_at),
           tagName: release.tag_name,
           releaseName: release.name || release.tag_name || 'Untitled',
-          htmlUrl: release.html_url,
+          htmlUrl: trustedReleaseUrl(release.html_url),
           assets: release.assets.map(a => ({
             name: a.name,
             downloadCount: a.download_count,
-            url: a.browser_download_url
+            url: trustedReleaseUrl(a.browser_download_url, true)
           })),
           totalDownloads
         };
@@ -503,23 +522,31 @@ NON-NEGOTIABLES (Architecture Contract)
 
           const tdRel = document.createElement('td');
           tdRel.className = 'px-4 py-2 whitespace-nowrap';
-          const linkRel = document.createElement('a');
-          linkRel.href = r.htmlUrl;
-          linkRel.target = '_blank';
-          linkRel.rel = 'noopener';
-          linkRel.className = 'text-blue-600 hover:underline';
-          linkRel.textContent = r.releaseName || r.tagName || 'Release';
-          tdRel.appendChild(linkRel);
+          if (r.htmlUrl) {
+            const linkRel = document.createElement('a');
+            linkRel.href = r.htmlUrl;
+            linkRel.target = '_blank';
+            linkRel.rel = 'noopener noreferrer';
+            linkRel.className = 'text-blue-600 hover:underline';
+            linkRel.textContent = r.releaseName || r.tagName || 'Release';
+            tdRel.appendChild(linkRel);
+          } else {
+            tdRel.textContent = r.releaseName || r.tagName || 'Release';
+          }
 
           const tdAsset = document.createElement('td');
           tdAsset.className = 'px-4 py-2 whitespace-nowrap';
-          const linkAsset = document.createElement('a');
-          linkAsset.href = a.url || '#';
-          linkAsset.target = '_blank';
-          linkAsset.rel = 'noopener';
-          linkAsset.className = 'text-blue-600 hover:underline';
-          linkAsset.textContent = a.name || '';
-          tdAsset.appendChild(linkAsset);
+          if (a.url) {
+            const linkAsset = document.createElement('a');
+            linkAsset.href = a.url;
+            linkAsset.target = '_blank';
+            linkAsset.rel = 'noopener noreferrer';
+            linkAsset.className = 'text-blue-600 hover:underline';
+            linkAsset.textContent = a.name || '';
+            tdAsset.appendChild(linkAsset);
+          } else {
+            tdAsset.textContent = a.name || '';
+          }
 
           const tdCount = document.createElement('td');
           tdCount.className = 'px-4 py-2 whitespace-nowrap text-gray-700';

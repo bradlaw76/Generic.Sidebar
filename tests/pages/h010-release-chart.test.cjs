@@ -146,6 +146,7 @@ function statsHarness(fetch, timers = { setTimeout, clearTimeout }) {
   const context = {
     fetch,
     AbortController,
+    URL,
     ...timers,
     document: { getElementById(id) {
       if (id === 'releaseStatsStatus') return status;
@@ -217,6 +218,7 @@ function downloadsHarness(fetch, timers = { setTimeout, clearTimeout }) {
   const context = {
     fetch,
     AbortController,
+    URL,
     ...timers,
     exportCsvBtn: button,
     loadingEl,
@@ -715,5 +717,96 @@ for (const [name, makeHarness] of [
     await h.load();
     assert.equal(h.button.disabled, false);
     assert.deepEqual(h.calls, [['table', 1], ['chart', 1]]);
+  });
+}
+
+
+// Exercise actual normalization, table rendering and Downloads CSV export.
+function releaseLinkHarness(page) {
+  const { source } = readChartScript(page);
+  const downloads = page === 'downloads/index.html';
+  const start = source.indexOf('function trustedReleaseUrl(');
+  const end = source.indexOf(downloads ? 'function applyViewFilters(' : 'function showChartUnavailable(', start);
+  const table = source.indexOf('function updateTable(data)');
+  const tableEnd = source.indexOf(downloads ? 'function csvEscapeCell(' : 'async function loadStats(', table);
+  assert.ok(start >= 0 && end > start && table >= 0 && tableEnd > table);
+  function element(tag) {
+    return { tag, children: [], textContent: '', href: undefined,
+      appendChild(child) { this.children.push(child); },
+      append(...children) { this.children.push(...children); },
+      click() {}, remove() {} };
+  }
+  const tbody = element('tbody');
+  let csv;
+  const context = {
+    URL: class extends URL {
+      static createObjectURL(blob) { csv = blob.text; return 'blob:test'; }
+      static revokeObjectURL() {}
+    },
+    Blob: class { constructor(parts) { this.text = parts.join(''); } },
+    fmtDateISO() { return '2026-01-01'; },
+    rowCountEl: {}, exportCsvBtn: {},
+    document: { querySelector() { return tbody; }, createElement: element, body: element('body') }
+  };
+  let exporter = '';
+  if (downloads) {
+    const csvStart = source.indexOf('function csvEscapeCell(');
+    const csvEnd = source.indexOf('function computeRateInfo(', csvStart);
+    assert.ok(csvEnd > csvStart);
+    exporter = source.slice(csvStart, csvEnd);
+  }
+  const api = vm.runInNewContext(source.slice(start, end) + '\n' +
+    source.slice(table, tableEnd) + '\n' + exporter + '\n' +
+    (downloads ? '({process:processReleaseData, render:updateTable, exportToCSV})'
+      : '({process:processData, render:updateTable})'), context);
+  return { api, tbody, get csv() { return csv; } };
+}
+
+const releaseUrl = 'https://github.com/bradlaw76/Generic.Sidebar/releases/tag/v1';
+const assetUrl = 'https://github.com/bradlaw76/Generic.Sidebar/releases/download/v1/demo.zip';
+function linkFixture(html_url, browser_download_url) {
+  return [{ published_at: '2026-01-01T00:00:00Z', tag_name: 'v1', name: 'Release one',
+    html_url, assets: [{ name: 'demo.zip', download_count: 3, browser_download_url }] }];
+}
+for (const page of pages) {
+  test(page + ': trusted release and asset links render while counts remain usable', () => {
+    const h = releaseLinkHarness(page);
+    const data = h.api.process(linkFixture(releaseUrl, assetUrl));
+    h.api.render(data);
+    const cells = h.tbody.children[0].children;
+    assert.equal(cells[2].children[0].href, releaseUrl);
+    assert.equal(cells[3].children[0].href, assetUrl);
+    assert.equal(String(cells[4].textContent), '3');
+    assert.equal(String(cells[5].textContent), '3');
+    if (h.api.exportToCSV) {
+      h.api.exportToCSV(data);
+      assert.ok(h.csv.includes(releaseUrl) && h.csv.includes(assetUrl));
+    }
+  });
+  test(page + ': untrusted release and asset links become plain text, not clickable or exported URLs', () => {
+    for (const value of [undefined, null, 42, {}, '', 'javascript:alert(1)',
+      '//github.com/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'http://github.com/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'https://github.com.example.org/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'https://example.org/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'https://user@github.com/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'https://github.com:444/bradlaw76/Generic.Sidebar/releases/tag/v1',
+      'https://github.com/bradlaw76/Generic.Sidebar-other/releases/tag/v1',
+      'https://github.com/bradlaw76/Generic.Sidebar/releases/tag/../../issues',
+      'https://github.com/bradlaw76/Generic.Sidebar/releases/tag/']) {
+      const h = releaseLinkHarness(page);
+      const data = h.api.process(linkFixture(value, value));
+      h.api.render(data);
+      const cells = h.tbody.children[0].children;
+      assert.equal(cells[2].children.length, 0);
+      assert.equal(cells[3].children.length, 0);
+      assert.equal(cells[2].textContent, 'Release one');
+      assert.equal(cells[3].textContent, 'demo.zip');
+      assert.equal(String(cells[4].textContent), '3');
+      if (h.api.exportToCSV) {
+        h.api.exportToCSV(data);
+        assert.match(h.csv, /Release one,,demo\.zip,,3,3$/);
+      }
+    }
   });
 }
