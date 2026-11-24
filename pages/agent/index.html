@@ -286,12 +286,37 @@ NON-NEGOTIABLES (Architecture Contract)
       const repo = 'Generic.Sidebar';
       const badge = document.getElementById('downloadBadge');
 
-      function parseNext(linkHeader) {
+      const releaseApi = `https://api.github.com/repos/${owner}/${repo}/releases`;
+      const repoIdPath = '/repositories/1055108199/releases';
+
+      // Treat pagination links as untrusted response metadata, not fetch targets.
+      function parseNext(linkHeader, currentPage) {
         if (!linkHeader) return null;
-        const nextPart = linkHeader.split(',').map(s => s.trim()).find(s => s.endsWith('rel="next"'));
-        if (!nextPart) return null;
-        const m = nextPart.match(/<([^>]+)>/);
-        return m ? m[1] : null;
+        const nextParts = linkHeader.split(',').map(s => s.trim())
+          .filter(s => /;\s*rel\s*=\s*"next"\s*(?:;|$)/i.test(s));
+        if (!nextParts.length) return null;
+        const m = nextParts[0].match(/^<([^>]+)>/);
+        if (nextParts.length !== 1 || !m || !/^https:\/\//i.test(m[1]) ||
+            /[\s\\\u0000-\u001f\u007f]/u.test(m[1])) {
+          throw new Error('Invalid release pagination link');
+        }
+        const next = new URL(m[1]);
+        const path = next.pathname.toLowerCase();
+        const expectedPath = `/repos/${owner}/${repo}/releases`.toLowerCase();
+        if (next.protocol !== 'https:' || next.hostname !== 'api.github.com' ||
+            next.username || next.password || next.port || next.hash ||
+            (path !== expectedPath && path !== repoIdPath)) {
+          throw new Error('Unexpected release pagination destination');
+        }
+        const page = next.searchParams.getAll('page');
+        const perPage = next.searchParams.getAll('per_page');
+        if (page.length !== 1 || !/^[1-9]\d*$/.test(page[0]) ||
+            !Number.isSafeInteger(Number(page[0])) || Number(page[0]) !== currentPage + 1 ||
+            perPage.length > 1 || (perPage.length === 1 && perPage[0] !== '100') ||
+            [...next.searchParams.keys()].some(key => key !== 'page' && key !== 'per_page')) {
+          throw new Error('Unexpected release pagination sequence');
+        }
+        return Number(page[0]);
       }
 
       // Bound the entire optional badge request, including pagination and JSON.
@@ -314,12 +339,13 @@ NON-NEGOTIABLES (Architecture Contract)
       }
 
       async function fetchTotalDownloads(signal) {
-        let url = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`;
+        let page = 1;
         let total = 0;
 
-        while (url) {
+        while (page !== null) {
+          const url = `${releaseApi}?per_page=100&page=${page}`;
           if (signal.aborted) throw new Error('Download count request cancelled');
-          const res = await fetch(url, { signal, headers: { 'Accept': 'application/vnd.github+json' } });
+          const res = await fetch(url, { signal, redirect: 'error', credentials: 'omit', headers: { 'Accept': 'application/vnd.github+json' } });
           if (!res.ok) throw new Error('GitHub API error ' + res.status);
           const releases = await res.json();
           if (signal.aborted) throw new Error('Download count request cancelled');
@@ -339,7 +365,7 @@ NON-NEGOTIABLES (Architecture Contract)
               total += count;
             }
           }
-          url = parseNext(res.headers.get('Link'));
+          page = parseNext(res.headers.get('Link'), page);
         }
         return total;
       }

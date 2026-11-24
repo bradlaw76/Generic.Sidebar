@@ -591,7 +591,7 @@ function agentBadgeHarness(fetch) {
   let deadline, cleared = false;
   const completion = vm.runInNewContext(script[2], {
     document: { getElementById(id) { return id === 'downloadBadge' ? badge : year; } },
-    fetch, AbortController,
+    fetch, AbortController, URL,
     setTimeout(fn, delay) { assert.equal(delay, 10000); deadline = fn; return 1; },
     clearTimeout(id) { assert.equal(id, 1); cleared = true; },
     console: { error() {} }
@@ -614,7 +614,7 @@ test('Agent badge: all release pages counted, drafts ignored, deadline cleared',
   });
   await h.completion;
   assert.equal(calls.length, 2);
-  assert.equal(calls[1][0], next);
+  assert.equal(calls[1][0], 'https://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?per_page=100&page=2');
   assert.equal(calls[0][1], calls[1][1]);
   assert.match(h.badge.innerHTML, /Downloads<\/small> 7$/);
   assert.equal(h.cleared, true);
@@ -810,3 +810,70 @@ for (const page of pages) {
     }
   });
 }
+
+
+test('Agent badge: canonicalizes verified numeric repository pagination and omits credentials', async () => {
+  const calls = [];
+  const next = 'https://api.github.com/repositories/1055108199/releases?per_page=100&page=2';
+  const h = agentBadgeHarness(async (url, options) => {
+    calls.push(url);
+    assert.equal(options.redirect, 'error');
+    assert.equal(options.credentials, 'omit');
+    return calls.length === 1
+      ? agentResponse([{ assets: [{ download_count: 2 }] }], next)
+      : agentResponse([{ assets: [{ download_count: 3 }] }]);
+  });
+  await h.completion;
+  assert.deepEqual(calls, [
+    'https://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?per_page=100&page=1',
+    'https://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?per_page=100&page=2'
+  ]);
+  assert.match(h.badge.innerHTML, /Downloads<\/small> 5$/);
+  assert.equal(h.cleared, true);
+});
+
+test('Agent badge: rejects untrusted pagination destinations without requesting them or showing a partial total', async () => {
+  for (const next of [
+    'https://example.org/releases?page=2',
+    'http://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?page=2',
+    'https://api.github.com/repos/another/repo/releases?page=2',
+    'https://api.github.com/repositories/1055108200/releases?page=2',
+    'https://api.github.com/repos/bradlaw76/Generic.Sidebar/issues?page=2',
+    'https://user@api.github.com/repos/bradlaw76/Generic.Sidebar/releases?page=2',
+    'https://api.github.com:444/repos/bradlaw76/Generic.Sidebar/releases?page=2'
+  ]) {
+    let calls = 0;
+    const h = agentBadgeHarness(async () => {
+      calls++;
+      return calls === 1 ? agentResponse([{ assets: [{ download_count: 3 }] }], next) : agentResponse([]);
+    });
+    await h.completion;
+    assert.equal(calls, 1, next);
+    assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
+    assert.equal(h.cleared, true);
+  }
+});
+
+test('Agent badge: rejects repeated, skipped, malformed and changed-size page requests', async () => {
+  const base = 'https://api.github.com/repos/bradlaw76/Generic.Sidebar/releases?';
+  for (const query of ['page=1', 'page=3', 'page=2&page=2', 'page=2&per_page=1', 'page=2&extra=1', 'page=2.0', 'per_page=100']) {
+    let calls = 0;
+    const h = agentBadgeHarness(async () => {
+      calls++;
+      return calls === 1 ? agentResponse([{ assets: [{ download_count: 3 }] }], base + query) : agentResponse([]);
+    });
+    await h.completion;
+    assert.equal(calls, 1, query);
+    assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
+  }
+  let calls = 0;
+  const h = agentBadgeHarness(async () => {
+    calls++;
+    return calls <= 2
+      ? agentResponse([{ assets: [{ download_count: 3 }] }], base + 'page=2')
+      : agentResponse([]);
+  });
+  await h.completion;
+  assert.equal(calls, 2, 'second page cannot be counted repeatedly');
+  assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
+});
