@@ -325,9 +325,18 @@ NON-NEGOTIABLES (Architecture Contract)
           if (signal.aborted) throw new Error('Download count request cancelled');
           if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
           for (const r of releases) {
+            if (!r || typeof r !== 'object' || Array.isArray(r)) {
+              throw new Error('Unexpected release record');
+            }
             if (r.draft) continue; // ignore drafts
-            if (Array.isArray(r.assets)) {
-              for (const a of r.assets) total += (a.download_count || 0);
+            if (!Array.isArray(r.assets)) throw new Error('Unexpected release assets');
+            for (const a of r.assets) {
+              const count = a && a.download_count;
+              // Do not coerce arbitrary API values into the numeric total or HTML.
+              if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(total + count)) {
+                throw new Error('Unexpected asset download count');
+              }
+              total += count;
             }
           }
           url = parseNext(res.headers.get('Link'));

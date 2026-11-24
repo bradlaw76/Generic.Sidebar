@@ -660,3 +660,23 @@ test('Agent badge: API and malformed payload errors show unavailable, not a part
     assert.equal(h.cleared, true);
   }
 });
+
+test('Agent badge: rejects invalid asset counts and never renders API strings as HTML', async () => {
+  for (const bad of ['<img src=x onerror=alert(1)>', '4', -1, 1.5, null, undefined, Number.MAX_SAFE_INTEGER + 1]) {
+    const h = agentBadgeHarness(async () => agentResponse([{ assets: [{ download_count: 3 }, { download_count: bad }] }]));
+    await h.completion;
+    assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
+    assert.equal(h.cleared, true);
+  }
+});
+
+test('Agent badge: rejects malformed release records, missing assets and unsafe totals', async () => {
+  for (const data of [[null], [{}], [{ assets: [null] }], [{ assets: [{ download_count: Number.MAX_SAFE_INTEGER }, { download_count: 1 }] }]]) {
+    const h = agentBadgeHarness(async () => agentResponse(data));
+    await h.completion;
+    assert.equal(h.badge.innerHTML, '<small>Downloads</small> n/a');
+  }
+  const valid = agentBadgeHarness(async () => agentResponse([{ assets: [] }, { assets: [{ download_count: 0 }] }]));
+  await valid.completion;
+  assert.match(valid.badge.innerHTML, /Downloads<\/small> 0$/);
+});
