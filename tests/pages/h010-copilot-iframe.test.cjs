@@ -131,3 +131,17 @@ test('optional Tailwind loads asynchronously and iframe fallback starts independ
   assert.equal(h.frame.classList.contains('hidden'), true);
   assert.equal(h.fallback.classList.contains('hidden'), false);
 });
+
+test('direct chat entry shows public-data and identity guidance before the embedded frame', () => {
+  const notice = html.match(/<aside\b[^>]*id="publicDemoNotice"[^>]*>([\s\S]*?)<\/aside>/);
+  assert.ok(notice, 'Visible public demo guidance must exist outside the iframe');
+  assert.ok(notice.index < html.indexOf('<iframe'));
+  assert.doesNotMatch(notice[0], /\bhidden\b/);
+  assert.match(notice[1], /synthetic or redacted examples only/i);
+  assert.match(notice[1], /credentials, access tokens, personal or customer data, tenant identifiers, or internal screenshots/);
+  assert.match(notice[1], /configured identity and permissions/);
+  assert.match(notice[1], /verify the destination and proposed changes before submission/);
+  assert.match(notice[1], /href="https:\/\/github\.com\/bradlaw76\/Generic\.Sidebar\/issues"/);
+  assert.match(html, /\.public-demo-notice\s*\{[^}]*flex-shrink:\s*0;/);
+  assert.match(html, /\.manual-fallback-link\s*\{[^}]*position:\s*absolute;/);
+});
