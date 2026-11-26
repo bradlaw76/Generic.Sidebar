@@ -157,6 +157,34 @@ jobs:
               raise SystemExit("\n".join(errors))
           print(f"Verified {count} same-origin staged href/src references across {len(parsed)} HTML files")
           PY
+      - name: Verify Pages archive contract without uploading
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Match the pinned v5 composite's Linux tar options with include-hidden-files=true.
+          tar --dereference --hard-dereference --directory _site \
+            -cvf "$RUNNER_TEMP/h010-pages-validation.tar" --exclude=.git --exclude=.github .
+          python3 - "$RUNNER_TEMP/h010-pages-validation.tar" <<'PY'
+          import sys, tarfile
+          from pathlib import Path
+
+          expected = {'.nojekyll', 'index.html', 'downloads/index.html',
+                      'pages/agent/index.html', 'pages/copilot/index.html'}
+          with tarfile.open(sys.argv[1], 'r:') as archive:
+              files = {}
+              for member in archive.getmembers():
+                  if member.isdir():
+                      continue
+                  name = member.name.removeprefix('./')
+                  if not member.isfile() or name not in expected or name in files:
+                      raise SystemExit(f'Unexpected archive entry: {member.name}')
+                  files[name] = archive.extractfile(member).read()
+              if set(files) != expected or any(
+                  data != (Path('_site') / name).read_bytes() for name, data in files.items()
+              ):
+                  raise SystemExit('Pages archive content mismatch')
+          print(f'Verified {len(files)} allowlisted archive files including .nojekyll')
+          PY
   # Production Pages deployment remains push-to-main/manual only.
   deploy:
     # Manual dispatch accepts arbitrary branch/tag refs; publish from main only.
@@ -211,9 +239,11 @@ jobs:
             exit 1
           fi
       - name: Upload allowlisted site artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: '_site'
+          # v5 excludes dotfiles by default; the exact staging allowlist includes .nojekyll.
+          include-hidden-files: 'true'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
