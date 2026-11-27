@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'pages/copilot/index.html'
+      - 'assets/h010-pages.css'
+      - 'assets/h010-tailwind-LICENSE.txt'
       - 'tests/pages/h010-copilot-iframe.test.cjs'
       - '.github/workflows/h010-copilot-fallback-validation.yml'
   push:

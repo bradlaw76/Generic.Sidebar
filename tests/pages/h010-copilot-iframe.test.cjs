@@ -134,17 +134,18 @@ test('manual agent-instructions escape remains available even if iframe fires lo
   assert.match(html, /sandbox="allow-scripts allow-same-origin allow-forms allow-popups"/);
 });
 
-test('optional Tailwind loads asynchronously and iframe fallback starts independently', () => {
+test('local stylesheet replaces remote Tailwind; fallback logic does not require CSS', () => {
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);
   assert.ok(head, 'Page head must exist');
-  const cdn = [...head[1].matchAll(/<script\b([^>]*)>/gi)]
-    .filter(([, attrs]) => /\bsrc\s*=\s*["']https:\/\/cdn\.tailwindcss\.com["']/i.test(attrs));
-  assert.equal(cdn.length, 1);
-  assert.match(cdn[0][1], /(?:^|\s)async(?:\s|$)/i,
-    'A stalled optional CDN must not block HTML parsing');
+  const sheets = [...head[1].matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
+    .filter(attrs => /\brel\s*=\s*"stylesheet"/i.test(attrs));
+  assert.equal(sheets.length, 1);
+  assert.ok(sheets[0].includes('href="../../assets/h010-pages.css"'));
+  assert.doesNotMatch(html, /cdn\.tailwindcss\.com/i);
+  assert.ok(fs.statSync(path.resolve(__dirname, '../../assets/h010-pages.css')).size > 0);
   assert.ok(html.indexOf('id="copilotFrame"') < html.indexOf('function showFallback()'));
   assert.ok(html.indexOf('id="manualFallback"') < html.indexOf('function showFallback()'));
-  // The VM harness has no Tailwind, CDN completion or document-ready callback.
+  // The VM harness has no stylesheet rendering or document-ready callback.
   const h = harness();
   h.expireTimer();
   assert.equal(h.frame.classList.contains('hidden'), true);

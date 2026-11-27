@@ -170,14 +170,14 @@ NON-NEGOTIABLES (Architecture Contract)
   <title>Copilot Agent Chat</title>
   <meta name="description" content="Copilot Virtual Agent chat for Generic.Sidebar — submit issues and get help." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
-  <!-- Optional styling must not block the iframe or its no-load timer. -->
-  <script async src="https://cdn.tailwindcss.com"></script>
+  <!-- Version-locked local CSS; essential fallback layout remains inline below. -->
+  <link rel="stylesheet" href="../../assets/h010-pages.css" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     iframe { width: 100%; border: 0; display: block; }
-    /* Keep the loading/failure state reliable if the Tailwind CDN is blocked. */
+    /* Keep the loading/failure state reliable if the stylesheet fails to load. */
     .hidden { display: none !important; }
-    /* Preserve the full-height chat and error overlay when Tailwind is unavailable. */
+    /* Preserve the full-height chat and error overlay when the stylesheet is unavailable. */
     body { display: flex; flex-direction: column; min-height: 100vh; }
     nav { flex-shrink: 0; }
     .public-demo-notice { flex-shrink: 0; padding: 8px 16px; border-bottom: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font: 14px/1.4 system-ui, sans-serif; }

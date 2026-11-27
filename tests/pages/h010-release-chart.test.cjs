@@ -537,14 +537,21 @@ for (const page of pages) {
     assert.match(attrs, /(?:^|\s)async(?:\s|$)/);
   });
 
-  test(page + ': optional CDN scripts are parser-nonblocking and API starts independently', () => {
+  test(page + ': local stylesheet replaces remote Tailwind; Chart and API start independently', () => {
     const html = fs.readFileSync(path.join(root, page), 'utf8');
-    for (const host of ['cdn.tailwindcss.com', 'cdn.jsdelivr.net/npm/chart.js']) {
-      const tag = [...html.matchAll(/<script\b([^>]*)>/gi)]
-        .map(match => match[1]).find(attrs => attrs.includes(host));
-      assert.ok(tag, 'missing expected dependency ' + host);
-      assert.match(tag, /(?:^|\s)async(?:\s|$)/);
-    }
+    const localHref = page === 'index.html' ? 'assets/h010-pages.css' : '../assets/h010-pages.css';
+    const sheets = [...html.matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
+      .filter(attrs => /\brel\s*=\s*"stylesheet"/i.test(attrs));
+    assert.equal(sheets.length, 1);
+    assert.ok(sheets[0].includes('href="' + localHref + '"'));
+    assert.doesNotMatch(html, /cdn\.tailwindcss\.com/i);
+    const resolved = path.resolve(root, path.dirname(page), localHref);
+    assert.equal(resolved, path.resolve(root, 'assets/h010-pages.css'));
+    assert.ok(fs.statSync(resolved).size > 0, 'committed CSS must exist');
+    const tag = [...html.matchAll(/<script\b([^>]*)>/gi)]
+      .map(match => match[1]).find(attrs => attrs.includes('cdn.jsdelivr.net/npm/chart.js'));
+    assert.ok(tag, 'missing Chart.js dependency');
+    assert.match(tag, /(?:^|\s)async(?:\s|$)/);
     const h = asyncChartHarness(page);
     h.update(h.data('first'));
     assert.equal(h.canvas.style.display, 'none', 'table-first path tolerates stalled Chart');

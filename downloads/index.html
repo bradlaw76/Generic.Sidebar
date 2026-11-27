@@ -172,11 +172,11 @@ NON-NEGOTIABLES (Architecture Contract)
 
   <!-- H010: Chart.js 4.6.1 UMD; npm/CDN bytes and CORS verified in Actions run 45951118747. -->
   <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
-  <script async src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/h010-pages.css" />
   <style>
     /* Keep chart area responsive without causing layout shift */
     #chartWrap { height: 480px; }
-    /* Loading/status visibility must work even if Tailwind never loads. */
+    /* Loading/status visibility must work even if the stylesheet fails to load. */
     #statusBox[hidden], #loading[hidden] { display: none !important; }
   </style>
 </head>
