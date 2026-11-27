@@ -542,8 +542,21 @@ for (const page of pages) {
     const localHref = page === 'index.html' ? 'assets/h010-pages.css' : '../assets/h010-pages.css';
     const sheets = [...html.matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
       .filter(attrs => /\brel\s*=\s*"stylesheet"/i.test(attrs));
-    assert.equal(sheets.length, 1);
-    assert.ok(sheets[0].includes('href="' + localHref + '"'));
+    // A matching stylesheet in the head can block the classic inline API script.
+    // With scripting enabled, only the nonmatching print link may be active.
+    const fallback = '<noscript><link rel="stylesheet" href="' + localHref + '" /></noscript>';
+    assert.equal(html.split(fallback).length, 2, 'exactly one no-JS stylesheet fallback');
+    const activeHtml = html.replace(fallback, '');
+    const activeSheets = [...activeHtml.matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
+      .filter(attrs => /\brel\s*=\s*"stylesheet"/i.test(attrs));
+    assert.equal(sheets.length, 2, 'one async link and one no-JS fallback');
+    assert.equal(activeSheets.length, 1, 'no additional blocking stylesheet');
+    assert.ok(activeSheets[0].includes('href="' + localHref + '"'));
+    assert.match(activeSheets[0], /\bmedia="print"/);
+    assert.match(activeSheets[0], /\bonload="this\.media='all'"/);
+    const linkIndex = activeHtml.indexOf('<link' + activeSheets[0] + '>');
+    const startupIndex = activeHtml.indexOf(readChartScript(page).source);
+    assert.ok(linkIndex >= 0 && startupIndex > linkIndex, 'nonblocking link precedes API startup');
     assert.doesNotMatch(html, /cdn\.tailwindcss\.com/i);
     const resolved = path.resolve(root, path.dirname(page), localHref);
     assert.equal(resolved, path.resolve(root, 'assets/h010-pages.css'));
