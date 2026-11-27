@@ -77,7 +77,23 @@ jobs:
           final_headers = blocks[-1].splitlines()
           cors = [line.split(":", 1)[1].strip() for line in final_headers if line.lower().startswith("access-control-allow-origin:")]
           assert cors in (["*"], ["https://bradlaw76.github.io"]), "CDN CORS unsuitable for anonymous SRI"
-          digest = "sha384-" + base64.b64encode(hashlib.sha384(served).digest()).decode("ascii")
+          # H010 / #7212469048: pin to the SRI already committed in both pages.
+          expected_sri = "sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0"
+
+          def verify_sri(content):
+              actual = "sha384-" + base64.b64encode(hashlib.sha384(content).digest()).decode("ascii")
+              if actual != expected_sri:
+                  raise ValueError("Chart.js bytes differ from the committed SRI: " + actual)
+              return actual
+
+          digest = verify_sri(served)
+          # Exercise the same guard with deliberately altered bytes, without executing JS.
+          try:
+              verify_sri(served + bytes([0]))
+          except ValueError:
+              print("Altered-byte negative control rejected")
+          else:
+              raise RuntimeError("SRI guard accepted altered bytes")
           print("Chart.js 4.6.1: npm tarball integrity verified; CDN bytes identical")
           print("Verified byte count:", len(served))
           print("Verified CORS:", cors[0])
