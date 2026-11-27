@@ -2,9 +2,9 @@
 =============================================================================
 COMPONENT:    index
 FILE:         pages\copilot\index.html
-VERSION:      1.0.0
+VERSION:      1.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-11-26
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -69,6 +69,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.1  2026-11-26  Announce chat fallback and restore keyboard focus
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -83,9 +84,9 @@ NON-NEGOTIABLES (Architecture Contract)
 =============================================================================
 COMPONENT:    index
 FILE:         pages\copilot\index.html
-VERSION:      1.0.0
+VERSION:      1.0.1
 AUTHOR:       Generic.Sidebar Team
-LAST UPDATED: 2026-03-04
+LAST UPDATED: 2026-11-26
 ENVIRONMENT:  HTML | JavaScript
 PORTAL URL:   N/A
 
@@ -150,6 +151,7 @@ TEST CASES
 -----------------------------------------------------------------------------
 CHANGELOG
 -----------------------------------------------------------------------------
+v1.0.1  2026-11-26  Announce chat fallback and restore keyboard focus
 v1.0.0  2026-03-04  Added SpeckKit component header block
 
 -----------------------------------------------------------------------------
@@ -168,10 +170,25 @@ NON-NEGOTIABLES (Architecture Contract)
   <title>Copilot Agent Chat</title>
   <meta name="description" content="Copilot Virtual Agent chat for Generic.Sidebar — submit issues and get help." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Version-locked local CSS; essential fallback layout remains inline below. -->
+  <link rel="stylesheet" href="../../assets/h010-pages.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="../../assets/h010-pages.css" /></noscript>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     iframe { width: 100%; border: 0; display: block; }
+    /* Keep the loading/failure state reliable if the stylesheet fails to load. */
+    .hidden { display: none !important; }
+    /* Preserve the full-height chat and error overlay when the stylesheet is unavailable. */
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    nav { flex-shrink: 0; }
+    .public-demo-notice { flex-shrink: 0; padding: 8px 16px; border-bottom: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font: 14px/1.4 system-ui, sans-serif; }
+    .public-demo-notice a { color: #1d4ed8; text-decoration: underline; }
+    main { position: relative; flex: 1 1 auto; min-height: 0; }
+    #fallback:not(.hidden) { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; background: #f9fafb; }
+    /* A cross-origin iframe can emit load even when blocked; always offer a manual exit. */
+    .manual-fallback-link { position: absolute; top: 12px; right: 12px; z-index: 10; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1d4ed8; font: 600 13px/1.4 system-ui, sans-serif; text-decoration: underline; }
+    .fallback-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    .manual-fallback-link:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
   </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -183,7 +200,11 @@ NON-NEGOTIABLES (Architecture Contract)
       <a href="/Generic.Sidebar/pages/copilot/" class="text-gray-900 font-semibold">Copilot</a>
     </div>
   </nav>
+  <aside id="publicDemoNotice" class="public-demo-notice" aria-label="Public demo safety">
+    <strong>Public demo:</strong> Use synthetic or redacted examples only. Do not enter credentials, access tokens, personal or customer data, tenant identifiers, or internal screenshots. GitHub actions depend on the configured identity and permissions; verify the destination and proposed changes before submission. <a href="https://github.com/bradlaw76/Generic.Sidebar/issues">Use GitHub issues directly</a> if chat is unavailable.
+  </aside>
   <main class="flex-1 relative">
+    <template id="copilotTemplate">
     <iframe
       id="copilotFrame"
       title="Copilot Virtual Agent"
@@ -191,6 +212,9 @@ NON-NEGOTIABLES (Architecture Contract)
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       style="width:100%;height:100%;">
     </iframe>
+    </template>
+    <a id="manualFallback" class="manual-fallback-link" href="/Generic.Sidebar/pages/agent/">Chat blank or blocked? View agent instructions</a>
+    <div id="fallbackStatus" class="fallback-status" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="fallback" class="hidden absolute inset-0 flex items-center justify-center bg-gray-50">
       <div class="text-center p-8">
         <p class="text-lg text-gray-700 mb-4">The Copilot agent could not be loaded.</p>
@@ -200,22 +224,36 @@ NON-NEGOTIABLES (Architecture Contract)
     </div>
   </main>
   <script>
-    const frame = document.getElementById('copilotFrame');
-    frame.addEventListener('error', () => {
+    const template = document.getElementById('copilotTemplate');
+    // The template is inert: install handlers on the detached frame before navigation.
+    const frame = template.content.firstElementChild.cloneNode(true);
+    const fallback = document.getElementById('fallback');
+    const status = document.getElementById('fallbackStatus');
+    const recovery = document.getElementById('manualFallback');
+    let loaded = false;
+    let fallbackShown = false;
+    let timeoutId;
+    function showFallback() {
+      clearTimeout(timeoutId);
+      if (fallbackShown) return;
+      fallbackShown = true;
+      const frameHadFocus = document.activeElement === frame;
       frame.classList.add('hidden');
-      document.getElementById('fallback').classList.remove('hidden');
+      fallback.classList.remove('hidden');
+      status.textContent = 'The Copilot agent could not be loaded. View agent instructions instead.';
+      if (frameHadFocus) recovery.focus();
+    }
+    frame.addEventListener('error', showFallback);
+    frame.addEventListener('load', () => {
+      loaded = true;
+      clearTimeout(timeoutId);
     });
-    // Timeout fallback: if iframe hasn't loaded within 15s, show fallback
-    const timer = setTimeout(() => {
-      try {
-        // Accessing cross-origin frame will throw; if it doesn't, the frame loaded. 
-        // We just rely on the fact that if it loaded, the content is visible.
-      } catch(e) {
-        frame.classList.add('hidden');
-        document.getElementById('fallback').classList.remove('hidden');
-      }
+    // Show a fallback only when no iframe load event arrives within 15 seconds.
+    // A load event is not proof the cross-origin bot is usable; live acceptance is separate.
+    timeoutId = setTimeout(() => {
+      if (!loaded) showFallback();
     }, 15000);
-    frame.addEventListener('load', () => clearTimeout(timer));
+    template.replaceWith(frame);
   </script>
 </body>
 </html>

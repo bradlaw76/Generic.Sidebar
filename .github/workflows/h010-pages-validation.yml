@@ -1,0 +1,214 @@
+name: H010 Public Pages Read-only Validation
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'pages/agent/index.html'
+      - 'tests/pages/h010-release-chart.test.cjs'
+      - 'pages/copilot/index.html'
+      - 'tools/h010-pages-css/**'
+      - 'assets/h010-pages.css'
+      - 'assets/h010-tailwind-LICENSE.txt'
+      - '.github/workflows/h010-pages-validation.yml'
+  push:
+    branches:
+      - 'fix/h010-chart-cdn-fallback'
+    paths:
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'pages/agent/index.html'
+      - 'tests/pages/h010-release-chart.test.cjs'
+      - '.github/workflows/h010-pages-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-release-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Set up Node 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.x'
+          package-manager-cache: false
+      - name: Validate page scripts and chart isolation
+        run: node --test tests/pages/h010-release-chart.test.cjs
+
+  verify-chart-provenance:
+    # H010 / #7210636401: inspect dependency bytes, never execute them.
+    # Separate from offline regressions; no deployment, credentials, or checkout.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify candidate Chart.js 4.6.1 bytes and CORS
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          cd "$tmp"
+          curl_args=(--fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 45 --retry 1)
+          curl "${curl_args[@]}" -o metadata.json 'https://registry.npmjs.org/chart.js/4.6.1'
+          curl "${curl_args[@]}" -o package.tgz 'https://registry.npmjs.org/chart.js/-/chart.js-4.6.1.tgz'
+          curl "${curl_args[@]}" --compressed -H 'Origin: https://bradlaw76.github.io' -D cdn-headers.txt -o cdn.js 'https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js'
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import pathlib
+          import tarfile
+
+          meta = json.loads(pathlib.Path("metadata.json").read_text())
+          assert meta["name"] == "chart.js" and meta["version"] == "4.6.1"
+          assert meta["dist"]["tarball"] == "https://registry.npmjs.org/chart.js/-/chart.js-4.6.1.tgz"
+          package = pathlib.Path("package.tgz").read_bytes()
+          package_integrity = "sha512-" + base64.b64encode(hashlib.sha512(package).digest()).decode("ascii")
+          assert package_integrity in meta["dist"]["integrity"].split(), "npm tarball integrity mismatch"
+          with tarfile.open("package.tgz", "r:gz") as archive:
+              member = archive.getmember("package/dist/chart.umd.min.js")
+              assert member.isfile() and 0 < member.size < 2_000_000
+              published = archive.extractfile(member).read()
+          served = pathlib.Path("cdn.js").read_bytes()
+          assert served == published, "CDN bytes differ from integrity-verified npm UMD file"
+          blocks = pathlib.Path("cdn-headers.txt").read_text().strip().split("\n\n")
+          final_headers = blocks[-1].splitlines()
+          cors = [line.split(":", 1)[1].strip() for line in final_headers if line.lower().startswith("access-control-allow-origin:")]
+          assert cors in (["*"], ["https://bradlaw76.github.io"]), "CDN CORS unsuitable for anonymous SRI"
+          # H010 / #7212469048: pin to the SRI already committed in both pages.
+          expected_sri = "sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0"
+
+          def verify_sri(content):
+              actual = "sha384-" + base64.b64encode(hashlib.sha384(content).digest()).decode("ascii")
+              if actual != expected_sri:
+                  raise ValueError("Chart.js bytes differ from the committed SRI: " + actual)
+              return actual
+
+          digest = verify_sri(served)
+          # Exercise the same guard with deliberately altered bytes, without executing JS.
+          try:
+              verify_sri(served + bytes([0]))
+          except ValueError:
+              print("Altered-byte negative control rejected")
+          else:
+              raise RuntimeError("SRI guard accepted altered bytes")
+          print("Chart.js 4.6.1: npm tarball integrity verified; CDN bytes identical")
+          print("Verified byte count:", len(served))
+          print("Verified CORS:", cors[0])
+          print("Verified SRI:", digest)
+          PY
+
+
+  prepare-tailwind-candidate:
+    # H010: retain only public build inputs/outputs for review; not a Pages artifact.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact PR head without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Node 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.x'
+          package-manager-cache: false
+      - name: Build public CSS twice from a clean locked install
+        id: css
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          # Only public page source enters the compiler context, including inline JS.
+          cp -- index.html "$tmp/home.html"
+          cp -- downloads/index.html "$tmp/downloads.html"
+          cp -- pages/copilot/index.html "$tmp/copilot.html"
+          cp -- tools/h010-pages-css/{package.json,package-lock.json,input.css,tailwind.config.cjs} "$tmp/"
+          cp -- assets/h010-pages.css "$tmp/committed.css"
+          cp -- assets/h010-tailwind-LICENSE.txt "$tmp/committed.LICENSE"
+          source_sha="$(git rev-parse HEAD)"
+          cd "$tmp"
+          export npm_config_registry=https://registry.npmjs.org/
+          export npm_config_ignore_scripts=true
+          export npm_config_audit=false
+          export npm_config_fund=false
+          npm view tailwindcss@3.4.17 --json > metadata.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          meta = json.loads(Path("metadata.json").read_text())
+          lock = json.loads(Path("package-lock.json").read_text())
+          assert (meta["name"], meta["version"], meta["license"]) == ("tailwindcss", "3.4.17", "MIT")
+          packages = lock["packages"]
+          compiler = packages["node_modules/tailwindcss"]
+          assert compiler["version"] == "3.4.17"
+          assert compiler["resolved"] == meta["dist"]["tarball"]
+          assert compiler["integrity"] == meta["dist"]["integrity"]
+          for name, package in packages.items():
+              if not name:
+                  continue
+              url = urlsplit(package["resolved"])
+              assert url.scheme == "https" and url.netloc == "registry.npmjs.org", name
+              assert package["integrity"].startswith("sha512-"), name
+              assert not package.get("link"), name
+          print("Compiler version/license/integrity:", compiler["version"], meta["license"], compiler["integrity"])
+          print("Integrity-bearing locked dependency entries:", len(packages) - 1)
+          PY
+          npm ci --ignore-scripts
+          test -s node_modules/tailwindcss/LICENSE
+          cp -- node_modules/tailwindcss/LICENSE first.LICENSE
+          node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o first.css --minify
+          # npm ci removes the previous node_modules before installing from this exact lock.
+          npm ci --ignore-scripts
+          cmp first.LICENSE node_modules/tailwindcss/LICENSE
+          node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o second.css --minify
+          cmp first.css second.css
+          # Fail if a clean build does not reproduce the committed public asset and license.
+          cmp committed.css first.css
+          cmp committed.LICENSE first.LICENSE
+          echo 'Committed stylesheet and MIT license reproduced byte-for-byte from the checked-in lock.'
+          python3 - <<'PY'
+          from pathlib import Path
+          css = Path("first.css").read_text()
+          required = [
+              ".border-red-300", ".bg-red-50", ".text-red-800",
+              ".border-yellow-300", ".bg-yellow-50", ".text-yellow-800",
+              ".border-blue-300", ".bg-blue-50", ".text-blue-800",
+              r".odd\:bg-white", r".even\:bg-gray-50", ".whitespace-nowrap",
+              r".max-h-\[28rem\]", r".sm\:flex-row", r".sm\:grid-cols-3",
+              r".focus\:not-sr-only", r".disabled\:opacity-50", ".hidden",
+          ]
+          missing = [selector for selector in required if selector not in css]
+          assert not missing, f"Missing static/dynamic utility selectors: {missing}"
+          print("Required static/dynamic utility selectors present:", len(required))
+          PY
+          sha256sum package-lock.json first.css node_modules/tailwindcss/LICENSE
+          wc -c first.css package-lock.json
+          evidence="$(mktemp -d "$RUNNER_TEMP/h010-css-evidence.XXXXXX")"
+          install -m644 package-lock.json "$evidence/package-lock.json"
+          install -m644 first.css "$evidence/tailwind.min.css"
+          install -m644 first.LICENSE "$evidence/TAILWIND-LICENSE.txt"
+          printf '%s\n' "$source_sha" > "$evidence/SOURCE_SHA.txt"
+          (cd "$evidence" && sha256sum package-lock.json tailwind.min.css TAILWIND-LICENSE.txt SOURCE_SHA.txt > SHA256SUMS.txt)
+          echo "directory=$evidence" >> "$GITHUB_OUTPUT"
+          echo 'Two clean installs reproduced committed CSS/license; no Pages deployment or layout acceptance.'
+      - name: Retain exact public CSS candidate bytes for source review
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: h010-css-candidate-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ steps.css.outputs.directory }}/
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: false
+

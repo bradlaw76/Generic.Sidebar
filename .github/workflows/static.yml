@@ -9,35 +9,266 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  # Read-only staging verification; no Pages deployment from pull requests.
+  pull_request:
+    paths:
+      - '.github/workflows/static.yml'
+      - 'index.html'
+      - 'downloads/index.html'
+      - 'pages/agent/index.html'
+      - 'pages/copilot/index.html'
+      - 'assets/h010-pages.css'
+      - 'assets/h010-tailwind-LICENSE.txt'
+
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Isolate read-only PR validation from production Pages deployment queuing.
+# Preserve the existing "pages" group for main pushes and manual deployments.
 concurrency:
-  group: "pages"
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
+  validate:
+    name: Verify Pages allowlist without deployment
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html assets/h010-pages.css assets/h010-tailwind-LICENSE.txt; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          install -Dm644 assets/h010-pages.css _site/assets/h010-pages.css
+          install -Dm644 assets/h010-tailwind-LICENSE.txt _site/assets/h010-tailwind-LICENSE.txt
+          cmp assets/h010-pages.css _site/assets/h010-pages.css
+          cmp assets/h010-tailwind-LICENSE.txt _site/assets/h010-tailwind-LICENSE.txt
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html \
+            _site/assets/h010-pages.css \
+            _site/assets/h010-tailwind-LICENSE.txt | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+      - name: Verify staged HTML routes and anchors without network access
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import unquote, urljoin, urlsplit
+
+          origin = "https://bradlaw76.github.io"
+          prefix = "/Generic.Sidebar/"
+          routes = {
+              "index.html", "downloads/index.html",
+              "pages/agent/index.html", "pages/copilot/index.html",
+          }
+
+          assets = {"assets/h010-pages.css", "assets/h010-tailwind-LICENSE.txt"}
+          for asset in assets:
+              assert (Path("_site") / asset).is_file(), f"Missing staged asset: {asset}"
+
+          class Page(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+                  self.anchors = set()
+
+              def handle_starttag(self, tag, attrs):
+                  for key, value in attrs:
+                      if value is None:
+                          continue
+                      if tag == "base" and key == "href":
+                          raise ValueError("Unexpected base href in staged page")
+                      if key in ("href", "src"):
+                          self.links.append((value, self.getpos()[0]))
+                      if key == "id" or (tag == "a" and key == "name"):
+                          self.anchors.add(value)
+
+          def target(source, value):
+              url = urlsplit(urljoin(origin + prefix + source, value))
+              if url.scheme not in ("http", "https") or url.netloc != urlsplit(origin).netloc:
+                  return None
+              path = unquote(url.path)
+              if not path.startswith(prefix):
+                  raise ValueError("same-origin link escapes project path")
+              path = path[len(prefix):]
+              if not path or path.endswith("/"):
+                  path += "index.html"
+              if path not in routes and path not in assets:
+                  raise ValueError(f"not in staged allowlist: {path}")
+              if path in assets and url.fragment:
+                  raise ValueError(f"Unexpected fragment for non-HTML asset: {path}")
+              return path, unquote(url.fragment)
+
+          # Positive and negative fixtures verify the resolver itself.
+          assert target("pages/copilot/index.html", "../../downloads/#main") == ("downloads/index.html", "main")
+          assert target("index.html", origin + prefix + "pages/agent/") == ("pages/agent/index.html", "")
+          assert target("index.html", "https://github.com/bradlaw76/Generic.Sidebar") is None
+          assert target("index.html", "assets/h010-pages.css") == ("assets/h010-pages.css", "")
+          assert target("downloads/index.html", "../assets/h010-pages.css") == ("assets/h010-pages.css", "")
+          assert target("pages/copilot/index.html", "../../assets/h010-pages.css") == ("assets/h010-pages.css", "")
+          for missing in ("/Generic.Sidebar/missing.html", "/outside/", "downloads/absent.js",
+                          "assets/absent.css", "assets/h010-pages.css#invalid"):
+              try:
+                  target("index.html", missing)
+              except ValueError:
+                  pass
+              else:
+                  raise AssertionError(f"Accepted unstaged route: {missing}")
+
+          parsed = {}
+          for route in sorted(routes):
+              parser = Page()
+              parser.feed((Path("_site") / route).read_text(encoding="utf-8"))
+              parser.close()
+              parsed[route] = parser
+          count = 0
+          errors = []
+          for source, page in parsed.items():
+              for value, line in page.links:
+                  try:
+                      dest = target(source, value)
+                      if dest is None:
+                          continue
+                      count += 1
+                      route, anchor = dest
+                      if anchor and (route not in parsed or anchor not in parsed[route].anchors):
+                          raise ValueError(f"missing anchor #{anchor} in {route}")
+                  except ValueError as error:
+                      errors.append(f"{source}:{line}: {error}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print(f"Verified {count} same-origin staged href/src references across {len(parsed)} HTML files")
+          PY
+      - name: Verify Pages archive contract without uploading
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Match the pinned v5 composite's Linux tar options with include-hidden-files=true.
+          tar --dereference --hard-dereference --directory _site \
+            -cvf "$RUNNER_TEMP/h010-pages-validation.tar" --exclude=.git --exclude=.github .
+          python3 - "$RUNNER_TEMP/h010-pages-validation.tar" <<'PY'
+          import sys, tarfile
+          from pathlib import Path
+
+          expected = {'.nojekyll', 'index.html', 'downloads/index.html',
+                      'pages/agent/index.html', 'pages/copilot/index.html',
+                      'assets/h010-pages.css', 'assets/h010-tailwind-LICENSE.txt'}
+          with tarfile.open(sys.argv[1], 'r:') as archive:
+              files = {}
+              for member in archive.getmembers():
+                  if member.isdir():
+                      continue
+                  name = member.name.removeprefix('./')
+                  if not member.isfile() or name not in expected or name in files:
+                      raise SystemExit(f'Unexpected archive entry: {member.name}')
+                  files[name] = archive.extractfile(member).read()
+              if set(files) != expected or any(
+                  data != (Path('_site') / name).read_bytes() for name, data in files.items()
+              ):
+                  raise SystemExit('Pages archive content mismatch')
+          print(f'Verified {len(files)} allowlisted archive files including .nojekyll')
+          PY
+  # Production Pages deployment remains push-to-main/manual only.
   deploy:
+    # Manual dispatch accepts arbitrary branch/tag refs; publish from main only.
+    # PR validation always remains read-only and cannot enter this job.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Stage allowlisted public site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never reuse checkout-provided staging paths: hidden symlinks evade
+          # a find -type f inventory and may be dereferenced by artifact packing.
+          if [ -e _site ] || [ -L _site ]; then
+            echo 'Refusing preexisting Pages staging path: _site' >&2
+            exit 1
+          fi
+          mkdir -- _site
+          # Reject symlinked file or directory components before publishing.
+          site_root="$(pwd -P)"
+          for page in index.html downloads/index.html pages/agent/index.html pages/copilot/index.html assets/h010-pages.css assets/h010-tailwind-LICENSE.txt; do
+            if [ ! -f "$page" ] || [ "$(realpath -- "$page")" != "$site_root/$page" ]; then
+              echo "Refusing missing/non-regular or symlinked Pages source: $page" >&2
+              exit 1
+            fi
+          done
+          install -Dm644 index.html _site/index.html
+          install -Dm644 downloads/index.html _site/downloads/index.html
+          install -Dm644 pages/agent/index.html _site/pages/agent/index.html
+          install -Dm644 pages/copilot/index.html _site/pages/copilot/index.html
+          install -Dm644 assets/h010-pages.css _site/assets/h010-pages.css
+          install -Dm644 assets/h010-tailwind-LICENSE.txt _site/assets/h010-tailwind-LICENSE.txt
+          cmp assets/h010-pages.css _site/assets/h010-pages.css
+          cmp assets/h010-tailwind-LICENSE.txt _site/assets/h010-tailwind-LICENSE.txt
+          touch _site/.nojekyll
+          actual="$(find _site -type f | sort)"
+          expected="$(printf '%s\n' \
+            _site/.nojekyll \
+            _site/index.html \
+            _site/downloads/index.html \
+            _site/pages/agent/index.html \
+            _site/pages/copilot/index.html \
+            _site/assets/h010-pages.css \
+            _site/assets/h010-tailwind-LICENSE.txt | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected/missing file in GitHub Pages artifact' >&2
+            exit 1
+          fi
+      - name: Upload allowlisted site artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          # Upload entire repository
-          path: '.'
+          path: '_site'
+          # v5 excludes dotfiles by default; the exact staging allowlist includes .nojekyll.
+          include-hidden-files: 'true'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

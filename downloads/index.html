@@ -170,11 +170,15 @@ NON-NEGOTIABLES (Architecture Contract)
   <meta name="description" content="Downloads per release and per-asset for bradlaw76/Generic.Sidebar with CSV export." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- H010: Chart.js 4.6.1 UMD; npm/CDN bytes and CORS verified in Actions run 45951118747. -->
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../assets/h010-pages.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="../assets/h010-pages.css" /></noscript>
   <style>
     /* Keep chart area responsive without causing layout shift */
     #chartWrap { height: 480px; }
+    /* Loading/status visibility must work even if the stylesheet fails to load. */
+    #statusBox[hidden], #loading[hidden] { display: none !important; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -218,18 +222,18 @@ NON-NEGOTIABLES (Architecture Contract)
       </div>
       <div class="flex items-center gap-2 justify-start sm:justify-end">
         <button id="toggleLegendButton" class="text-sm px-3 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">Toggle Legend</button>
-        <button id="exportCsvBtn" class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
+        <button id="exportCsvBtn" disabled class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
       </div>
     </section>
 
     <!-- Status / Alerts -->
-    <section id="statusBox" class="hidden mb-4 p-3 rounded-md border text-sm"></section>
+    <section id="statusBox" role="status" hidden class="mb-4 p-3 rounded-md border text-sm"></section>
 
     <!-- Chart -->
     <section class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-lg font-semibold text-gray-900">Asset Downloads for Latest Releases</h2>
-        <div id="loading" class="hidden text-sm text-gray-600">Loading…</div>
+        <div id="loading" hidden class="text-sm text-gray-600">Loading…</div>
       </div>
       <div id="chartWrap" class="relative">
         <canvas id="releaseChart" aria-label="Line chart showing asset downloads per release" role="img"></canvas>
@@ -242,6 +246,7 @@ NON-NEGOTIABLES (Architecture Contract)
         <h2 class="text-lg font-semibold text-gray-900">Release Data</h2>
         <span id="rowCount" class="text-sm text-gray-500"></span>
       </div>
+      <p class="text-sm text-gray-600 mb-2">The chart totals count displayed assets only. The table and CSV "Total Downloads" column retain the full release total (all assets), even when filtered.</p>
       <div class="overflow-x-auto overflow-y-auto max-h-[28rem] rounded-md border border-gray-200">
         <table class="min-w-full text-sm" id="releaseTable">
           <thead class="bg-gray-50 text-gray-600">
@@ -251,7 +256,7 @@ NON-NEGOTIABLES (Architecture Contract)
               <th scope="col" class="px-4 py-2 text-left">Release</th>
               <th scope="col" class="px-4 py-2 text-left">Asset</th>
               <th scope="col" class="px-4 py-2 text-left">Downloads</th>
-              <th scope="col" class="px-4 py-2 text-left">Total Downloads</th>
+              <th scope="col" class="px-4 py-2 text-left">All Assets (Release Total)</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -284,7 +289,8 @@ NON-NEGOTIABLES (Architecture Contract)
     const rowCountEl = document.getElementById('rowCount');
 
     let chart;        // Chart.js instance
-    let fullData = []; // processed releases (all pages)
+    let lastChartData;
+    let fullData = []; // processed releases (up to 50)
     let viewData = []; // filtered by controls (count, asset filter)
 
     // Init static links
@@ -293,7 +299,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
     // --- Helpers ---
     function showStatus(type, msg) {
-      statusBox.classList.remove('hidden');
+      statusBox.hidden = false;
       statusBox.textContent = msg;
       statusBox.className = '';
       statusBox.classList.add('mb-4','p-3','rounded-md','border','text-sm');
@@ -305,49 +311,98 @@ NON-NEGOTIABLES (Architecture Contract)
         statusBox.classList.add('border-blue-300','bg-blue-50','text-blue-800');
       }
     }
-    function clearStatus(){ statusBox.classList.add('hidden'); }
+    function clearStatus(){ statusBox.hidden = true; statusBox.textContent = ''; }
 
-    function fmtDateISO(dateStr){
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) return '';
-      return d.toISOString().split('T')[0];
+    function fmtDateISO(published, created) {
+      // Dates are optional display metadata; a missing date must not hide valid counts.
+      for (const value of [published, created]) {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) continue;
+        const time = Date.parse(value);
+        if (Number.isFinite(time)) return new Date(time).toISOString().split('T')[0];
+      }
+      return '';
     }
 
-    async function fetchAllReleases() {
-      // Paginate through /releases (30 per page by default). We'll request 100/page to minimize calls.
-      const perPage = 100;
-      let page = 1;
-      let all = [];
-      while (true) {
-        const url = `${API_BASE}/releases?per_page=${perPage}&page=${page}`;
-        const res = await fetch(url);
-        if (!res.ok) {
-          let detail = `HTTP ${res.status}`;
-          try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
-          throw new Error(detail);
-        }
-        const batch = await res.json();
-        all = all.concat(batch);
-        if (batch.length < perPage) break; // no more pages
-        page++;
-        if (page > 10) break; // safety cap (1000 releases)
+    // Bound the entire release request, including JSON parsing.
+    async function withReleaseDeadline(request) {
+      const controller = new AbortController();
+      let timer;
+      try {
+        return await Promise.race([
+          new Promise((_, reject) => {
+            timer = setTimeout(() => {
+              reject(new Error('Release request timed out. Refresh the page or visit GitHub Releases.'));
+              controller.abort();
+            }, 15000);
+          }),
+          request(controller.signal)
+        ]);
+      } finally {
+        clearTimeout(timer);
       }
-      return all;
+    }
+
+    async function fetchRecentReleases(signal) {
+      // The largest supported view is 50 releases. One request supplies every option.
+      const maxReleases = 50;
+      const url = `${API_BASE}/releases?per_page=${maxReleases}&page=1`;
+      if (signal.aborted) throw new Error('Release request cancelled.');
+      const res = await fetch(url, { signal });
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try { const j = await res.json(); if (j && j.message) detail += ` – ${j.message}`; } catch {}
+        throw new Error(detail);
+      }
+      const batch = await res.json();
+      if (signal.aborted) throw new Error('Release request cancelled.');
+      if (!Array.isArray(batch)) throw new Error('Unexpected releases response');
+      return batch.slice(0, maxReleases);
+    }
+
+    // API-supplied links are optional; never turn unknown destinations into links.
+    function trustedReleaseUrl(value, asset = false) {
+      if (typeof value !== 'string' || !/^https:\/\//i.test(value) ||
+          /[\s\\\u0000-\u001f\u007f]/u.test(value)) return null;
+      try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.hostname !== 'github.com' ||
+            url.username || url.password || url.port) return null;
+        const prefix = '/bradlaw76/generic.sidebar/releases/' + (asset ? 'download/' : 'tag/');
+        if (!url.pathname.toLowerCase().startsWith(prefix) ||
+            url.pathname.length <= prefix.length) return null;
+        // A release asset must have both a tag and filename.
+        if (asset && !/^[^/]+\/.+$/.test(url.pathname.slice(prefix.length))) return null;
+        return url.href;
+      } catch {
+        return null;
+      }
     }
 
     function processReleaseData(releases) {
+      if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
       return releases.map(release => {
-        const totalDownloads = (release.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
+        if (!release || typeof release !== 'object' || Array.isArray(release) || !Array.isArray(release.assets)) {
+          throw new Error('Unexpected release assets');
+        }
+        let totalDownloads = 0;
+        for (const asset of release.assets) {
+          const count = asset && asset.download_count;
+          if (!asset || typeof asset.name !== 'string' || !Number.isSafeInteger(count) ||
+              count < 0 || !Number.isSafeInteger(totalDownloads + count)) {
+            throw new Error('Unexpected asset download data');
+          }
+          totalDownloads += count;
+        }
         return {
           id: release.id,
-          date: fmtDateISO(release.published_at || release.created_at),
+          date: fmtDateISO(release.published_at, release.created_at),
           tagName: release.tag_name,
           releaseName: release.name || release.tag_name || 'Untitled',
-          htmlUrl: release.html_url,
-          assets: (release.assets || []).map(a => ({
+          htmlUrl: trustedReleaseUrl(release.html_url),
+          assets: release.assets.map(a => ({
             name: a.name,
-            downloadCount: a.download_count || 0,
-            url: a.browser_download_url
+            downloadCount: a.download_count,
+            url: trustedReleaseUrl(a.browser_download_url, true)
           })),
           totalDownloads
         };
@@ -365,6 +420,7 @@ NON-NEGOTIABLES (Architecture Contract)
       // If filtering by asset name, keep releases but filter assets
       return latest.map(r => ({
         ...r,
+        assetFilterActive: true,
         assets: r.assets.filter(a => a.name.toLowerCase().includes(filter))
       }));
     }
@@ -383,10 +439,10 @@ NON-NEGOTIABLES (Architecture Contract)
         fill: false,
         tension: 0.25
       }));
-      // Total Downloads line
+      // Sum only the assets included in the current chart view.
       datasets.unshift({
-        label: 'Total Downloads',
-        data: data.map(r => r.totalDownloads).reverse(),
+        label: 'Total Downloads (shown assets)',
+        data: data.map(r => r.assets.reduce((sum, asset) => sum + asset.downloadCount, 0)).reverse(),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         fill: true,
@@ -398,7 +454,72 @@ NON-NEGOTIABLES (Architecture Contract)
       return datasets;
     }
 
+    function showChartUnavailable() {
+      const canvas = document.getElementById('releaseChart');
+      canvas.style.display = 'none';
+      if (!document.getElementById('chartUnavailable')) {
+        const note = document.createElement('p');
+        note.id = 'chartUnavailable';
+        note.setAttribute('role', 'status');
+        note.textContent = 'Chart unavailable; release data is available in the table below.';
+        canvas.parentElement.appendChild(note);
+      } else {
+        document.getElementById('chartUnavailable').textContent =
+          'Chart unavailable; release data is available in the table below.';
+      }
+    }
+
+    // Chart rendering is optional; its failure must not interrupt table/CSV updates.
+    function updateChartSafely(data) {
+      lastChartData = data;
+      try {
+        updateChart(data);
+      } catch (error) {
+        handleChartFailure(error);
+      }
+    }
+
+    function handleChartFailure(error, failedInstance = null) {
+      console.warn('Optional release chart rendering failed:', error);
+      // A constructor may register its canvas before assigning chart.
+      // For an interaction failure, the existing instance is also available.
+      try {
+        const registered = typeof Chart === 'function' && typeof Chart.getChart === 'function'
+          ? Chart.getChart(document.getElementById('releaseChart')) : null;
+        const instance = registered || failedInstance;
+        if (instance) instance.destroy();
+      } catch (cleanupError) {
+        console.warn('Optional release chart cleanup failed:', cleanupError);
+      }
+      chart = null;
+      showChartUnavailable();
+    }
+
+    function toggleLegendSafely() {
+      if (!chart) return;
+      try {
+        chart.options.plugins.legend.display = !chart.options.plugins.legend.display;
+        chart.update();
+      } catch (error) {
+        handleChartFailure(error, chart);
+      }
+    }
+
     function updateChart(data) {
+      if (data.some(r => r.assetFilterActive) && !data.some(r => r.assets.length)) {
+        if (chart) chart.destroy();
+        chart = null;
+        showChartUnavailable();
+        document.getElementById('chartUnavailable').textContent = 'No assets match the current filter.';
+        return;
+      }
+      if (typeof Chart !== 'function') {
+        showChartUnavailable();
+        return;
+      }
+      // A late/local Chart.js recovery should restore a previously hidden canvas.
+      document.getElementById('releaseChart').style.display = '';
+      document.getElementById('chartUnavailable')?.remove();
       const labels = data.map(r => r.tagName || '(no tag)').reverse();
       const datasets = buildDatasets(data);
 
@@ -443,23 +564,31 @@ NON-NEGOTIABLES (Architecture Contract)
 
           const tdRel = document.createElement('td');
           tdRel.className = 'px-4 py-2 whitespace-nowrap';
-          const linkRel = document.createElement('a');
-          linkRel.href = r.htmlUrl;
-          linkRel.target = '_blank';
-          linkRel.rel = 'noopener';
-          linkRel.className = 'text-blue-600 hover:underline';
-          linkRel.textContent = r.releaseName || r.tagName || 'Release';
-          tdRel.appendChild(linkRel);
+          if (r.htmlUrl) {
+            const linkRel = document.createElement('a');
+            linkRel.href = r.htmlUrl;
+            linkRel.target = '_blank';
+            linkRel.rel = 'noopener noreferrer';
+            linkRel.className = 'text-blue-600 hover:underline';
+            linkRel.textContent = r.releaseName || r.tagName || 'Release';
+            tdRel.appendChild(linkRel);
+          } else {
+            tdRel.textContent = r.releaseName || r.tagName || 'Release';
+          }
 
           const tdAsset = document.createElement('td');
           tdAsset.className = 'px-4 py-2 whitespace-nowrap';
-          const linkAsset = document.createElement('a');
-          linkAsset.href = a.url || '#';
-          linkAsset.target = '_blank';
-          linkAsset.rel = 'noopener';
-          linkAsset.className = 'text-blue-600 hover:underline';
-          linkAsset.textContent = a.name || '';
-          tdAsset.appendChild(linkAsset);
+          if (a.url) {
+            const linkAsset = document.createElement('a');
+            linkAsset.href = a.url;
+            linkAsset.target = '_blank';
+            linkAsset.rel = 'noopener noreferrer';
+            linkAsset.className = 'text-blue-600 hover:underline';
+            linkAsset.textContent = a.name || '';
+            tdAsset.appendChild(linkAsset);
+          } else {
+            tdAsset.textContent = a.name || '';
+          }
 
           const tdCount = document.createElement('td');
           tdCount.className = 'px-4 py-2 whitespace-nowrap text-gray-700';
@@ -476,6 +605,15 @@ NON-NEGOTIABLES (Architecture Contract)
       }
       rowCountEl.textContent = rows ? `${rows.toLocaleString()} rows` : 'No rows';
       exportCsvBtn.disabled = !rows;
+    }
+
+    // GitHub release metadata can contain spreadsheet formula-like text.
+    // Prefix such cells before ordinary CSV escaping so exports open as data.
+    function csvEscapeCell(cell) {
+      const raw = String(cell ?? '');
+      const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(raw) ? "'" + raw : raw;
+      const escaped = safe.replace(/"/g, '""');
+      return /[",\r\n]/.test(safe) ? '"' + escaped + '"' : escaped;
     }
 
     function exportToCSV(data) {
@@ -495,12 +633,7 @@ NON-NEGOTIABLES (Architecture Contract)
           ]);
         }
       }
-      const csv = [header, ...rows].map(row => row.map(cell => {
-        // CSV-escape cell
-        const needsQuote = /[",\n]/.test(cell);
-        let v = cell.replace(/"/g, '""');
-        return needsQuote ? `"${v}"` : v;
-      }).join(',')).join('\n');
+      const csv = [header, ...rows].map(row => row.map(csvEscapeCell).join(',')).join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -522,54 +655,67 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     async function load() {
-      clearStatus();
-      loadingEl.classList.remove('hidden');
+      exportCsvBtn.disabled = true;
+      showStatus('info', 'Loading release data…');
+      loadingEl.hidden = false;
       try {
-        // Get all releases
-        const releases = await fetchAllReleases();
-        if (!releases || releases.length === 0) {
-          showStatus('warn', 'No releases found for this repository.');
-        }
-        // Check rate limit from last fetch headers (if available)
+        // Get the maximum selectable release dataset.
+        const releases = await withReleaseDeadline(fetchRecentReleases);
         fullData = processReleaseData(releases);
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
+        if (!releases.length) {
+          showStatus('warn', 'No releases found for this repository.');
+        } else if (!fullData.some(r => r.assets.length)) {
+          showStatus('warn', 'No downloadable release assets found.');
+        } else {
+          clearStatus();
+        }
       } catch (e) {
         console.error(e);
         showStatus('error', e.message || 'Unexpected error while loading releases.');
       } finally {
-        loadingEl.classList.add('hidden');
+        loadingEl.hidden = true;
       }
     }
 
     // --- Events ---
     toggleLegendButton.addEventListener('click', () => {
-      if (!chart) return;
-      const cur = chart.options.plugins.legend.display;
-      chart.options.plugins.legend.display = !cur;
-      chart.update();
-    });
-
-    releaseCountSel.addEventListener('change', () => {
-      viewData = applyViewFilters();
-      updateChart(viewData);
-      updateTable(viewData);
+      toggleLegendSafely();
     });
 
     let filterDebounce;
+    releaseCountSel.addEventListener('change', () => {
+      clearTimeout(filterDebounce);
+      filterDebounce = undefined;
+      viewData = applyViewFilters();
+      updateTable(viewData);
+      updateChartSafely(viewData);
+    });
+
     assetFilterInp.addEventListener('input', () => {
       clearTimeout(filterDebounce);
+      // Never export the previous filter's rows while an update is pending.
+      exportCsvBtn.disabled = true;
       filterDebounce = setTimeout(() => {
+        filterDebounce = undefined;
         viewData = applyViewFilters();
-        updateChart(viewData);
         updateTable(viewData);
+        updateChartSafely(viewData);
       }, 250);
     });
 
-    exportCsvBtn.addEventListener('click', () => exportToCSV(viewData));
+    exportCsvBtn.addEventListener('click', () => {
+      if (!exportCsvBtn.disabled) exportToCSV(viewData);
+    });
 
     // Kick off
+    // Recover optional chart after its asynchronous script loads. The release
+    // request starts immediately, even if the CDN never responds.
+    document.getElementById('releaseChartScript').addEventListener('load', () => {
+      if (lastChartData !== undefined && filterDebounce === undefined) updateChartSafely(lastChartData);
+    }, { once: true });
     load();
   </script>
 </body>

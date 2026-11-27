@@ -228,7 +228,7 @@ NON-NEGOTIABLES (Architecture Contract)
     </nav>
     <header>
       <h1>Generic.Sidebar Agent — How to use</h1>
-      <p class="muted">The bot is embedded but does not auto-start. Send a first message (e.g., <kbd>help</kbd>) to begin.</p>
+      <p class="muted">Open the embedded bot and send a first message (e.g., <kbd>help</kbd>) if the chat is available.</p>
       <div class="cta-row">
         <a class="btn" href="https://bradlaw76.github.io/Generic.Sidebar/pages/copilot/index.html" target="_blank" rel="noopener noreferrer">Open the Bot</a>
         <a class="btn secondary" href="https://github.com/bradlaw76/Generic.Sidebar/issues" target="_blank" rel="noopener noreferrer">View Repo Issues</a>
@@ -251,7 +251,8 @@ NON-NEGOTIABLES (Architecture Contract)
           </ul>
         </li>
       </ol>
-      <p class="muted">Notes: The agent uses MCP to call a GitHub tool with a token you control. It will post issues to <code>bradlaw76/Generic.Sidebar</code> (unless configured otherwise).</p>
+      <p class="muted">Issue creation and updates depend on the configured GitHub connection, its identity and permissions. Review the destination, proposed changes and issue text before authorizing submission. The public demo does not establish that requests run under your own GitHub identity.</p>
+      <p><strong>Public issue safety:</strong> Issues and comments in <code>bradlaw76/Generic.Sidebar</code> are public. Use synthetic examples and redact logs. Do not enter credentials, access tokens, personal or customer data, tenant identifiers, or internal screenshots into the demo or public issues.</p>
     </section>
 
     <!-- Section 2 -->
@@ -259,15 +260,15 @@ NON-NEGOTIABLES (Architecture Contract)
       <h2>FAQ</h2>
       <ul>
         <li><strong>The bot doesn’t greet me. Is it broken?</strong><br/>
-            No—auto-start is disabled. Just type <kbd>help</kbd> (or any message) to begin.</li>
+            Try typing <kbd>help</kbd> if the chat loads. If it does not load or cannot respond, use the repository issues link.</li>
         <li><strong>Where do my issues go?</strong><br/>
-            To the GitHub repository configured for the agent (default: <code>bradlaw76/Generic.Sidebar</code>).</li>
+            The destination depends on the agent configuration. Verify that the intended repository is <code>bradlaw76/Generic.Sidebar</code> before submitting.</li>
         <li><strong>Can it update existing issues?</strong><br/>
-            Yes. Refer to an issue by number (e.g., <kbd>#123</kbd>) or ask the agent to search by title.</li>
+            If the configured GitHub tool and identity permit updates, refer to an issue by number (e.g., <kbd>#123</kbd>) or search by title. Verify the issue and proposed changes before submission.</li>
         <li><strong>Can it add labels or assignees?</strong><br/>
-            Yes—include instructions in your request (e.g., <kbd>add label bug</kbd>, <kbd>assign to @username</kbd>).</li>
+            If supported and authorized, include instructions in your request (e.g., <kbd>add label bug</kbd>, <kbd>assign to @username</kbd>).</li>
         <li><strong>Can I attach files?</strong><br/>
-            The agent can include links and text. File uploads depend on your MCP implementation.</li>
+            Link only material intended for public sharing. File uploads and other capabilities depend on the configured tools; do not attach private evidence.</li>
       </ul>
     </section>
 
@@ -286,36 +287,93 @@ NON-NEGOTIABLES (Architecture Contract)
       const repo = 'Generic.Sidebar';
       const badge = document.getElementById('downloadBadge');
 
-      function parseNext(linkHeader) {
+      const releaseApi = `https://api.github.com/repos/${owner}/${repo}/releases`;
+      const repoIdPath = '/repositories/1055108199/releases';
+
+      // Treat pagination links as untrusted response metadata, not fetch targets.
+      function parseNext(linkHeader, currentPage) {
         if (!linkHeader) return null;
-        const nextPart = linkHeader.split(',').map(s => s.trim()).find(s => s.endsWith('rel="next"'));
-        if (!nextPart) return null;
-        const m = nextPart.match(/<([^>]+)>/);
-        return m ? m[1] : null;
+        const nextParts = linkHeader.split(',').map(s => s.trim())
+          .filter(s => /;\s*rel\s*=\s*"next"\s*(?:;|$)/i.test(s));
+        if (!nextParts.length) return null;
+        const m = nextParts[0].match(/^<([^>]+)>/);
+        if (nextParts.length !== 1 || !m || !/^https:\/\//i.test(m[1]) ||
+            /[\s\\\u0000-\u001f\u007f]/u.test(m[1])) {
+          throw new Error('Invalid release pagination link');
+        }
+        const next = new URL(m[1]);
+        const path = next.pathname.toLowerCase();
+        const expectedPath = `/repos/${owner}/${repo}/releases`.toLowerCase();
+        if (next.protocol !== 'https:' || next.hostname !== 'api.github.com' ||
+            next.username || next.password || next.port || next.hash ||
+            (path !== expectedPath && path !== repoIdPath)) {
+          throw new Error('Unexpected release pagination destination');
+        }
+        const page = next.searchParams.getAll('page');
+        const perPage = next.searchParams.getAll('per_page');
+        if (page.length !== 1 || !/^[1-9]\d*$/.test(page[0]) ||
+            !Number.isSafeInteger(Number(page[0])) || Number(page[0]) !== currentPage + 1 ||
+            perPage.length > 1 || (perPage.length === 1 && perPage[0] !== '100') ||
+            [...next.searchParams.keys()].some(key => key !== 'page' && key !== 'per_page')) {
+          throw new Error('Unexpected release pagination sequence');
+        }
+        return Number(page[0]);
       }
 
-      async function fetchTotalDownloads() {
-        let url = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`;
+      // Bound the entire optional badge request, including pagination and JSON.
+      async function withDownloadDeadline(request) {
+        const controller = new AbortController();
+        let timer;
+        try {
+          return await Promise.race([
+            new Promise((_, reject) => {
+              timer = setTimeout(() => {
+                reject(new Error('Download count request timed out'));
+                controller.abort();
+              }, 10000);
+            }),
+            request(controller.signal)
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function fetchTotalDownloads(signal) {
+        let page = 1;
         let total = 0;
 
-        while (url) {
-          const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json' } });
+        while (page !== null) {
+          const url = `${releaseApi}?per_page=100&page=${page}`;
+          if (signal.aborted) throw new Error('Download count request cancelled');
+          const res = await fetch(url, { signal, redirect: 'error', credentials: 'omit', headers: { 'Accept': 'application/vnd.github+json' } });
           if (!res.ok) throw new Error('GitHub API error ' + res.status);
           const releases = await res.json();
+          if (signal.aborted) throw new Error('Download count request cancelled');
+          if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
           for (const r of releases) {
+            if (!r || typeof r !== 'object' || Array.isArray(r)) {
+              throw new Error('Unexpected release record');
+            }
             if (r.draft) continue; // ignore drafts
-            if (Array.isArray(r.assets)) {
-              for (const a of r.assets) total += (a.download_count || 0);
+            if (!Array.isArray(r.assets)) throw new Error('Unexpected release assets');
+            for (const a of r.assets) {
+              const count = a && a.download_count;
+              // Do not coerce arbitrary API values into the numeric total or HTML.
+              if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(total + count)) {
+                throw new Error('Unexpected asset download count');
+              }
+              total += count;
             }
           }
-          url = parseNext(res.headers.get('Link'));
+          page = parseNext(res.headers.get('Link'), page);
         }
         return total;
       }
 
       try {
         badge.innerHTML = '<small>Downloads</small> …';
-        const total = await fetchTotalDownloads();
+        const total = await withDownloadDeadline(fetchTotalDownloads);
         badge.innerHTML = `<small>Downloads</small> ${total.toLocaleString()}`;
       } catch (e) {
         console.error(e);

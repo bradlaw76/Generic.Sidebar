@@ -168,8 +168,10 @@ NON-NEGOTIABLES (Architecture Contract)
   <title>Generic.Sidebar</title>
   <meta name="description" content="Generic Sidebar for Dynamics 365 — a flexible, table-driven side pane for model-driven apps." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="assets/h010-pages.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="assets/h010-pages.css" /></noscript>
+  <!-- H010: Chart.js 4.6.1 UMD; npm/CDN bytes and CORS verified in Actions run 45951118747. -->
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
   <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>
@@ -232,8 +234,9 @@ NON-NEGOTIABLES (Architecture Contract)
         </div>
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-lg font-medium text-gray-900">Release Data Table</h3>
-          <button id="exportCsvBtn" class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
+          <button id="exportCsvBtn" disabled class="text-sm px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">Export CSV</button>
         </div>
+        <p id="releaseStatsStatus" role="status" class="text-sm text-gray-700 mb-2">Loading release statistics…</p>
         <div class="overflow-x-auto overflow-y-auto max-h-96 border border-gray-200 rounded-md">
           <table id="releaseTable" class="min-w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
@@ -263,29 +266,145 @@ NON-NEGOTIABLES (Architecture Contract)
     // === Stats Script ===
     const REPO = "bradlaw76/Generic.Sidebar";
     let chart;
+    let lastChartData;
     let releaseData = [];
 
-    async function fetchReleases() {
-      const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`);
+    // Bound the entire release request, including pagination and JSON parsing.
+    async function withReleaseDeadline(request) {
+      const controller = new AbortController();
+      let timer;
+      try {
+        return await Promise.race([
+          new Promise((_, reject) => {
+            timer = setTimeout(() => {
+              reject(new Error('Release request timed out. Refresh the page or visit GitHub Releases.'));
+              controller.abort();
+            }, 15000);
+          }),
+          request(controller.signal)
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchReleases(signal) {
+      const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }
 
+    // API-supplied links are optional; never turn unknown destinations into links.
+    function trustedReleaseUrl(value, asset = false) {
+      if (typeof value !== 'string' || !/^https:\/\//i.test(value) ||
+          /[\s\\\u0000-\u001f\u007f]/u.test(value)) return null;
+      try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.hostname !== 'github.com' ||
+            url.username || url.password || url.port) return null;
+        const prefix = '/bradlaw76/generic.sidebar/releases/' + (asset ? 'download/' : 'tag/');
+        if (!url.pathname.toLowerCase().startsWith(prefix) ||
+            url.pathname.length <= prefix.length) return null;
+        // A release asset must have both a tag and filename.
+        if (asset && !/^[^/]+\/.+$/.test(url.pathname.slice(prefix.length))) return null;
+        return url.href;
+      } catch {
+        return null;
+      }
+    }
+
+    function fmtDateISO(published, created) {
+      // Dates are optional display metadata; a missing date must not hide valid counts.
+      for (const value of [published, created]) {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) continue;
+        const time = Date.parse(value);
+        if (Number.isFinite(time)) return new Date(time).toISOString().split('T')[0];
+      }
+      return '';
+    }
+
     function processData(releases) {
+      if (!Array.isArray(releases)) throw new Error('Unexpected releases response');
       return releases.map(r => {
-        const totalDownloads = (r.assets || []).reduce((s,a) => s + (a.download_count||0), 0);
+        if (!r || typeof r !== 'object' || Array.isArray(r) || !Array.isArray(r.assets)) {
+          throw new Error('Unexpected release assets');
+        }
+        let totalDownloads = 0;
+        for (const asset of r.assets) {
+          const count = asset && asset.download_count;
+          if (!asset || typeof asset.name !== 'string' || !Number.isSafeInteger(count) ||
+              count < 0 || !Number.isSafeInteger(totalDownloads + count)) {
+            throw new Error('Unexpected asset download data');
+          }
+          totalDownloads += count;
+        }
         return {
-          date: new Date(r.published_at).toISOString().split('T')[0],
+          date: fmtDateISO(r.published_at, r.created_at),
           tag: r.tag_name,
           name: r.name || r.tag_name,
-          url: r.html_url,
-          assets: (r.assets||[]).map(a => ({name: a.name, downloads: a.download_count, url: a.browser_download_url})),
+          url: trustedReleaseUrl(r.html_url),
+          assets: r.assets.map(a => ({name: a.name, downloads: a.download_count, url: trustedReleaseUrl(a.browser_download_url, true)})),
           total: totalDownloads
         };
       });
     }
 
+    function showChartUnavailable() {
+      const canvas = document.getElementById('releaseChart');
+      canvas.style.display = 'none';
+      if (!document.getElementById('chartUnavailable')) {
+        const note = document.createElement('p');
+        note.id = 'chartUnavailable';
+        note.setAttribute('role', 'status');
+        note.textContent = 'Chart unavailable; release data is available in the table below.';
+        canvas.parentElement.appendChild(note);
+      }
+    }
+
+    // Chart rendering is optional; its failure must not interrupt table/CSV updates.
+    function updateChartSafely(data) {
+      lastChartData = data;
+      try {
+        updateChart(data);
+      } catch (error) {
+        handleChartFailure(error);
+      }
+    }
+
+    function handleChartFailure(error, failedInstance = null) {
+      console.warn('Optional release chart rendering failed:', error);
+      // A constructor may register its canvas before assigning chart.
+      // For an interaction failure, the existing instance is also available.
+      try {
+        const registered = typeof Chart === 'function' && typeof Chart.getChart === 'function'
+          ? Chart.getChart(document.getElementById('releaseChart')) : null;
+        const instance = registered || failedInstance;
+        if (instance) instance.destroy();
+      } catch (cleanupError) {
+        console.warn('Optional release chart cleanup failed:', cleanupError);
+      }
+      chart = null;
+      showChartUnavailable();
+    }
+
+    function toggleLegendSafely() {
+      if (!chart) return;
+      try {
+        chart.options.plugins.legend.display = !chart.options.plugins.legend.display;
+        chart.update();
+      } catch (error) {
+        handleChartFailure(error, chart);
+      }
+    }
+
     function updateChart(data){
+      if (typeof Chart !== 'function') {
+        showChartUnavailable();
+        return;
+      }
+      // A late/local Chart.js recovery should restore a previously hidden canvas.
+      document.getElementById('releaseChart').style.display = '';
+      document.getElementById('chartUnavailable')?.remove();
       const ctx = document.getElementById('releaseChart').getContext('2d');
       const labels = data.map(r => r.tag).reverse();
       const datasets = [];
@@ -328,23 +447,31 @@ NON-NEGOTIABLES (Architecture Contract)
 
           const tdRelease = document.createElement('td');
           tdRelease.className = 'px-4 py-2';
-          const linkRel = document.createElement('a');
-          linkRel.href = r.url;
-          linkRel.target = '_blank';
-          linkRel.rel = 'noopener noreferrer';
-          linkRel.className = 'text-blue-600 hover:underline';
-          linkRel.textContent = r.name;
-          tdRelease.appendChild(linkRel);
+          if (r.url) {
+            const linkRel = document.createElement('a');
+            linkRel.href = r.url;
+            linkRel.target = '_blank';
+            linkRel.rel = 'noopener noreferrer';
+            linkRel.className = 'text-blue-600 hover:underline';
+            linkRel.textContent = r.name;
+            tdRelease.appendChild(linkRel);
+          } else {
+            tdRelease.textContent = r.name;
+          }
 
           const tdAsset = document.createElement('td');
           tdAsset.className = 'px-4 py-2';
-          const linkAsset = document.createElement('a');
-          linkAsset.href = a.url;
-          linkAsset.target = '_blank';
-          linkAsset.rel = 'noopener noreferrer';
-          linkAsset.className = 'text-blue-600 hover:underline';
-          linkAsset.textContent = a.name;
-          tdAsset.appendChild(linkAsset);
+          if (a.url) {
+            const linkAsset = document.createElement('a');
+            linkAsset.href = a.url;
+            linkAsset.target = '_blank';
+            linkAsset.rel = 'noopener noreferrer';
+            linkAsset.className = 'text-blue-600 hover:underline';
+            linkAsset.textContent = a.name;
+            tdAsset.appendChild(linkAsset);
+          } else {
+            tdAsset.textContent = a.name;
+          }
 
           const tdDownloads = document.createElement('td');
           tdDownloads.className = 'px-4 py-2';
@@ -361,29 +488,45 @@ NON-NEGOTIABLES (Architecture Contract)
     }
 
     async function loadStats(){
+      const status = document.getElementById('releaseStatsStatus');
+      const exportButton = document.getElementById('exportCsvBtn');
+      status.textContent = 'Loading release statistics…';
+      exportButton.disabled = true;
       try{
-        const releases = await fetchReleases();
+        const releases = await withReleaseDeadline(fetchReleases);
         releaseData = processData(releases);
-        updateChart(releaseData);
         updateTable(releaseData);
+        updateChartSafely(releaseData);
+        const hasAssets = releaseData.some(release => release.assets.length > 0);
+        exportButton.disabled = !hasAssets;
+        status.textContent = hasAssets
+          ? 'Release statistics loaded.'
+          : 'No downloadable release assets were returned.';
       }catch(e){
         console.error(e);
+        releaseData = [];
+        status.textContent = 'Release statistics unavailable. Refresh the page or visit GitHub Releases.';
       }
     }
 
     document.getElementById('toggleLegendButton').addEventListener('click',()=>{
-      if(chart){chart.options.plugins.legend.display=!chart.options.plugins.legend.display;chart.update();}
+      toggleLegendSafely();
     });
+    // GitHub release metadata can contain spreadsheet formula-like text.
+    // Prefix such cells before ordinary CSV escaping so exports open as data.
+    function csvEscapeCell(cell) {
+      const raw = String(cell ?? '');
+      const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(raw) ? "'" + raw : raw;
+      const escaped = safe.replace(/"/g, '""');
+      return /[",\r\n]/.test(safe) ? '"' + escaped + '"' : escaped;
+    }
+
     document.getElementById('exportCsvBtn').addEventListener('click',()=>{
       if(!releaseData.length) return;
       const header=['Release Date','Tag','Name','Asset','Downloads','Total Downloads'];
       const rows=releaseData.flatMap(r=>r.assets.map(a=>[r.date,r.tag,r.name,a.name,a.downloads,r.total]));
-      const csv=[header,...rows].map(r=>r.map(cell=>{
-        const s=String(cell);
-        const needsQuote=/[",\n]/.test(s);
-        let v=s.replace(/"/g,'""');
-        return needsQuote?`"${v}"`:v;
-      }).join(',')).join('\n');
+      const csv=[header,...rows].map(r=>r.map(csvEscapeCell).join(',')).join('\n');
+
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
       const link=document.createElement('a');
       link.href=URL.createObjectURL(blob);
@@ -391,6 +534,11 @@ NON-NEGOTIABLES (Architecture Contract)
       link.click();
     });
 
+    // Recover optional chart after its asynchronous script loads. The release
+    // request starts immediately, even if the CDN never responds.
+    document.getElementById('releaseChartScript').addEventListener('load', () => {
+      if (lastChartData !== undefined) updateChartSafely(lastChartData);
+    }, { once: true });
     loadStats();
   </script>
 </body>
