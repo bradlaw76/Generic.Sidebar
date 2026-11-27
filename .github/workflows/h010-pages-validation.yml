@@ -9,6 +9,8 @@ on:
       - 'tests/pages/h010-release-chart.test.cjs'
       - 'pages/copilot/index.html'
       - 'tools/h010-pages-css/**'
+      - 'assets/h010-pages.css'
+      - 'assets/h010-tailwind-LICENSE.txt'
       - '.github/workflows/h010-pages-validation.yml'
   push:
     branches:
@@ -130,7 +132,9 @@ jobs:
           cp -- index.html "$tmp/home.html"
           cp -- downloads/index.html "$tmp/downloads.html"
           cp -- pages/copilot/index.html "$tmp/copilot.html"
-          cp -- tools/h010-pages-css/{package.json,input.css,tailwind.config.cjs} "$tmp/"
+          cp -- tools/h010-pages-css/{package.json,package-lock.json,input.css,tailwind.config.cjs} "$tmp/"
+          cp -- assets/h010-pages.css "$tmp/committed.css"
+          cp -- assets/h010-tailwind-LICENSE.txt "$tmp/committed.LICENSE"
           source_sha="$(git rev-parse HEAD)"
           cd "$tmp"
           export npm_config_registry=https://registry.npmjs.org/
@@ -138,7 +142,6 @@ jobs:
           export npm_config_audit=false
           export npm_config_fund=false
           npm view tailwindcss@3.4.17 --json > metadata.json
-          npm install --package-lock-only --ignore-scripts
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -171,6 +174,10 @@ jobs:
           cmp first.LICENSE node_modules/tailwindcss/LICENSE
           node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o second.css --minify
           cmp first.css second.css
+          # Fail if a clean build does not reproduce the committed public asset and license.
+          cmp committed.css first.css
+          cmp committed.LICENSE first.LICENSE
+          echo 'Committed stylesheet and MIT license reproduced byte-for-byte from the checked-in lock.'
           python3 - <<'PY'
           from pathlib import Path
           css = Path("first.css").read_text()
@@ -195,7 +202,7 @@ jobs:
           printf '%s\n' "$source_sha" > "$evidence/SOURCE_SHA.txt"
           (cd "$evidence" && sha256sum package-lock.json tailwind.min.css TAILWIND-LICENSE.txt SOURCE_SHA.txt > SHA256SUMS.txt)
           echo "directory=$evidence" >> "$GITHUB_OUTPUT"
-          echo 'Candidate only: two clean locked installs; no HTML change, Pages deployment, or layout acceptance.'
+          echo 'Two clean installs reproduced committed CSS/license; no Pages deployment or layout acceptance.'
       - name: Retain exact public CSS candidate bytes for source review
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
