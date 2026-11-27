@@ -169,7 +169,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <meta name="description" content="Generic Sidebar for Dynamics 365 — a flexible, table-driven side pane for model-driven apps." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
   <script async src="https://cdn.tailwindcss.com"></script>
-  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- H010: Chart.js 4.6.1 UMD; npm/CDN bytes and CORS verified in Actions run 45951118747. -->
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
   <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>

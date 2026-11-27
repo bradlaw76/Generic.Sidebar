@@ -170,7 +170,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <meta name="description" content="Downloads per release and per-asset for bradlaw76/Generic.Sidebar with CSV export." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
 
-  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- H010: Chart.js 4.6.1 UMD; npm/CDN bytes and CORS verified in Actions run 45951118747. -->
+  <script async id="releaseChartScript" src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
   <script async src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Keep chart area responsive without causing layout shift */

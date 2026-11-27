@@ -517,6 +517,26 @@ function asyncChartHarness(page) {
 }
 
 for (const page of pages) {
+  test(page + ': Chart.js uses the verified immutable UMD path, SRI and anonymous CORS', () => {
+    const html = fs.readFileSync(path.join(root, page), 'utf8');
+    const tags = [...html.matchAll(/<script\b([^>]*)>/gi)]
+      .map(match => match[1])
+      .filter(attrs => /\bid\s*=\s*["']releaseChartScript["']/i.test(attrs) ||
+        attrs.includes('cdn.jsdelivr.net/npm/chart.js'));
+    assert.equal(tags.length, 1, 'exactly one Chart.js script is permitted');
+    const attrs = tags[0];
+    const attribute = name => {
+      const values = [...attrs.matchAll(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*"([^"]*)"', 'gi'))];
+      assert.equal(values.length, 1, 'exactly one ' + name + ' attribute');
+      return values[0][1];
+    };
+    assert.equal(attribute('id'), 'releaseChartScript');
+    assert.equal(attribute('src'), 'https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js');
+    assert.equal(attribute('integrity'), 'sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0');
+    assert.equal(attribute('crossorigin'), 'anonymous');
+    assert.match(attrs, /(?:^|\s)async(?:\s|$)/);
+  });
+
   test(page + ': optional CDN scripts are parser-nonblocking and API starts independently', () => {
     const html = fs.readFileSync(path.join(root, page), 'utf8');
     for (const host of ['cdn.tailwindcss.com', 'cdn.jsdelivr.net/npm/chart.js']) {
