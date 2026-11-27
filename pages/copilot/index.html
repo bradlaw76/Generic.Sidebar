@@ -171,7 +171,8 @@ NON-NEGOTIABLES (Architecture Contract)
   <meta name="description" content="Copilot Virtual Agent chat for Generic.Sidebar — submit issues and get help." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
   <!-- Version-locked local CSS; essential fallback layout remains inline below. -->
-  <link rel="stylesheet" href="../../assets/h010-pages.css" />
+  <link rel="stylesheet" href="../../assets/h010-pages.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="../../assets/h010-pages.css" /></noscript>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     iframe { width: 100%; border: 0; display: block; }
@@ -203,6 +204,7 @@ NON-NEGOTIABLES (Architecture Contract)
     <strong>Public demo:</strong> Use synthetic or redacted examples only. Do not enter credentials, access tokens, personal or customer data, tenant identifiers, or internal screenshots. GitHub actions depend on the configured identity and permissions; verify the destination and proposed changes before submission. <a href="https://github.com/bradlaw76/Generic.Sidebar/issues">Use GitHub issues directly</a> if chat is unavailable.
   </aside>
   <main class="flex-1 relative">
+    <template id="copilotTemplate">
     <iframe
       id="copilotFrame"
       title="Copilot Virtual Agent"
@@ -210,6 +212,7 @@ NON-NEGOTIABLES (Architecture Contract)
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       style="width:100%;height:100%;">
     </iframe>
+    </template>
     <a id="manualFallback" class="manual-fallback-link" href="/Generic.Sidebar/pages/agent/">Chat blank or blocked? View agent instructions</a>
     <div id="fallbackStatus" class="fallback-status" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="fallback" class="hidden absolute inset-0 flex items-center justify-center bg-gray-50">
@@ -221,7 +224,9 @@ NON-NEGOTIABLES (Architecture Contract)
     </div>
   </main>
   <script>
-    const frame = document.getElementById('copilotFrame');
+    const template = document.getElementById('copilotTemplate');
+    // The template is inert: install handlers on the detached frame before navigation.
+    const frame = template.content.firstElementChild.cloneNode(true);
     const fallback = document.getElementById('fallback');
     const status = document.getElementById('fallbackStatus');
     const recovery = document.getElementById('manualFallback');
@@ -248,6 +253,7 @@ NON-NEGOTIABLES (Architecture Contract)
     timeoutId = setTimeout(() => {
       if (!loaded) showFallback();
     }, 15000);
+    template.replaceWith(frame);
   </script>
 </body>
 </html>

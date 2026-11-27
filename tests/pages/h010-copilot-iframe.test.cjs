@@ -25,11 +25,24 @@ function classList(initial = []) {
   };
 }
 
-function harness() {
+function harness(onInsert) {
   const handlers = {};
+  let inserted = false;
   const frame = {
     classList: classList(),
     addEventListener(name, handler) { handlers[name] = handler; }
+  };
+  const template = {
+    content: { firstElementChild: { cloneNode(deep) { assert.equal(deep, true); return frame; } } },
+    replaceWith(node) {
+      assert.equal(node, frame);
+      assert.equal(typeof handlers.load, 'function');
+      assert.equal(typeof handlers.error, 'function');
+      assert.equal(typeof timer, 'function');
+      assert.equal(inserted, false);
+      inserted = true;
+      if (onInsert) handlers[onInsert]();
+    }
   };
   const fallback = { classList: classList(['hidden']) };
   let timer = null;
@@ -49,7 +62,7 @@ function harness() {
     document: {
       activeElement: navigation,
       getElementById(id) {
-        if (id === 'copilotFrame') return frame;
+        if (id === 'copilotTemplate') return template;
         if (id === 'fallback') return fallback;
         if (id === 'fallbackStatus') return status;
         if (id === 'manualFallback') return recovery;
@@ -67,6 +80,7 @@ function harness() {
     }
   };
   vm.runInNewContext(source, context, { timeout: 1000 });
+  assert.equal(inserted, true);
   assert.equal(typeof handlers.load, 'function');
   assert.equal(typeof handlers.error, 'function');
   assert.equal(typeof timer, 'function');
@@ -137,10 +151,15 @@ test('manual agent-instructions escape remains available even if iframe fires lo
 test('local stylesheet replaces remote Tailwind; fallback logic does not require CSS', () => {
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i);
   assert.ok(head, 'Page head must exist');
-  const sheets = [...head[1].matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
+  const noJs = head[1].match(/<noscript>([\s\S]*?)<\/noscript>/i);
+  assert.ok(noJs, 'No-JS stylesheet must remain available');
+  assert.match(noJs[1], /rel="stylesheet" href="\.\.\/\.\.\/assets\/h010-pages\.css"/);
+  const sheets = [...head[1].replace(noJs[0], '').matchAll(/<link\b([^>]*)>/gi)].map(m => m[1])
     .filter(attrs => /\brel\s*=\s*"stylesheet"/i.test(attrs));
   assert.equal(sheets.length, 1);
   assert.ok(sheets[0].includes('href="../../assets/h010-pages.css"'));
+  assert.match(sheets[0], /media="print"/);
+  assert.ok(sheets[0].includes("onload=\"this.media='all'\""));
   assert.doesNotMatch(html, /cdn\.tailwindcss\.com/i);
   assert.ok(fs.statSync(path.resolve(__dirname, '../../assets/h010-pages.css')).size > 0);
   assert.ok(html.indexOf('id="copilotFrame"') < html.indexOf('function showFallback()'));
@@ -209,4 +228,24 @@ test('timeout restores iframe focus; timely load remains silent and preserves fo
   assert.equal(timely.activeElement, timely.frame);
   assert.equal(timely.announcementCount, 0);
   assert.equal(timely.focusCount, 0);
+});
+
+test('remote navigation is inert until listeners and deadline are registered', () => {
+  const template = html.match(/<template id="copilotTemplate">([\s\S]*?)<\/template>/);
+  assert.ok(template);
+  assert.match(template[1], /<iframe\b[^>]*id="copilotFrame"[^>]*src="https:\/\/gcc\.powerva\.microsoft\.us\//);
+  assert.doesNotMatch(html.replace(template[0], ''), /<iframe\b/i);
+  assert.ok(source.indexOf("frame.addEventListener('load'") < source.indexOf('template.replaceWith(frame)'));
+  assert.ok(source.indexOf('timeoutId = setTimeout(') < source.indexOf('template.replaceWith(frame)'));
+  const early = harness('load');
+  assert.equal(early.timerCleared, true);
+  early.expireTimer();
+  assert.equal(early.fallback.classList.contains('hidden'), true);
+});
+
+test('error at insertion reaches fallback and cancels the registered deadline', () => {
+  const early = harness('error');
+  assert.equal(early.timerCleared, true);
+  assert.equal(early.fallback.classList.contains('hidden'), false);
+  assert.equal(early.announcementCount, 1);
 });
