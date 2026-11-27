@@ -473,19 +473,33 @@ NON-NEGOTIABLES (Architecture Contract)
       try {
         updateChart(data);
       } catch (error) {
-        console.warn('Optional release chart rendering failed:', error);
-        // A constructor can fail after registering the canvas, before assigning chart.
-        // Release that instance so a later filter change can recover.
-        try {
-          if (typeof Chart === 'function' && typeof Chart.getChart === 'function') {
-            const registered = Chart.getChart(document.getElementById('releaseChart'));
-            if (registered) registered.destroy();
-          }
-        } catch (cleanupError) {
-          console.warn('Optional release chart cleanup failed:', cleanupError);
-        }
-        chart = null;
-        showChartUnavailable();
+        handleChartFailure(error);
+      }
+    }
+
+    function handleChartFailure(error, failedInstance = null) {
+      console.warn('Optional release chart rendering failed:', error);
+      // A constructor may register its canvas before assigning chart.
+      // For an interaction failure, the existing instance is also available.
+      try {
+        const registered = typeof Chart === 'function' && typeof Chart.getChart === 'function'
+          ? Chart.getChart(document.getElementById('releaseChart')) : null;
+        const instance = registered || failedInstance;
+        if (instance) instance.destroy();
+      } catch (cleanupError) {
+        console.warn('Optional release chart cleanup failed:', cleanupError);
+      }
+      chart = null;
+      showChartUnavailable();
+    }
+
+    function toggleLegendSafely() {
+      if (!chart) return;
+      try {
+        chart.options.plugins.legend.display = !chart.options.plugins.legend.display;
+        chart.update();
+      } catch (error) {
+        handleChartFailure(error, chart);
       }
     }
 
@@ -666,10 +680,7 @@ NON-NEGOTIABLES (Architecture Contract)
 
     // --- Events ---
     toggleLegendButton.addEventListener('click', () => {
-      if (!chart) return;
-      const cur = chart.options.plugins.legend.display;
-      chart.options.plugins.legend.display = !cur;
-      chart.update();
+      toggleLegendSafely();
     });
 
     let filterDebounce;

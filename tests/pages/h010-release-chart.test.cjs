@@ -1021,3 +1021,89 @@ for (const page of pages) {
     assert.equal(h.note, null);
   });
 }
+
+// H010: execute the actual registered legend click handler against the chart
+// functions; an optional chart failure must never invalidate release data.
+for (const page of pages) {
+  test(page + ': legend clicks toggle normally, isolate update failures and recover', () => {
+    const { source, fragment } = readChartScript(page);
+    const h = harness(fragment);
+    const data = page === 'index.html'
+      ? [{ tag: 'v1', assets: [{ name: 'demo.zip', downloads: 3 }], total: 3 }]
+      : [{ tagName: 'v1', assets: [{ name: 'demo.zip', downloadCount: 3 }], totalDownloads: 3 }];
+    const snapshot = JSON.stringify(data);
+    let click, registered, updates = 0, destroys = 0, failUpdate = false, failCleanup = false;
+    let tableCalls = 0, exportCalls = 0;
+    h.context.updateTable = () => { tableCalls++; };
+    h.context.exportToCSV = () => { exportCalls++; };
+    const button = { addEventListener(event, callback) {
+      assert.equal(event, 'click');
+      click = callback;
+    } };
+    const doc = h.context.document;
+    const getElement = doc.getElementById.bind(doc);
+    doc.getElementById = id => id === 'toggleLegendButton' ? button : getElement(id);
+    h.context.toggleLegendButton = button;
+    const start = source.indexOf(page === 'index.html'
+      ? "document.getElementById('toggleLegendButton').addEventListener"
+      : "toggleLegendButton.addEventListener('click'");
+    const end = source.indexOf('\n    });', start);
+    assert.ok(start >= 0 && end > start);
+    vm.runInContext(source.slice(start, end + '\n    });'.length), h.context);
+    assert.equal(typeof click, 'function');
+    assert.doesNotThrow(click, 'missing chart is a no-op');
+    assert.equal(h.note, null);
+    function TestChart(_ctx, config) {
+      if (registered) throw new Error('canvas already in use');
+      registered = {
+        options: config.options,
+        update() {
+          updates++;
+          if (failUpdate) throw new Error('synthetic legend update failure');
+        },
+        destroy() {
+          destroys++;
+          registered = undefined;
+          if (failCleanup) throw new Error('synthetic cleanup failure');
+        }
+      };
+      return registered;
+    }
+    TestChart.getChart = canvas => {
+      assert.equal(canvas, h.canvas);
+      return registered;
+    };
+    h.context.Chart = TestChart;
+    h.update(data);
+    assert.equal(registered.options.plugins.legend.display, false);
+    click();
+    assert.equal(registered.options.plugins.legend.display, true);
+    click();
+    assert.equal(registered.options.plugins.legend.display, false);
+    assert.equal(updates, 2);
+    assert.equal(destroys, 0);
+    for (const cleanupThrows of [false, true]) {
+      failUpdate = true;
+      failCleanup = cleanupThrows;
+      assert.doesNotThrow(click);
+      assert.equal(h.canvas.style.display, 'none');
+      assert.equal(h.note?.role, 'status');
+      assert.match(h.note.textContent, /Chart unavailable/);
+      assert.equal(vm.runInContext('chart', h.context), null);
+      assert.equal(registered, undefined);
+      assert.doesNotThrow(click, 'failed chart is no longer interactive');
+      failUpdate = false;
+      failCleanup = false;
+      assert.doesNotThrow(() => h.update(data));
+      assert.equal(h.canvas.style.display, '');
+      assert.equal(h.note, null);
+      assert.ok(registered);
+    }
+    assert.equal(destroys, 2);
+    assert.equal(updates, 4);
+    assert.equal(h.warnings, 3);
+    assert.equal(JSON.stringify(data), snapshot);
+    assert.equal(tableCalls, 0);
+    assert.equal(exportCalls, 0);
+  });
+}
