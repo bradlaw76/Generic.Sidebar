@@ -99,3 +99,86 @@ jobs:
           print("Verified CORS:", cors[0])
           print("Verified SRI:", digest)
           PY
+
+
+  probe-tailwind-compiler:
+    # H010 / #7212469048: compiler feasibility only; do not publish or change Pages.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout PR source without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Set up Node 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.x'
+          package-manager-cache: false
+      - name: Evaluate pinned Tailwind 3 compiler in disposable directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          # Only public page source enters the compiler context, including inline JS.
+          cp -- index.html "$tmp/home.html"
+          cp -- downloads/index.html "$tmp/downloads.html"
+          cp -- pages/copilot/index.html "$tmp/copilot.html"
+          cd "$tmp"
+          export npm_config_registry=https://registry.npmjs.org/
+          export npm_config_ignore_scripts=true
+          export npm_config_audit=false
+          export npm_config_fund=false
+          printf '%s\n' '{"name":"h010-css-probe","version":"0.0.0","private":true,"devDependencies":{"tailwindcss":"3.4.17"}}' > package.json
+          npm view tailwindcss@3.4.17 --json > metadata.json
+          npm install --package-lock-only --ignore-scripts
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          meta = json.loads(Path("metadata.json").read_text())
+          lock = json.loads(Path("package-lock.json").read_text())
+          assert (meta["name"], meta["version"], meta["license"]) == ("tailwindcss", "3.4.17", "MIT")
+          packages = lock["packages"]
+          compiler = packages["node_modules/tailwindcss"]
+          assert compiler["version"] == "3.4.17"
+          assert compiler["resolved"] == meta["dist"]["tarball"]
+          assert compiler["integrity"] == meta["dist"]["integrity"]
+          for name, package in packages.items():
+              if not name:
+                  continue
+              url = urlsplit(package["resolved"])
+              assert url.scheme == "https" and url.netloc == "registry.npmjs.org", name
+              assert package["integrity"].startswith("sha512-"), name
+              assert not package.get("link"), name
+          print("Compiler version/license/integrity:", compiler["version"], meta["license"], compiler["integrity"])
+          print("Integrity-bearing locked dependency entries:", len(packages) - 1)
+          PY
+          npm ci --ignore-scripts
+          test -s node_modules/tailwindcss/LICENSE
+          printf '%s\n' '@tailwind base;' '@tailwind components;' '@tailwind utilities;' > input.css
+          printf '%s\n' "module.exports = { content: ['./home.html', './downloads.html', './copilot.html'], theme: { extend: {} }, plugins: [] };" > tailwind.config.cjs
+          node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o first.css --minify
+          node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o second.css --minify
+          cmp first.css second.css
+          python3 - <<'PY'
+          from pathlib import Path
+          css = Path("first.css").read_text()
+          required = [
+              ".border-red-300", ".bg-red-50", ".text-red-800",
+              ".border-yellow-300", ".bg-yellow-50", ".text-yellow-800",
+              ".border-blue-300", ".bg-blue-50", ".text-blue-800",
+              r".odd\:bg-white", r".even\:bg-gray-50", ".whitespace-nowrap",
+              r".max-h-\[28rem\]", r".sm\:flex-row", r".sm\:grid-cols-3",
+              r".focus\:not-sr-only", r".disabled\:opacity-50", ".hidden",
+          ]
+          missing = [selector for selector in required if selector not in css]
+          assert not missing, f"Missing static/dynamic utility selectors: {missing}"
+          print("Required static/dynamic utility selectors present:", len(required))
+          PY
+          sha256sum package-lock.json first.css node_modules/tailwindcss/LICENSE
+          wc -c first.css package-lock.json
+          echo 'Probe only: same-lock repeat build; no committed lock, CSS, layout acceptance, or deployment.'
