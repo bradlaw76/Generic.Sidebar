@@ -34,11 +34,25 @@ function harness() {
   const fallback = { classList: classList(['hidden']) };
   let timer = null;
   let cleared = false;
+  let announcement = '';
+  let announcementCount = 0;
+  let focusCount = 0;
+  const navigation = {};
+  const status = {
+    get textContent() { return announcement; },
+    set textContent(value) { announcement = value; announcementCount++; }
+  };
+  const recovery = {
+    focus() { focusCount++; context.document.activeElement = recovery; }
+  };
   const context = {
     document: {
+      activeElement: navigation,
       getElementById(id) {
         if (id === 'copilotFrame') return frame;
         if (id === 'fallback') return fallback;
+        if (id === 'fallbackStatus') return status;
+        if (id === 'manualFallback') return recovery;
         throw new Error('Unexpected document lookup: ' + id);
       }
     },
@@ -57,7 +71,12 @@ function harness() {
   assert.equal(typeof handlers.error, 'function');
   assert.equal(typeof timer, 'function');
   return {
-    frame, fallback,
+    frame, fallback, navigation, recovery,
+    focusFrame() { context.document.activeElement = frame; },
+    get activeElement() { return context.document.activeElement; },
+    get announcement() { return announcement; },
+    get announcementCount() { return announcementCount; },
+    get focusCount() { return focusCount; },
     emit(name) { handlers[name](); },
     expireTimer() { if (!cleared) timer(); },
     get timerCleared() { return cleared; }
@@ -144,4 +163,49 @@ test('direct chat entry shows public-data and identity guidance before the embed
   assert.match(notice[1], /href="https:\/\/github\.com\/bradlaw76\/Generic\.Sidebar\/issues"/);
   assert.match(html, /\.public-demo-notice\s*\{[^}]*flex-shrink:\s*0;/);
   assert.match(html, /\.manual-fallback-link\s*\{[^}]*position:\s*absolute;/);
+});
+
+test('fallback status is persistent, initially empty and locally visually hidden', () => {
+  assert.match(html, /<div id="fallbackStatus" class="fallback-status" role="status" aria-live="polite" aria-atomic="true"><\/div>\s*<div id="fallback"/);
+  assert.match(html, /\.fallback-status\s*\{[^}]*clip-path:\s*inset\(50%\)/);
+  assert.doesNotMatch(html.match(/\.fallback-status\s*\{[^}]*\}/)[0], /display:\s*none|visibility:\s*hidden/);
+});
+
+test('timeout announces once without moving navigation focus; repeated error and late load do not dismiss', () => {
+  const h = harness();
+  assert.equal(h.announcement, '');
+  h.expireTimer();
+  assert.match(h.announcement, /could not be loaded/);
+  assert.equal(h.activeElement, h.navigation);
+  assert.equal(h.focusCount, 0);
+  h.emit('error');
+  h.emit('load');
+  assert.equal(h.announcementCount, 1);
+  assert.equal(h.fallback.classList.contains('hidden'), false);
+});
+
+test('iframe error announces and restores focus to the permanent link only once', () => {
+  const h = harness();
+  h.focusFrame();
+  h.emit('error');
+  assert.match(h.announcement, /View agent instructions instead/);
+  assert.equal(h.activeElement, h.recovery);
+  assert.equal(h.focusCount, 1);
+  h.emit('error');
+  assert.equal(h.announcementCount, 1);
+  assert.equal(h.focusCount, 1);
+});
+
+test('timeout restores iframe focus; timely load remains silent and preserves focus', () => {
+  const stalled = harness();
+  stalled.focusFrame();
+  stalled.expireTimer();
+  assert.equal(stalled.activeElement, stalled.recovery);
+  const timely = harness();
+  timely.focusFrame();
+  timely.emit('load');
+  timely.expireTimer();
+  assert.equal(timely.activeElement, timely.frame);
+  assert.equal(timely.announcementCount, 0);
+  assert.equal(timely.focusCount, 0);
 });
