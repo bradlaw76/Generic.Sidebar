@@ -7,6 +7,8 @@ on:
       - 'downloads/index.html'
       - 'pages/agent/index.html'
       - 'tests/pages/h010-release-chart.test.cjs'
+      - 'pages/copilot/index.html'
+      - 'tools/h010-pages-css/**'
       - '.github/workflows/h010-pages-validation.yml'
   push:
     branches:
@@ -101,22 +103,24 @@ jobs:
           PY
 
 
-  probe-tailwind-compiler:
-    # H010 / #7212469048: compiler feasibility only; do not publish or change Pages.
+  prepare-tailwind-candidate:
+    # H010: retain only public build inputs/outputs for review; not a Pages artifact.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Checkout PR source without persisted credentials
+      - name: Checkout exact PR head without persisted credentials
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Set up Node 24
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '24.x'
           package-manager-cache: false
-      - name: Evaluate pinned Tailwind 3 compiler in disposable directory
+      - name: Build public CSS twice from a clean locked install
+        id: css
         shell: bash
         run: |
           set -euo pipefail
@@ -126,12 +130,13 @@ jobs:
           cp -- index.html "$tmp/home.html"
           cp -- downloads/index.html "$tmp/downloads.html"
           cp -- pages/copilot/index.html "$tmp/copilot.html"
+          cp -- tools/h010-pages-css/{package.json,input.css,tailwind.config.cjs} "$tmp/"
+          source_sha="$(git rev-parse HEAD)"
           cd "$tmp"
           export npm_config_registry=https://registry.npmjs.org/
           export npm_config_ignore_scripts=true
           export npm_config_audit=false
           export npm_config_fund=false
-          printf '%s\n' '{"name":"h010-css-probe","version":"0.0.0","private":true,"devDependencies":{"tailwindcss":"3.4.17"}}' > package.json
           npm view tailwindcss@3.4.17 --json > metadata.json
           npm install --package-lock-only --ignore-scripts
           python3 - <<'PY'
@@ -159,9 +164,11 @@ jobs:
           PY
           npm ci --ignore-scripts
           test -s node_modules/tailwindcss/LICENSE
-          printf '%s\n' '@tailwind base;' '@tailwind components;' '@tailwind utilities;' > input.css
-          printf '%s\n' "module.exports = { content: ['./home.html', './downloads.html', './copilot.html'], theme: { extend: {} }, plugins: [] };" > tailwind.config.cjs
+          cp -- node_modules/tailwindcss/LICENSE first.LICENSE
           node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o first.css --minify
+          # npm ci removes the previous node_modules before installing from this exact lock.
+          npm ci --ignore-scripts
+          cmp first.LICENSE node_modules/tailwindcss/LICENSE
           node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs -i input.css -o second.css --minify
           cmp first.css second.css
           python3 - <<'PY'
@@ -181,4 +188,20 @@ jobs:
           PY
           sha256sum package-lock.json first.css node_modules/tailwindcss/LICENSE
           wc -c first.css package-lock.json
-          echo 'Probe only: same-lock repeat build; no committed lock, CSS, layout acceptance, or deployment.'
+          evidence="$(mktemp -d "$RUNNER_TEMP/h010-css-evidence.XXXXXX")"
+          install -m644 package-lock.json "$evidence/package-lock.json"
+          install -m644 first.css "$evidence/tailwind.min.css"
+          install -m644 first.LICENSE "$evidence/TAILWIND-LICENSE.txt"
+          printf '%s\n' "$source_sha" > "$evidence/SOURCE_SHA.txt"
+          (cd "$evidence" && sha256sum package-lock.json tailwind.min.css TAILWIND-LICENSE.txt SOURCE_SHA.txt > SHA256SUMS.txt)
+          echo "directory=$evidence" >> "$GITHUB_OUTPUT"
+          echo 'Candidate only: two clean locked installs; no HTML change, Pages deployment, or layout acceptance.'
+      - name: Retain exact public CSS candidate bytes for source review
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: h010-css-candidate-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ steps.css.outputs.directory }}/
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: false
+
